@@ -66,45 +66,45 @@ Proyecto DIGITAL HUB ICLAE
 
 ## **Para instalar correctamente este sistema en tu equipo, debes seguir los siguientes pasos**: 
 
-1. Clonar el Repositorio:
-Abrir la terminal en la carpeta donde quieras el proyecto y ejecutar reemplazando con TU nombre de usuario
-git clone https://github.com/tu-usuario/iclae-digital-hub.git
-cd iclae-digital-hub
+- Clonar el Repositorio:  
+  Abrir la terminal en la carpeta donde quieras el proyecto y ejecutar reemplazando con TU nombre de usuario
+    - git clone https://github.com/tu-usuario/iclae-digital-hub.git
+    - cd iclae-digital-hub
 
-2. Crear el entorno virtual (para descargar y tener instaladas las herramientas necesarias para ejecutar el proyecto):
-python -m venv .venv
+- Crear el entorno virtual (para descargar y tener instaladas las herramientas necesarias para ejecutar el proyecto):
+  - python -m venv .venv
 
-3. Activar el entorno
+- Activar el entorno
 
-Windows: .venv\Scripts\activate
-Mac/Linux: source .venv/bin/activate
+  - Windows: .venv\Scripts\activate
+  - Mac/Linux: source .venv/bin/activate
+  
+    (Deben ver el (.venv) al principio de la línea de la terminal).
 
-(Deben ver el (.venv) al principio de la línea de la terminal).
+- Instalar tecnologías (contiene todas las herramientas utilizadas con sus versiones)
+   - pip install -r requirements.txt 
 
-4. Instalar tecnologías (contiene todas las herramientas utilizadas con sus versiones)
-pip install -r requirements.txt 
+- Configurar variables de entorno (Para conexión con base de datos): 
+  - Deben crear un archivo llamado .env en la carpeta raíz (donde está manage.py) y poner sus credenciales de PostgreSQL local:
+  
+      DB_NAME=iclae_db  
+      DB_USER=postgres  
+      DB_PASSWORD=tu_clave_aqui  
+      DB_HOST=localhost  
+      DB_PORT=5432  
 
-5. Configurar variables de entorno (Para conexión con base de datos): 
-Deben crear un archivo llamado .env en la carpeta raíz (donde está manage.py) y poner sus credenciales de PostgreSQL local:
+- Crear base de datos en postgresql 
+  Se recomienda usar pgAdmin4: que es la plataforma de desarrollo para PostgreSQL
+   - En una query poner: CREATE DATABASE iclae_db;  
+  
+      SE ADJUNTAN DOS DOCUMENTOS:  
+  
+     - iclae_schema.sql 
+     - iclae_seed_final.sql 
+  
+  - Los debes ejecutar (en orden) en una query en postgresql  (copia y pega su contenido):  
+     - El primero es para crear las tablas y la estructura de la base de datos  
+     - El segundo es para poblar la base de datos con datos de prueba  
 
-DB_NAME=iclae_db
-DB_USER=postgres
-DB_PASSWORD=tu_clave_aqui
-DB_HOST=localhost
-DB_PORT=5432
-
-6. Crear base de datos en postgresql 
-Se recomienda usar pgAdmin4: que es la plataforma de desarrollo para PostgreSQL
-En una query poner: CREATE DATABASE iclae_db;
-
-SE ADJUNTAN DOS DOCUMENTOS:
-
- iclae_schema.sql 
- iclae_seed_final.sql 
-
-Ejecutar -en orden - en una query en postgresql
-El primero es para crear las tablas y la estructura de la base de datos 
-El segundo es para poblar la base de datos con datos de prueba
-
-7. Aplicar migraciones en la terminal del proyecto
-python manage.py migrate
+- Aplicar migraciones en la terminal del proyecto
+  - python manage.py migrate
