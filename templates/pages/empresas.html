@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Empresas{% endblock %}
+{% block page_title %}Directorio de Empresas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
+    .section-divider-line { height:1px; background: var(--border); flex:1; }
+    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
+
+    .grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; margin-bottom:16px; }
+    .card {
+        border:1px solid var(--border);
+        background:#fff;
+        border-radius:var(--radius-lg);
+        box-shadow:var(--shadow-sm);
+        padding:16px;
+        position: relative;
+        overflow: hidden;
+    }
+    .card::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
+    .grid .card:nth-child(1)::before { background: linear-gradient(90deg,#2563eb,#60a5fa); }
+    .grid .card:nth-child(2)::before { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .grid .card:nth-child(3)::before { background: linear-gradient(90deg,#16a34a,#4ade80); }
+    .kpi-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+    .kpi-value { font-size:30px; font-weight:700; line-height:1; margin-top:8px; }
+
+    .list { display:grid; gap:12px; }
+    .row {
+        border:1px solid var(--border);
+        background:#fff;
+        border-radius:var(--radius-lg);
+        box-shadow:var(--shadow-sm);
+        padding:14px 16px;
+        display:grid;
+        grid-template-columns: 48px 1fr 170px 200px 86px;
+        align-items:center;
+        gap:12px;
+        transition: box-shadow .18s ease, transform .18s ease;
+    }
+    .row:hover { box-shadow:var(--shadow-md); transform: translateY(-1px); }
+    .logo {
+        width:44px;
+        height:44px;
+        border-radius:12px;
+        background:linear-gradient(135deg,#bfdbfe,#93c5fd);
+        color:#1e3a8a;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-weight:800;
+    }
+    .name { font-size:15px; font-weight:700; }
+    .sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .pill { font-size:11px; border-radius:999px; padding:3px 10px; font-weight:700; display:inline-block; }
+    .stats { display:flex; gap:10px; }
+    .stat { text-align:center; min-width:56px; }
+    .stat-v { font-size:15px; font-weight:700; }
+    .stat-l { font-size:10px; color:var(--text-muted); text-transform:uppercase; }
+    .enps { text-align:right; }
+    .enps-v { font-size:22px; font-weight:800; letter-spacing:-.5px; }
+    .enps-l { font-size:10px; color:var(--text-muted); text-transform:uppercase; }
+
+    .r-banca{background:var(--blue-100);color:var(--blue-800)}
+    .r-fintech{background:#dcfce7;color:#166534}
+    .r-tecnologia{background:#d1fae5;color:#065f46}
+    .r-retail{background:#ffe4e6;color:#9f1239}
+    .r-energia{background:#cffafe;color:#155e75}
+    .r-insurtech{background:#ede9fe;color:#5b21b6}
+    .r-hrtech{background:#fef3c7;color:#92400e}
+    .r-default{background:#f1f5f9;color:#475569}
+
+    @media (max-width: 1080px) {
+        .grid { grid-template-columns:1fr; }
+        .row { grid-template-columns: 44px 1fr; }
+        .stats, .enps { grid-column: 2; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-text">🏢 Directorio y rendimiento de empresas</div>
+    <div class="section-divider-line"></div>
+</div>
+
+<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
+    <input name="q" value="{{ filters.q }}" placeholder="Buscar empresa" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
+    <select name="rubro" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+        <option value="">Rubro: todos</option>
+        {% for option in filter_options.rubro %}
+        <option value="{{ option.value }}" {% if filters.rubro == option.value %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+    <select name="presencia" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+        <option value="">Presencia: todas</option>
+        {% for option in filter_options.presencia %}
+        <option value="{{ option.value }}" {% if filters.presencia == option.value %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+    <select name="sort" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+        <option value="practicantes" {% if filters.sort == 'practicantes' %}selected{% endif %}>Mas practicantes</option>
+        <option value="enps" {% if filters.sort == 'enps' %}selected{% endif %}>eNPS</option>
+        <option value="proyectos" {% if filters.sort == 'proyectos' %}selected{% endif %}>Proyectos</option>
+        <option value="nombre" {% if filters.sort == 'nombre' %}selected{% endif %}>Nombre</option>
+    </select>
+    <a href="?" class="pill r-default" style="text-decoration:none;border:1px solid var(--border);">Limpiar filtros</a>
+</form>
+
+<div class="grid">
+    <div class="card"><div class="kpi-label">Empresas activas</div><div class="kpi-value">{{ empresas_count }}</div><div class="sub">Con practicas en curso</div></div>
+    <div class="card"><div class="kpi-label">Periodo</div><div class="kpi-value" style="font-size:24px;">{{ periodo_label }}</div><div class="sub">Configuracion vigente</div></div>
+    <div class="card"><div class="kpi-label">eNPS promedio</div><div class="kpi-value" style="font-size:24px;color:var(--blue-700);">{{ enps_avg }}</div><div class="sub">Pulso real de las empresas</div></div>
+</div>
+
+<div class="list">
+    {% for e in empresas %}
+    <div class="row">
+        <div class="logo">{{ e.initials }}</div>
+        <div>
+            <div class="name">{{ e.nombre }}</div>
+            <div class="sub">{{ e.presencia }} · {{ e.tamano }} · {{ e.campus }}</div>
+            <div style="margin-top:8px;"><span class="pill r-{{ e.rubro_class }}">{{ e.rubro }}</span></div>
+        </div>
+        <div class="stats">
+            <div class="stat"><div class="stat-v">{{ e.proyectos }}</div><div class="stat-l">Proy.</div></div>
+            <div class="stat"><div class="stat-v">{{ e.practicantes }}</div><div class="stat-l">Alum.</div></div>
+            <div class="stat"><div class="stat-v">{{ e.tutores }}</div><div class="stat-l">Tut.</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);">🏢 {{ e.presencia }}<br>📍 {{ e.campus }}</div>
+        <div class="enps">
+            <div class="enps-v">{{ e.enps }}</div>
+            <div class="enps-l">eNPS</div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="card" style="color:var(--text-muted);">No hay empresas registradas.</div>
+    {% endfor %}
+</div>
+{% endblock %}

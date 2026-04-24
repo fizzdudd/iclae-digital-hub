@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICLAE — Dashboard Ejecutivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-bg: #0c2461; --sidebar-hover: rgba(255,255,255,0.08); --sidebar-active: rgba(255,255,255,0.15);
+  --sidebar-border: rgba(255,255,255,0.08); --sidebar-text: rgba(255,255,255,0.65);
+  --sidebar-text-active: #ffffff; --sidebar-accent: #60a5fa;
+  --page-bg: #eef2ff; --card-bg: #ffffff; --border: #e2e8f0;
+  --text-primary: #0f172a; --text-secondary: #64748b; --text-muted: #94a3b8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;--blue-900:#1e3a8a;
+  --green-50:#f0fdf4;--green-100:#dcfce7;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
+  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-600:#d97706;--amber-700:#b45309;--amber-800:#92400e;
+  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-600:#7c3aed;--violet-700:#6d28d9;--violet-800:#5b21b6;
+  --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-600:#e11d48;--rose-700:#be123c;--rose-800:#9f1239;
+  --cyan-50:#ecfeff;--cyan-100:#cffafe;--cyan-600:#0891b2;--cyan-700:#0e7490;--cyan-800:#155e75;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-xl:0 20px 60px rgba(0,0,0,0.18),0 8px 24px rgba(0,0,0,0.1);
+  --sidebar-width:220px;
+}
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--page-bg); color:var(--text-primary); display:flex; min-height:100vh; font-size:14px; }
+
+/* SIDEBAR */
+.sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; }
+.sidebar-logo { padding:20px 18px 16px; border-bottom:1px solid var(--sidebar-border); display:flex; align-items:center; gap:10px; }
+.logo-mark { width:34px; height:34px; border-radius:var(--radius-sm); background:linear-gradient(135deg,#3b82f6,#1d4ed8); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff; flex-shrink:0; }
+.logo-title { font-size:15px; font-weight:700; color:#fff; letter-spacing:-0.3px; }
+.logo-sub { font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.3px; }
+.sidebar-nav { padding:12px 10px; flex:1; overflow-y:auto; }
+.nav-section-label { font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:rgba(255,255,255,0.3); padding:8px 8px 4px; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:var(--radius-md); cursor:pointer; color:var(--sidebar-text); font-size:13.5px; font-weight:500; transition:background 0.15s; margin-bottom:2px; text-decoration:none; }
+.nav-item:hover { background:var(--sidebar-hover); color:#fff; }
+.nav-item.active { background:var(--sidebar-active); color:var(--sidebar-text-active); font-weight:600; }
+.nav-item.active .nav-icon { color:var(--sidebar-accent); opacity:1; }
+.nav-icon { width:18px; height:18px; flex-shrink:0; opacity:0.8; }
+.nav-badge { margin-left:auto; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; background:rgba(96,165,250,0.2); color:#93c5fd; }
+.sidebar-user { padding:12px 14px; border-top:1px solid var(--sidebar-border); display:flex; align-items:center; gap:10px; }
+.user-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#6366f1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:#fff; flex-shrink:0; }
+.user-name { font-size:13px; font-weight:600; color:#fff; }
+.user-role { font-size:10.5px; color:rgba(255,255,255,0.4); }
+.user-btn { width:26px; height:26px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; cursor:pointer; color:rgba(255,255,255,0.5); font-size:12px; }
+
+/* MAIN */
+.main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+.topbar { background:rgba(255,255,255,0.85); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); padding:0 28px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
+.page-title { font-size:16px; font-weight:700; }
+.period-badge { font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; background:var(--blue-100); color:var(--blue-800); margin-left:10px; }
+.live-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 2px rgba(34,197,94,0.25); animation:pulse 2s infinite; }
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px rgba(34,197,94,0.25)}50%{box-shadow:0 0 0 4px rgba(34,197,94,0.12)}}
+.live-label { font-size:12px; color:#15803d; font-weight:500; }
+.topbar-btn { height:34px; padding:0 14px; border-radius:var(--radius-md); border:1px solid var(--border); background:#fff; font-size:12.5px; font-weight:500; cursor:pointer; color:var(--text-secondary); display:flex; align-items:center; gap:6px; font-family:inherit; transition:all 0.15s; }
+.topbar-btn:hover { border-color:#93c5fd; color:var(--blue-700); background:var(--blue-50); }
+.content { padding:24px 28px; flex:1; }
+
+/* CARDS */
+.card { background:var(--card-bg); border-radius:var(--radius-lg); border:1px solid var(--border); box-shadow:var(--shadow-sm); overflow:hidden; }
+.card-header { padding:16px 20px 0; }
+.card-body { padding:16px 20px; }
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.section-title { font-size:15px; font-weight:700; }
+.section-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.section-link { font-size:12.5px; color:var(--blue-600); font-weight:500; cursor:pointer; }
+
+/* DIVIDER */
+.section-divider { display:flex; align-items:center; gap:12px; margin:8px 0 16px; }
+.section-divider-line { flex:1; height:1px; background:var(--border); }
+.section-divider-text { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); white-space:nowrap; padding:0 4px; }
+
+/* KPI */
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+.kpi-card { background:var(--card-bg); border-radius:var(--radius-lg); padding:18px 20px; border:1px solid var(--border); box-shadow:var(--shadow-sm); position:relative; overflow:hidden; transition:box-shadow 0.2s,transform 0.2s; }
+.kpi-card:hover { box-shadow:var(--shadow-md); transform:translateY(-1px); }
+.kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
+.kpi-card.blue::before{background:linear-gradient(90deg,#3b82f6,#60a5fa)}.kpi-card.green::before{background:linear-gradient(90deg,#22c55e,#4ade80)}.kpi-card.amber::before{background:linear-gradient(90deg,#f59e0b,#fbbf24)}.kpi-card.violet::before{background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
+.kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.kpi-label { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.kpi-card.blue .kpi-label{color:var(--blue-600)}.kpi-card.green .kpi-label{color:var(--green-600)}.kpi-card.amber .kpi-label{color:var(--amber-600)}.kpi-card.violet .kpi-label{color:var(--violet-600)}
+.kpi-icon { width:36px; height:36px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:16px; }
+.kpi-card.blue .kpi-icon{background:var(--blue-100)}.kpi-card.green .kpi-icon{background:var(--green-100)}.kpi-card.amber .kpi-icon{background:var(--amber-100)}.kpi-card.violet .kpi-icon{background:var(--violet-100)}
+.kpi-value { font-size:32px; font-weight:700; line-height:1; margin-bottom:4px; letter-spacing:-1px; }
+.kpi-sub { font-size:12px; color:var(--text-muted); }
+.kpi-delta { display:inline-flex; align-items:center; font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; margin-left:6px; }
+.delta-up{background:var(--green-100);color:var(--green-700)}
+
+/* FUNNEL */
+.funnel-wrap { padding:10px 20px 20px; display:flex; flex-direction:column; gap:6px; align-items:center; }
+.funnel-step { display:flex; align-items:center; gap:14px; width:100%; }
+.funnel-shape { height:50px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; }
+.funnel-shape-label { font-size:13px; font-weight:700; color:#fff; white-space:nowrap; }
+.funnel-meta-value { font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+.funnel-meta-label { font-size:11.5px; color:var(--text-muted); font-weight:500; }
+.funnel-pct { font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; margin-top:3px; display:inline-block; }
+.funnel-arrow { text-align:center; color:var(--text-muted); font-size:14px; width:100%; }
+
+/* RENDIMIENTO */
+.nota-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px; }
+.nota-stat { text-align:center; padding:12px 8px; border-radius:var(--radius-md); }
+.nota-stat.prom{background:var(--blue-50);border:1px solid var(--blue-200)}.nota-stat.max{background:var(--green-50);border:1px solid #bbf7d0}.nota-stat.min{background:var(--rose-50);border:1px solid #fecdd3}
+.nota-stat-value { font-size:24px; font-weight:700; letter-spacing:-0.5px; }
+.nota-stat.prom .nota-stat-value{color:var(--blue-700)}.nota-stat.max .nota-stat-value{color:var(--green-700)}.nota-stat.min .nota-stat-value{color:#e11d48}
+.nota-stat-label { font-size:11px; font-weight:500; margin-top:3px; }
+.nota-stat.prom .nota-stat-label{color:var(--blue-600)}.nota-stat.max .nota-stat-label{color:var(--green-600)}.nota-stat.min .nota-stat-label{color:#be123c}
+.comp-list { display:flex; flex-direction:column; gap:10px; }
+.comp-row { display:flex; align-items:center; gap:10px; }
+.comp-rank { font-size:11px; font-weight:700; color:var(--text-muted); width:20px; text-align:center; flex-shrink:0; }
+.comp-name { font-size:13px; font-weight:500; width:160px; flex-shrink:0; }
+.comp-bar-wrap { flex:1; height:10px; background:#f1f5f9; border-radius:5px; overflow:hidden; }
+.comp-bar-fill { height:100%; border-radius:5px; }
+.comp-score { font-size:13px; font-weight:700; width:32px; text-align:right; flex-shrink:0; }
+.comp-badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; flex-shrink:0; }
+
+/* PERFIL COMPLETITUD */
+.profile-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.profile-item { text-align:center; padding:14px 10px; border-radius:var(--radius-md); background:#f8fafc; border:1px solid var(--border); }
+.ring-wrap { position:relative; width:70px; height:70px; margin:0 auto 10px; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:15px; font-weight:700; }
+.profile-label { font-size:12.5px; font-weight:600; margin-bottom:2px; }
+.profile-count { font-size:11px; color:var(--text-muted); }
+
+/* BADGES */
+.badges-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.badge-item { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border); background:#fafbff; }
+.badge-emoji { font-size:20px; width:38px; height:38px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.badge-name { font-size:13px; font-weight:600; }
+.badge-count { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+.badge-pill { margin-left:auto; font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px; }
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);background:#f8fafc;border-bottom:1px solid var(--border)}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid #f1f5f9}
+tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
+.company-name{font-weight:600}
+.area-badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px}
+.area-badge.banca{background:var(--blue-100);color:var(--blue-800)}.area-badge.fintech{background:var(--green-100);color:var(--green-800)}.area-badge.insurtech{background:var(--violet-100);color:var(--violet-800)}.area-badge.hrtech{background:var(--amber-100);color:var(--amber-800)}.area-badge.energia{background:var(--cyan-100);color:var(--cyan-800)}.area-badge.retail{background:var(--rose-100);color:var(--rose-800)}
+.progress-bar{width:80px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+
+/* DIST */
+.dist-list{padding:8px 20px 16px}
+.dist-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9}
+.dist-row:last-child{border-bottom:none}
+.dist-label{font-size:12.5px;color:var(--text-secondary);width:110px;flex-shrink:0;font-weight:500}
+.dist-bar-wrap{flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.dist-bar-fill{height:100%;border-radius:4px}
+.dist-value{font-size:12px;font-weight:600;width:32px;text-align:right}
+.bar-blue{background:linear-gradient(90deg,#3b82f6,#93c5fd)}.bar-green{background:linear-gradient(90deg,#22c55e,#86efac)}.bar-violet{background:linear-gradient(90deg,#8b5cf6,#c4b5fd)}.bar-amber{background:linear-gradient(90deg,#f59e0b,#fcd34d)}.bar-rose{background:linear-gradient(90deg,#f43f5e,#fda4af)}.bar-cyan{background:linear-gradient(90deg,#06b6d4,#67e8f9)}.bar-orange{background:linear-gradient(90deg,#ea580c,#fb923c)}
+
+/* MODALIDAD */
+.mod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mod-item{text-align:center;padding:16px 12px;border-radius:var(--radius-md);border:1px solid}
+.mod-item.presencial{background:#f0fdf4;border-color:#bbf7d0}.mod-item.hibrido{background:var(--blue-50);border-color:var(--blue-200)}.mod-item.remoto{background:var(--violet-50);border-color:#ddd6fe}
+.mod-pct{font-size:28px;font-weight:700;letter-spacing:-1px}
+.mod-item.presencial .mod-pct{color:var(--green-700)}.mod-item.hibrido .mod-pct{color:var(--blue-700)}.mod-item.remoto .mod-pct{color:var(--violet-700)}
+.mod-label{font-size:12px;font-weight:600;margin-top:3px}
+.mod-item.presencial .mod-label{color:var(--green-600)}.mod-item.hibrido .mod-label{color:var(--blue-600)}.mod-item.remoto .mod-label{color:var(--violet-600)}
+.mod-count{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+/* SAT / REGION */
+.sat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:8px 20px 16px}
+.sat-item{text-align:center;padding:14px 10px;border-radius:var(--radius-md)}
+.sat-item.blue{background:var(--blue-50);border:1px solid #bfdbfe}.sat-item.green{background:var(--green-50);border:1px solid #bbf7d0}.sat-item.amber{background:var(--amber-50);border:1px solid #fde68a}
+.sat-score{font-size:28px;font-weight:700;letter-spacing:-1px}
+.sat-item.blue .sat-score{color:var(--blue-700)}.sat-item.green .sat-score{color:var(--green-700)}.sat-item.amber .sat-score{color:var(--amber-700)}
+.sat-label{font-size:11px;font-weight:500;margin-top:4px}
+.sat-item.blue .sat-label{color:var(--blue-600)}.sat-item.green .sat-label{color:var(--green-600)}.sat-item.amber .sat-label{color:var(--amber-600)}
+.region-list{padding:8px 20px 16px}
+.region-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f1f5f9}
+.region-row:last-child{border-bottom:none}
+.region-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.region-name{font-size:13px;font-weight:600;flex:1}
+.region-count{font-size:13px;font-weight:700}
+.region-pct{font-size:11px;color:var(--text-muted);margin-left:4px}
+.region-bar-wrap{width:80px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.region-bar-fill{height:100%;border-radius:3px}
+
+/* LAYOUT */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.grid-main{display:grid;grid-template-columns:1fr 340px;gap:18px;margin-bottom:20px}
+.mb-20{margin-bottom:20px}
+.spacer{height:32px}
+
+/* ── MODAL OVERLAY ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:1000;
+  background:rgba(15,23,42,0.55); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:#fff; border-radius:18px; box-shadow:var(--shadow-xl);
+  width:100%; max-width:520px; margin:20px;
+  animation:modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn { from{opacity:0;transform:scale(0.93) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.modal-header {
+  padding:22px 24px 0; display:flex; align-items:flex-start; justify-content:space-between;
+}
+.modal-title { font-size:17px; font-weight:700; color:var(--text-primary); }
+.modal-subtitle { font-size:13px; color:var(--text-muted); margin-top:3px; }
+.modal-close {
+  width:32px; height:32px; border-radius:var(--radius-sm); border:1px solid var(--border);
+  background:#f8fafc; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:16px; color:var(--text-muted); flex-shrink:0; margin-top:-2px;
+  transition:all 0.15s;
+}
+.modal-close:hover { background:#fee2e2; border-color:#fecaca; color:#dc2626; }
+.modal-body { padding:20px 24px; }
+
+/* Selector de destinatarios */
+.recipients-label { font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+.recipients-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+.recipient-chip {
+  display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:var(--radius-md);
+  border:1.5px solid var(--border); cursor:pointer; transition:all 0.15s; background:#fafbff;
+}
+.recipient-chip:hover { border-color:#93c5fd; background:var(--blue-50); }
+.recipient-chip.selected { border-color:var(--blue-600); background:var(--blue-50); }
+.recipient-chip input[type="checkbox"] { accent-color:var(--blue-600); width:14px; height:14px; flex-shrink:0; }
+.recipient-chip-label { font-size:12.5px; font-weight:500; }
+.recipient-chip.selected .recipient-chip-label { color:var(--blue-800); font-weight:600; }
+.recipient-count { margin-left:auto; font-size:11px; font-weight:700; padding:2px 7px; border-radius:20px; }
+.recipient-chip.selected .recipient-count { background:var(--blue-100); color:var(--blue-800); }
+.recipient-chip:not(.selected) .recipient-count { background:#f1f5f9; color:var(--text-muted); }
+
+/* Área del mensaje */
+.msg-label { font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+.msg-textarea {
+  width:100%; min-height:110px; padding:12px 14px; border-radius:var(--radius-md);
+  border:1.5px solid var(--border); font-family:inherit; font-size:13.5px; color:var(--text-primary);
+  resize:vertical; line-height:1.6; transition:border-color 0.15s; background:#fafbff;
+}
+.msg-textarea:focus { outline:none; border-color:var(--blue-600); background:#fff; }
+.msg-textarea::placeholder { color:var(--text-muted); }
+.msg-hint { font-size:11.5px; color:var(--text-muted); margin-top:6px; }
+
+/* Resumen envío */
+.send-summary {
+  display:flex; align-items:center; gap:10px; padding:12px 14px;
+  background:var(--blue-50); border:1px solid var(--blue-200); border-radius:var(--radius-md);
+  margin-top:16px;
+}
+.send-summary-icon { font-size:18px; }
+.send-summary-text { font-size:13px; color:var(--blue-800); font-weight:500; }
+.send-summary-text strong { font-weight:700; }
+
+.modal-footer { padding:0 24px 22px; display:flex; gap:10px; justify-content:flex-end; margin-top:4px; }
+.btn { height:38px; padding:0 20px; border-radius:var(--radius-md); font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit; border:none; transition:all 0.15s; display:flex; align-items:center; gap:7px; }
+.btn-secondary { background:#f1f5f9; color:var(--text-secondary); }
+.btn-secondary:hover { background:#e2e8f0; }
+.btn-primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,0.3); }
+.btn-primary:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); box-shadow:0 4px 14px rgba(37,99,235,0.4); }
+.btn-success { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; box-shadow:0 2px 8px rgba(22,163,74,0.3); }
+
+/* TOAST */
+.toast {
+  position:fixed; bottom:28px; right:28px; z-index:2000;
+  background:#0f172a; color:#fff; padding:14px 20px; border-radius:var(--radius-md);
+  font-size:13.5px; font-weight:500; display:flex; align-items:center; gap:10px;
+  box-shadow:var(--shadow-xl); transform:translateY(80px); opacity:0;
+  transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.toast.show { transform:translateY(0); opacity:1; }
+.toast-icon { font-size:18px; }
+
+/* REMINDER BTN */
+.reminder-btn {
+  display:flex; align-items:center; gap:7px; padding:8px 16px; border-radius:var(--radius-md);
+  border:1.5px solid var(--blue-200); background:var(--blue-50); color:var(--blue-700);
+  font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
+  transition:all 0.15s;
+}
+.reminder-btn:hover { background:var(--blue-100); border-color:var(--blue-600); box-shadow:0 2px 8px rgba(37,99,235,0.15); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">IC</div>
+    <div><div class="logo-title">ICLAE</div><div class="logo-sub">Digital Hub · UDD</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label" style="margin-top:8px;">Navegación</div>
+    <a class="nav-item" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+      Proyecto <span class="nav-badge">1</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+      Evaluaciones
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd"/></svg>
+      Reportes
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+      Analítico
+    </a>
+    <div class="nav-section-label" style="margin-top:8px;">Gestión</div>
+    <a class="nav-item" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>
+      Empresas
+    </a>
+    <a class="nav-item" href="iclae_postulaciones.html">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>
+      Postulaciones <span class="nav-badge">12</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
+      Administración
+    </a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AA</div>
+    <div style="flex:1;min-width:0;"><div class="user-name">Administrador ICLAE</div><div class="user-role">Perfil ICLAE · Admin</div></div>
+    <div style="display:flex;gap:4px;"><div class="user-btn">🔑</div><div class="user-btn">↩</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;">
+      <span class="page-title">Resumen ejecutivo</span>
+      <span class="period-badge">2024-1</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;align-items:center;gap:6px;"><div class="live-dot"></div><span class="live-label">Actualización en tiempo real</span></div>
+      <button class="topbar-btn">
+        <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/></svg>
+        Filtros
+      </button>
+      <button class="topbar-btn">
+        <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- KPI -->
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">📊 Indicadores globales</div><div class="section-divider-line"></div></div>
+    <div class="kpi-grid">
+      <div class="kpi-card blue"><div class="kpi-top"><span class="kpi-label">Estudiantes</span><div class="kpi-icon">🎓</div></div><div class="kpi-value">498</div><div class="kpi-sub">Participando en ICLAE <span class="kpi-delta delta-up">↑ 12%</span></div></div>
+      <div class="kpi-card green"><div class="kpi-top"><span class="kpi-label">Empresas</span><div class="kpi-icon">🏢</div></div><div class="kpi-value">25</div><div class="kpi-sub">Con proyectos activos <span class="kpi-delta delta-up">↑ 4%</span></div></div>
+      <div class="kpi-card amber"><div class="kpi-top"><span class="kpi-label">Tutores empresa</span><div class="kpi-icon">👔</div></div><div class="kpi-value">50</div><div class="kpi-sub">Registrados en la base</div></div>
+      <div class="kpi-card violet"><div class="kpi-top"><span class="kpi-label">Tutores UDD</span><div class="kpi-icon">📚</div></div><div class="kpi-value">8</div><div class="kpi-sub">Registrados en la base</div></div>
+    </div>
+
+    <!-- FUNNEL + RENDIMIENTO -->
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">🎯 Pipeline y rendimiento</div><div class="section-divider-line"></div></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><div class="section-header"><div><div class="section-title">Funnel de postulaciones</div><div class="section-sub">Tasa de conversión del proceso</div></div></div></div>
+        <div class="funnel-wrap">
+          <div class="funnel-step">
+            <div class="funnel-shape" style="background:linear-gradient(135deg,#2563eb,#3b82f6);width:100%;border-radius:10px 10px 4px 4px;"><span class="funnel-shape-label">Postulantes</span></div>
+            <div style="min-width:140px;"><div class="funnel-meta-value">1.000</div><div class="funnel-meta-label">Alumnos postulantes</div><span class="funnel-pct" style="background:var(--blue-100);color:var(--blue-800);">100%</span></div>
+          </div>
+          <div class="funnel-arrow">▼</div>
+          <div class="funnel-step">
+            <div class="funnel-shape" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);width:85%;border-radius:4px;"><span class="funnel-shape-label">Seleccionados</span></div>
+            <div style="min-width:140px;"><div class="funnel-meta-value">850</div><div class="funnel-meta-label">Aceptados al programa</div><span class="funnel-pct" style="background:var(--violet-100);color:var(--violet-800);">85%</span></div>
+          </div>
+          <div class="funnel-arrow">▼</div>
+          <div class="funnel-step">
+            <div class="funnel-shape" style="background:linear-gradient(135deg,#059669,#10b981);width:60%;border-radius:4px;"><span class="funnel-shape-label">En curso</span></div>
+            <div style="min-width:140px;"><div class="funnel-meta-value">498</div><div class="funnel-meta-label">Practicantes activos</div><span class="funnel-pct" style="background:var(--green-100);color:var(--green-800);">49.8%</span></div>
+          </div>
+          <div class="funnel-arrow">▼</div>
+          <div class="funnel-step">
+            <div class="funnel-shape" style="background:linear-gradient(135deg,#d97706,#f59e0b);width:20%;border-radius:4px 4px 10px 10px;"><span class="funnel-shape-label" style="font-size:11px;">Contratados</span></div>
+            <div style="min-width:140px;"><div class="funnel-meta-value">45</div><div class="funnel-meta-label">Contratados post-práctica</div><span class="funnel-pct" style="background:var(--amber-100);color:var(--amber-800);">4.5%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="section-header"><div><div class="section-title">Rendimiento académico</div><div class="section-sub">Notas y competencias del período</div></div></div></div>
+        <div class="card-body">
+          <div class="nota-stats">
+            <div class="nota-stat prom"><div class="nota-stat-value">5.8</div><div class="nota-stat-label">Promedio</div></div>
+            <div class="nota-stat max"><div class="nota-stat-value">7.0</div><div class="nota-stat-label">Nota máx.</div></div>
+            <div class="nota-stat min"><div class="nota-stat-value">3.2</div><div class="nota-stat-label">Nota mín.</div></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Ranking por competencia</div>
+          <div class="comp-list">
+            <div class="comp-row"><span class="comp-rank">1</span><span class="comp-name">Trabajo en equipo</span><div class="comp-bar-wrap"><div class="comp-bar-fill bar-green" style="width:91%"></div></div><span class="comp-score">6.4</span><span class="comp-badge" style="background:var(--green-100);color:var(--green-800);">↑ Alto</span></div>
+            <div class="comp-row"><span class="comp-rank">2</span><span class="comp-name">Habilidades técnicas</span><div class="comp-bar-wrap"><div class="comp-bar-fill bar-blue" style="width:83%"></div></div><span class="comp-score">5.8</span><span class="comp-badge" style="background:var(--blue-100);color:var(--blue-800);">Medio</span></div>
+            <div class="comp-row"><span class="comp-rank">3</span><span class="comp-name">Adaptabilidad</span><div class="comp-bar-wrap"><div class="comp-bar-fill bar-violet" style="width:79%"></div></div><span class="comp-score">5.5</span><span class="comp-badge" style="background:var(--violet-100);color:var(--violet-800);">Medio</span></div>
+            <div class="comp-row"><span class="comp-rank">4</span><span class="comp-name">Comunicación</span><div class="comp-bar-wrap"><div class="comp-bar-fill bar-amber" style="width:70%"></div></div><span class="comp-score">4.9</span><span class="comp-badge" style="background:var(--amber-100);color:var(--amber-800);">Medio</span></div>
+            <div class="comp-row"><span class="comp-rank">5</span><span class="comp-name">Liderazgo</span><div class="comp-bar-wrap"><div class="comp-bar-fill bar-rose" style="width:57%"></div></div><span class="comp-score">4.0</span><span class="comp-badge" style="background:var(--rose-100);color:var(--rose-800);">↓ Bajo</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERFIL + BADGES -->
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">👤 Perfil digital y logros</div><div class="section-divider-line"></div></div>
+    <div class="grid-2">
+
+      <!-- COMPLETITUD + BOTÓN RECORDATORIO -->
+      <div class="card">
+        <div class="card-header">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Completitud de perfil</div>
+              <div class="section-sub">Empleabilidad digital del alumno</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--amber-100);color:var(--amber-800);">⚠ Mejorar</span>
+              <button class="reminder-btn" onclick="openModal()">
+                <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                Enviar recordatorio
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="profile-grid">
+            <div class="profile-item">
+              <div class="ring-wrap">
+                <svg width="70" height="70" viewBox="0 0 70 70"><circle cx="35" cy="35" r="28" fill="none" stroke="#e2e8f0" stroke-width="8"/><circle cx="35" cy="35" r="28" fill="none" stroke="#2563eb" stroke-width="8" stroke-dasharray="175.9" stroke-dashoffset="47.5" stroke-linecap="round"/></svg>
+                <div class="ring-center" style="color:var(--blue-700);">73%</div>
+              </div>
+              <div class="profile-label">LinkedIn</div>
+              <div class="profile-count">363 / 498 alumnos</div>
+            </div>
+            <div class="profile-item">
+              <div class="ring-wrap">
+                <svg width="70" height="70" viewBox="0 0 70 70"><circle cx="35" cy="35" r="28" fill="none" stroke="#e2e8f0" stroke-width="8"/><circle cx="35" cy="35" r="28" fill="none" stroke="#16a34a" stroke-width="8" stroke-dasharray="175.9" stroke-dashoffset="61.6" stroke-linecap="round"/></svg>
+                <div class="ring-center" style="color:var(--green-700);">65%</div>
+              </div>
+              <div class="profile-label">CV subido</div>
+              <div class="profile-count">324 / 498 alumnos</div>
+            </div>
+            <div class="profile-item">
+              <div class="ring-wrap">
+                <svg width="70" height="70" viewBox="0 0 70 70"><circle cx="35" cy="35" r="28" fill="none" stroke="#e2e8f0" stroke-width="8"/><circle cx="35" cy="35" r="28" fill="none" stroke="#dc2626" stroke-width="8" stroke-dasharray="175.9" stroke-dashoffset="105.5" stroke-linecap="round"/></svg>
+                <div class="ring-center" style="color:#dc2626;">40%</div>
+              </div>
+              <div class="profile-label">Video YouTube</div>
+              <div class="profile-count">199 / 498 alumnos</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:12px 14px;background:#f8fafc;border-radius:var(--radius-md);border:1px solid var(--border);">
+            <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Perfil 100% completo (los 3 ítems)</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden;"><div style="height:100%;width:34%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:5px;"></div></div>
+              <span style="font-size:14px;font-weight:700;color:var(--violet-700);">34%</span>
+              <span style="font-size:12px;color:var(--text-muted);">169 alumnos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BADGES -->
+      <div class="card">
+        <div class="card-header"><div class="section-header"><div><div class="section-title">Badges y logros</div><div class="section-sub">Reconocimientos del período</div></div></div></div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px;">
+            <div><div style="font-size:28px;font-weight:700;color:var(--blue-700);letter-spacing:-1px;">247</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Total badges otorgados</div></div>
+            <div style="text-align:right;"><div style="font-size:20px;font-weight:700;color:var(--green-700);">8</div><div style="font-size:11px;color:var(--text-muted);">tipos distintos</div></div>
+          </div>
+          <div class="badges-grid">
+            <div class="badge-item"><div class="badge-emoji" style="background:var(--amber-100);">🏆</div><div><div class="badge-name">Alumno Destacado</div><div class="badge-count">Rendimiento sobresaliente</div></div><span class="badge-pill" style="background:var(--amber-100);color:var(--amber-800);">58</span></div>
+            <div class="badge-item"><div class="badge-emoji" style="background:var(--blue-100);">💡</div><div><div class="badge-name">Innovador</div><div class="badge-count">Soluciones creativas</div></div><span class="badge-pill" style="background:var(--blue-100);color:var(--blue-800);">47</span></div>
+            <div class="badge-item"><div class="badge-emoji" style="background:var(--green-100);">🤝</div><div><div class="badge-name">Colaborador</div><div class="badge-count">Trabajo en equipo</div></div><span class="badge-pill" style="background:var(--green-100);color:var(--green-800);">43</span></div>
+            <div class="badge-item"><div class="badge-emoji" style="background:var(--violet-100);">⭐</div><div><div class="badge-name">Puntualidad</div><div class="badge-count">Bitácoras sin atrasos</div></div><span class="badge-pill" style="background:var(--violet-100);color:var(--violet-800);">41</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--amber-50);border:1px solid var(--amber-100);border-radius:var(--radius-md);margin-top:12px;">
+            <span style="font-size:16px;">⚠️</span>
+            <div style="font-size:12.5px;color:var(--amber-700);font-weight:500;"><strong>87 alumnos</strong> aún no tienen ningún badge.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP EMPRESAS + RUBROS -->
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">🏢 Empresas y rubros</div><div class="section-divider-line"></div></div>
+    <div class="grid-main">
+      <div class="card">
+        <div class="card-header"><div class="section-header"><span class="section-title">Top empresas por participantes</span><a class="section-link">Ver todas →</a></div></div>
+        <table>
+          <thead><tr><th>#</th><th>Empresa</th><th>Área</th><th>Alumnos</th><th>Proyectos</th><th>Progreso</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text-muted);font-weight:600;font-size:12px;">01</td><td><span class="company-name">Banco de Chile</span></td><td><span class="area-badge banca">Banca</span></td><td><strong>25</strong></td><td>2</td><td><div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div></td></tr>
+            <tr><td style="color:var(--text-muted);font-weight:600;font-size:12px;">02</td><td><span class="company-name">BCI</span></td><td><span class="area-badge banca">Banca</span></td><td><strong>24</strong></td><td>2</td><td><div class="progress-bar"><div class="progress-fill" style="width:96%"></div></div></td></tr>
+            <tr><td style="color:var(--text-muted);font-weight:600;font-size:12px;">03</td><td><span class="company-name">Betterfly</span></td><td><span class="area-badge insurtech">InsurTech</span></td><td><strong>24</strong></td><td>2</td><td><div class="progress-bar"><div class="progress-fill" style="width:96%"></div></div></td></tr>
+            <tr><td style="color:var(--text-muted);font-weight:600;font-size:12px;">04</td><td><span class="company-name">Buk</span></td><td><span class="area-badge hrtech">HR Tech</span></td><td><strong>24</strong></td><td>2</td><td><div class="progress-bar"><div class="progress-fill" style="width:96%"></div></div></td></tr>
+            <tr><td style="color:var(--text-muted);font-weight:600;font-size:12px;">05</td><td><span class="company-name">Enel Chile</span></td><td><span class="area-badge energia">Energía</span></td><td><strong>24</strong></td><td>2</td><td><div class="progress-bar"><div class="progress-fill" style="width:96%"></div></div></td></tr>
+            <tr><td style="color:var(--text-muted);font-weight:600;font-size:12px;">06</td><td><span class="company-name">Falabella</span></td><td><span class="area-badge retail">Retail</span></td><td><strong>24</strong></td><td>2</td><td><div class="progress-bar"><div class="progress-fill" style="width:96%"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="section-header"><span class="section-title">Distribución por área</span></div></div>
+        <div class="dist-list">
+          <div class="dist-row"><span class="dist-label">Fintech</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-green" style="width:100%"></div></div><span class="dist-value">134</span></div>
+          <div class="dist-row"><span class="dist-label">Retail</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-rose" style="width:100%"></div></div><span class="dist-value">134</span></div>
+          <div class="dist-row"><span class="dist-label">Banca</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-blue" style="width:66%"></div></div><span class="dist-value">89</span></div>
+          <div class="dist-row"><span class="dist-label">Energía</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-cyan" style="width:65%"></div></div><span class="dist-value">88</span></div>
+          <div class="dist-row"><span class="dist-label">Minería</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-amber" style="width:50%"></div></div><span class="dist-value">67</span></div>
+          <div class="dist-row"><span class="dist-label">Transporte</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-violet" style="width:49%"></div></div><span class="dist-value">66</span></div>
+          <div class="dist-row"><span class="dist-label">HR Tech</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-blue" style="width:33%"></div></div><span class="dist-value">45</span></div>
+          <div class="dist-row"><span class="dist-label">Tecnología</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-green" style="width:33%"></div></div><span class="dist-value">45</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARRERA + MODALIDAD -->
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">🎓 Carrera y modalidad</div><div class="section-divider-line"></div></div>
+    <div class="grid-2 mb-20">
+      <div class="card">
+        <div class="card-header"><div class="section-header"><div><div class="section-title">Distribución por carrera</div></div></div></div>
+        <div class="dist-list">
+          <div class="dist-row"><span class="dist-label" style="width:160px;">Ing. Informática</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-blue" style="width:100%"></div></div><span class="dist-value">172</span></div>
+          <div class="dist-row"><span class="dist-label" style="width:160px;">Ing. Civil Industrial</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-green" style="width:82%"></div></div><span class="dist-value">141</span></div>
+          <div class="dist-row"><span class="dist-label" style="width:160px;">Ing. Comercial</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-violet" style="width:60%"></div></div><span class="dist-value">103</span></div>
+          <div class="dist-row"><span class="dist-label" style="width:160px;">Diseño</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-rose" style="width:27%"></div></div><span class="dist-value">47</span></div>
+          <div class="dist-row"><span class="dist-label" style="width:160px;">Psicología</span><div class="dist-bar-wrap"><div class="dist-bar-fill bar-amber" style="width:17%"></div></div><span class="dist-value">21</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="section-header"><div><div class="section-title">Modalidad de proyecto</div></div></div></div>
+        <div class="card-body">
+          <div class="mod-grid">
+            <div class="mod-item presencial"><div class="mod-pct">58%</div><div class="mod-label">Presencial</div><div class="mod-count">289 alumnos</div></div>
+            <div class="mod-item hibrido"><div class="mod-pct">32%</div><div class="mod-label">Híbrido</div><div class="mod-count">159 alumnos</div></div>
+            <div class="mod-item remoto"><div class="mod-pct">10%</div><div class="mod-label">Remoto</div><div class="mod-count">50 alumnos</div></div>
+          </div>
+          <div style="margin-top:20px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Tendencia presencialidad</div>
+            <div style="display:flex;align-items:flex-end;gap:8px;height:70px;">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:linear-gradient(180deg,#93c5fd,#3b82f6);border-radius:4px 4px 0 0;height:38px;"></div><span style="font-size:10px;color:var(--text-muted);">2022</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:linear-gradient(180deg,#93c5fd,#3b82f6);border-radius:4px 4px 0 0;height:50px;"></div><span style="font-size:10px;color:var(--text-muted);">2023</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="width:100%;background:linear-gradient(180deg,#60a5fa,#2563eb);border-radius:4px 4px 0 0;height:60px;border:2px solid #1d4ed8;"></div><span style="font-size:10px;color:var(--blue-700);font-weight:600;">2024</span></div>
+            </div>
+            <div style="font-size:11px;color:var(--green-600);font-weight:500;margin-top:6px;">↑ Presencialidad aumentó 18% respecto a 2023</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SATISFACCIÓN + REGIÓN -->
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">😊 Satisfacción y cobertura</div><div class="section-divider-line"></div></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><div class="section-header"><span class="section-title">Indicadores de satisfacción</span></div></div>
+        <div class="sat-grid">
+          <div class="sat-item blue"><div class="sat-score">8.0</div><div class="sat-label">eNPS Empresa</div></div>
+          <div class="sat-item green"><div class="sat-score">8.0</div><div class="sat-label">eNPS Alumno</div></div>
+          <div class="sat-item amber"><div class="sat-score">86</div><div class="sat-label">Satisfacción Tutor</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="section-header"><span class="section-title">Participación por región</span></div></div>
+        <div class="region-list">
+          <div class="region-row"><div class="region-dot" style="background:#3b82f6;"></div><span class="region-name">Santiago</span><div class="region-bar-wrap"><div class="region-bar-fill bar-blue" style="width:100%;height:100%;"></div></div><span class="region-count">556</span><span class="region-pct">55.6%</span></div>
+          <div class="region-row"><div class="region-dot" style="background:#8b5cf6;"></div><span class="region-name">Concepción</span><div class="region-bar-wrap"><div class="region-bar-fill bar-violet" style="width:80%;height:100%;"></div></div><span class="region-count">444</span><span class="region-pct">44.4%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</main>
+
+<!-- ═══ MODAL RECORDATORIO ═══ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeOnOverlay(event)">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📣 Enviar recordatorio de perfil</div>
+        <div class="modal-subtitle">Se notificará por correo a los alumnos seleccionados</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="recipients-label">Enviar a</div>
+      <div class="recipients-grid">
+        <label class="recipient-chip selected" id="chip-all">
+          <input type="checkbox" checked onchange="toggleChip('all',this)"> 
+          <span class="recipient-chip-label">Todos con perfil incompleto</span>
+          <span class="recipient-count">329</span>
+        </label>
+        <label class="recipient-chip" id="chip-linkedin">
+          <input type="checkbox" onchange="toggleChip('linkedin',this)">
+          <span class="recipient-chip-label">Sin LinkedIn</span>
+          <span class="recipient-count">135</span>
+        </label>
+        <label class="recipient-chip" id="chip-cv">
+          <input type="checkbox" onchange="toggleChip('cv',this)">
+          <span class="recipient-chip-label">Sin CV subido</span>
+          <span class="recipient-count">174</span>
+        </label>
+        <label class="recipient-chip" id="chip-youtube">
+          <input type="checkbox" onchange="toggleChip('youtube',this)">
+          <span class="recipient-chip-label">Sin video YouTube</span>
+          <span class="recipient-count">299</span>
+        </label>
+      </div>
+
+      <div class="msg-label">Mensaje personalizado</div>
+      <textarea class="msg-textarea" id="msgText" placeholder="Ej: Recuerden que tienen hasta el viernes 19 para llenar su perfil. Es un requisito para la evaluación final del período. ¡Cualquier duda estamos disponibles!"></textarea>
+      <div class="msg-hint">💡 El mensaje se enviará junto a un enlace directo al perfil del alumno en la plataforma.</div>
+
+      <div class="send-summary" id="sendSummary">
+        <span class="send-summary-icon">📬</span>
+        <span class="send-summary-text">Se enviará a <strong id="recipientCount">329</strong> alumnos con perfil incompleto</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="sendReminder()">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+        Enviar recordatorio
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✅</span>
+  <span id="toastText">Recordatorio enviado exitosamente</span>
+</div>
+
+<script>
+const counts = { all:329, linkedin:135, cv:174, youtube:299 };
+let selected = new Set(['all']);
+
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeOnOverlay(e) {
+  if(e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function toggleChip(key, cb) {
+  const chip = document.getElementById('chip-'+key);
+  if(cb.checked) {
+    selected.add(key);
+    chip.classList.add('selected');
+    if(key !== 'all') {
+      selected.delete('all');
+      const allCb = document.querySelector('#chip-all input');
+      allCb.checked = false;
+      document.getElementById('chip-all').classList.remove('selected');
+    } else {
+      ['linkedin','cv','youtube'].forEach(k => {
+        selected.delete(k);
+        const c = document.querySelector('#chip-'+k+' input');
+        c.checked = false;
+        document.getElementById('chip-'+k).classList.remove('selected');
+      });
+    }
+  } else {
+    selected.delete(key);
+    chip.classList.remove('selected');
+  }
+  updateCount();
+}
+
+function updateCount() {
+  let total = 0;
+  selected.forEach(k => { total += counts[k] || 0; });
+  if(selected.size === 0) total = 0;
+  document.getElementById('recipientCount').textContent = total;
+}
+
+function sendReminder() {
+  const msg = document.getElementById('msgText').value.trim();
+  if(!msg) {
+    document.getElementById('msgText').style.borderColor = '#dc2626';
+    document.getElementById('msgText').focus();
+    setTimeout(()=>{ document.getElementById('msgText').style.borderColor = ''; },2000);
+    return;
+  }
+  const count = document.getElementById('recipientCount').textContent;
+  closeModal();
+  const toast = document.getElementById('toast');
+  document.getElementById('toastText').textContent = `Recordatorio enviado a ${count} alumnos ✓`;
+  toast.classList.add('show');
+  setTimeout(()=>{ toast.classList.remove('show'); }, 4000);
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>

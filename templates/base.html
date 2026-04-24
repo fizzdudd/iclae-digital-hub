@@ -1,0 +1,250 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICLAE Hub — {% block title %}Panel{% endblock %}</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        :root {
+            --sidebar-width: 220px;
+            --sidebar-bg: #0c2461;
+            --sidebar-hover: rgba(255,255,255,0.08);
+            --sidebar-active: rgba(255,255,255,0.15);
+            --sidebar-border: rgba(255,255,255,0.08);
+            --sidebar-text: rgba(255,255,255,0.68);
+            --sidebar-text-active: #ffffff;
+            --sidebar-accent: #60a5fa;
+
+            --page-bg: #eef2ff;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+
+            --blue-50: #eff6ff;
+            --blue-100: #dbeafe;
+            --blue-200: #bfdbfe;
+            --blue-600: #2563eb;
+            --blue-700: #1d4ed8;
+            --blue-800: #1e40af;
+
+            --green-100: #dcfce7;
+            --green-700: #15803d;
+            --amber-100: #fef3c7;
+            --amber-700: #b45309;
+            --violet-100: #ede9fe;
+            --violet-700: #6d28d9;
+            --rose-100: #ffe4e6;
+            --rose-700: #be123c;
+            --cyan-100: #cffafe;
+            --cyan-700: #0e7490;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--page-bg);
+            color: var(--text-primary);
+        }
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            height: 56px;
+            padding: 0 28px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .period-badge {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--blue-800);
+            background: var(--blue-100);
+            border-radius: 999px;
+            padding: 3px 10px;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,0.25); }
+            50% { box-shadow: 0 0 0 5px rgba(34,197,94,0.12); }
+        }
+
+        .live-label {
+            font-size: 12px;
+            color: var(--green-700);
+            font-weight: 500;
+        }
+
+        .topbar-btn {
+            height: 34px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 0 14px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .topbar-btn:hover {
+            border-color: #93c5fd;
+            color: var(--blue-700);
+            background: var(--blue-50);
+        }
+
+        .content {
+            padding: 24px 28px 28px;
+            flex: 1;
+        }
+
+        @media (max-width: 1024px) {
+            :root { --sidebar-width: 96px; }
+
+            .main {
+                margin-left: var(--sidebar-width);
+                width: calc(100% - var(--sidebar-width));
+            }
+
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .content {
+                padding: 18px 16px 20px;
+            }
+
+            .live-status,
+            .topbar-btn {
+                display: none;
+            }
+        }
+
+        @media (max-width: 700px) {
+            :root { --sidebar-width: 0px; }
+
+            .main {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-shell">
+        {% include 'layout/sidebar.html' %}
+
+        <main class="main">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <span class="page-title">{% block page_title %}Resumen ejecutivo{% endblock %}</span>
+                    <span class="period-badge">{{ periodo_label|default:'Sin periodo activo' }}</span>
+                </div>
+                <div class="topbar-right">
+                    <div class="live-status">
+                        <span class="live-dot"></span>
+                        <span class="live-label">Actualizacion en tiempo real</span>
+                    </div>
+                    <button class="topbar-btn" type="button">Filtros</button>
+                    <button class="topbar-btn" type="button">Exportar</button>
+                </div>
+            </header>
+
+            <section class="content">
+                {% block content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        (function () {
+            const forms = document.querySelectorAll('form[data-auto-submit="true"]');
+            forms.forEach((form) => {
+                const submitForm = () => form.requestSubmit();
+
+                form.querySelectorAll('select,input[type="checkbox"],input[type="radio"],input[type="date"],input[type="number"]').forEach((control) => {
+                    control.addEventListener('change', submitForm);
+                });
+
+                if (form.dataset.autoSubmitText === 'true') {
+                    let timeoutId;
+                    form.querySelectorAll('input[type="text"],input[type="search"]').forEach((control) => {
+                        control.addEventListener('input', () => {
+                            clearTimeout(timeoutId);
+                            timeoutId = setTimeout(submitForm, 450);
+                        });
+                    });
+                }
+            });
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

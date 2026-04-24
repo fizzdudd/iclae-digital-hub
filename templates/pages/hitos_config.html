@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Config evaluaciones{% endblock %}
+{% block page_title %}Administracion de Evaluaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
+    .section-divider-line { height:1px; background: var(--border); flex:1; }
+    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
+
+    .summary { display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+    .s-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
+    .s-card::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
+    .summary .s-card:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
+    .summary .s-card:nth-child(2)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .summary .s-card:nth-child(3)::before { background:linear-gradient(90deg,#16a34a,#4ade80); }
+    .summary .s-card:nth-child(4)::before { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .s-l { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+    .s-v { font-size:25px; font-weight:800; margin-top:6px; }
+
+    .hitos { display:grid; gap:12px; }
+    .hito { border:1px solid var(--border); border-radius:var(--radius-lg); background:#fff; box-shadow:var(--shadow-sm); overflow:hidden; }
+    .hito-h { padding:13px 15px; background:#f8fafc; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .h-name { font-size:14px; font-weight:700; }
+    .h-sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .h-w { font-size:12px; border-radius:999px; padding:3px 9px; font-weight:700; background:#dbeafe; color:#1e40af; }
+    .h-b { padding:12px 15px 14px; }
+    .meta { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .chip { font-size:11px; border-radius:999px; padding:3px 9px; font-weight:700; background:#f1f5f9; color:#475569; }
+    .chip.peso { background:#fee2e2; color:#991b1b; }
+    .chip.eval { background:#ede9fe; color:#5b21b6; }
+    ul { margin:0; padding-left:18px; }
+    li { font-size:12.5px; margin:4px 0; }
+
+    @media (max-width: 1000px){ .summary{grid-template-columns:1fr;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-text">🛠️ Configuracion de hitos y ponderaciones</div>
+    <div class="section-divider-line"></div>
+</div>
+
+<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
+    <input name="q" value="{{ filters.q }}" placeholder="Buscar hito" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
+    <select name="estado" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+        <option value="">Estado: todos</option>
+        {% for option in filter_options.estado %}
+        <option value="{{ option.value }}" {% if filters.estado == option.value %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+    <select name="evaluador" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+        <option value="">Evaluador: todos</option>
+        {% for option in filter_options.evaluador %}
+        <option value="{{ option.value }}" {% if filters.evaluador == option.value %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+    <a href="?" class="chip" style="text-decoration:none;border:1px solid var(--border);">Limpiar filtros</a>
+</form>
+
+<div class="summary">
+    <div class="s-card"><div class="s-l">Periodo</div><div class="s-v" style="font-size:20px;">{{ periodo_label }}</div></div>
+    <div class="s-card"><div class="s-l">Hitos</div><div class="s-v">{{ hitos_count }}</div></div>
+    <div class="s-card"><div class="s-l">Peso hitos</div><div class="s-v">{{ peso_hitos }}%</div></div>
+    <div class="s-card"><div class="s-l">Bitacoras</div><div class="s-v" style="color:var(--amber-700);">{{ peso_bitacoras }}%</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">{{ metodo_bitacoras }} · umbral {{ umbral_bitacoras }}%</div></div>
+</div>
+
+<div class="hitos">
+    {% for h in hitos %}
+    <div class="hito">
+        <div class="hito-h">
+            <div><div class="h-name">{{ h.nombre }}</div><div class="h-sub">Estado {{ h.estado }}</div></div>
+            <span class="h-w">Semana {{ h.semana }}</span>
+        </div>
+        <div class="h-b">
+            <div class="meta">
+                <span class="chip peso">{{ h.peso }}% de nota final</span>
+                <span class="chip eval">Evalua: {{ h.evaluador }}</span>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Competencias</div>
+            <ul>
+                {% for c in h.competencias %}
+                <li>{{ c.nombre }} ({{ c.peso }}%)</li>
+                {% empty %}
+                <li>Sin competencias configuradas.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% empty %}
+    <div class="s-card" style="color:var(--text-muted);">No hay hitos configurados para el periodo activo.</div>
+    {% endfor %}
+</div>
+{% endblock %}

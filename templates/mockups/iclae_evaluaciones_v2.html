@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICLAE — Evaluaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sidebar-bg:#0c2461;--sidebar-border:rgba(255,255,255,0.08);--sidebar-hover:rgba(255,255,255,0.08);--sidebar-active:rgba(255,255,255,0.15);--sidebar-text:rgba(255,255,255,0.65);--sidebar-accent:#60a5fa;
+  --page-bg:#eef2ff;--card-bg:#fff;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;
+  --green-50:#f0fdf4;--green-100:#dcfce7;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
+  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-600:#d97706;--amber-700:#b45309;--amber-800:#92400e;
+  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-600:#7c3aed;--violet-700:#6d28d9;--violet-800:#5b21b6;
+  --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-600:#e11d48;--rose-700:#be123c;--rose-800:#9f1239;
+  --orange-50:#fff7ed;--orange-100:#ffedd5;--orange-600:#ea580c;--orange-700:#c2410c;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:18px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-xl:0 20px 60px rgba(0,0,0,0.18),0 8px 24px rgba(0,0,0,0.1);
+  --sidebar-width:220px;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--page-bg);color:var(--text-primary);display:flex;min-height:100vh;font-size:14px}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-width);background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:34px;height:34px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.logo-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.3px}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-md);cursor:pointer;color:var(--sidebar-text);font-size:13.5px;font-weight:500;transition:background 0.15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-item.active .nav-icon{color:var(--sidebar-accent);opacity:1}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(96,165,250,0.2);color:#93c5fd}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:#fff}
+.user-role{font-size:10.5px;color:rgba(255,255,255,0.4)}
+.user-btn{width:26px;height:26px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.5);font-size:12px}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.topbar{background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0}
+.role-sel{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:12px}
+.role-sel select{border:none;outline:none;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-primary);background:transparent;cursor:pointer}
+.student-sel{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:var(--radius-md);border:1.5px solid var(--blue-200);background:var(--blue-50);font-size:12px}
+.student-sel select{border:none;outline:none;font-family:inherit;font-size:12px;font-weight:600;color:var(--blue-800);background:transparent;cursor:pointer}
+
+/* CONTENT */
+.content{overflow-y:auto;flex:1;padding:22px 28px 32px}
+
+/* RESUMEN NOTAS */
+.summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.sum-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
+.sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+.sum-card.c-blue::before{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.sum-card.c-green::before{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.sum-card.c-amber::before{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.sum-card.c-violet::before{background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
+.sum-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px}
+.sum-value{font-size:28px;font-weight:700;letter-spacing:-1px}
+.sum-card.c-blue .sum-value{color:var(--blue-700)}
+.sum-card.c-green .sum-value{color:var(--green-700)}
+.sum-card.c-amber .sum-value{color:var(--amber-700)}
+.sum-card.c-violet .sum-value{color:var(--violet-700)}
+.sum-sub{font-size:12px;color:var(--text-muted);margin-top:3px}
+.sum-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:6px;display:inline-block}
+
+/* SPLIT */
+.split{display:grid;grid-template-columns:240px 1fr;gap:16px}
+
+/* HITOS PANEL */
+.hitos-panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column;height:fit-content}
+.hitos-header{padding:12px 16px;border-bottom:1px solid var(--border);background:#f8fafc;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted)}
+.hito-item{padding:14px 16px;cursor:pointer;border-bottom:1px solid #f8fafc;transition:background 0.12s;position:relative}
+.hito-item:last-child{border-bottom:none}
+.hito-item:hover{background:#f8fbff}
+.hito-item.sel{background:var(--blue-50);border-left:3px solid var(--blue-600)}
+.hito-num{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:3px}
+.hito-item.sel .hito-num{color:var(--blue-600)}
+.hito-name{font-size:13.5px;font-weight:700;color:var(--text-primary)}
+.hito-item.sel .hito-name{color:var(--blue-800)}
+.hito-meta{font-size:11.5px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:6px}
+.hito-weight{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue-100);color:var(--blue-800);margin-top:5px;display:inline-block}
+.hito-status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:4px;margin-left:4px}
+.hs-pendiente{background:#f1f5f9;color:#94a3b8}
+.hs-disponible{background:var(--amber-100);color:var(--amber-800)}
+.hs-evaluado{background:var(--green-100);color:var(--green-800)}
+
+/* CONTENT PANEL */
+.eval-content{display:flex;flex-direction:column;gap:14px}
+
+/* Card genérica */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13.5px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px}
+.card-body{padding:16px 20px}
+
+/* Rúbrica tabla */
+.rubrica-table{width:100%;border-collapse:collapse}
+.rubrica-table th{padding:9px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);background:#f8fafc;border-bottom:1.5px solid var(--border)}
+.rubrica-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid #f8fafc;vertical-align:middle}
+.rubrica-table tr:last-child td{border-bottom:none}
+.rubrica-table tr:hover td{background:#f8fbff}
+.comp-name-cell{font-weight:600;color:var(--text-primary)}
+.comp-desc-cell{font-size:12px;color:var(--text-muted);max-width:220px}
+.weight-pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--blue-100);color:var(--blue-800)}
+.total-row td{background:#f8fafc;font-weight:700;border-top:1.5px solid var(--border)}
+
+/* Documento adjunto */
+.doc-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fafbff;cursor:pointer;transition:all 0.12s}
+.doc-item:hover{background:var(--blue-50);border-color:var(--blue-200)}
+.doc-icon{font-size:22px;flex-shrink:0}
+.doc-name{font-size:13px;font-weight:600;color:var(--blue-600)}
+.doc-meta{font-size:11.5px;color:var(--text-muted);margin-top:1px}
+.doc-arrow{margin-left:auto;font-size:16px;color:var(--text-muted)}
+
+/* Evaluación inputs */
+.eval-comp-row{display:grid;grid-template-columns:1fr 120px 90px 100px;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f8fafc}
+.eval-comp-row:last-child{border-bottom:none}
+.eval-comp-name{font-size:13.5px;font-weight:600;color:var(--text-primary)}
+.eval-comp-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
+.nota-input{width:100%;height:38px;padding:0 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:14px;font-weight:700;color:var(--text-primary);text-align:center;transition:border-color 0.15s}
+.nota-input:focus{outline:none;border-color:var(--blue-600)}
+.nota-input:read-only{background:#f8fafc;cursor:default;font-weight:600;color:var(--text-secondary)}
+.peso-cell{font-size:12px;font-weight:700;color:var(--blue-800);background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius-sm);padding:4px 10px;text-align:center}
+.aporte-cell{font-size:12.5px;font-weight:700;color:var(--green-700);text-align:right}
+
+/* Nota final preview */
+.nota-final-preview{background:linear-gradient(135deg,var(--blue-50),#f0f4ff);border:2px solid var(--blue-200);border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;justify-content:space-between}
+.nota-final-left{display:flex;flex-direction:column;gap:4px}
+.nota-final-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--blue-600)}
+.nota-final-value{font-size:36px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.nota-final-scale{font-size:12.5px;color:var(--text-muted)}
+.nota-bar-wrap{flex:1;margin:0 20px;height:10px;background:var(--blue-100);border-radius:5px;overflow:hidden}
+.nota-bar-fill{height:100%;border-radius:5px;transition:width 0.5s ease}
+
+/* Feedback tutor */
+.feedback-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.feedback-label{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:7px;display:block}
+.feedback-ta{width:100%;min-height:80px;padding:10px 13px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);resize:vertical;line-height:1.6;transition:border-color 0.15s;background:#fafbff}
+.feedback-ta:focus{outline:none;border-color:var(--blue-600);background:#fff}
+.feedback-ta::placeholder{color:var(--text-muted)}
+.feedback-ta:read-only{background:#f8fafc;cursor:default;color:var(--text-secondary)}
+
+/* Resultado completado */
+.result-comp-row{display:grid;grid-template-columns:1fr 80px 80px 100px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f8fafc}
+.result-comp-row:last-child{border-bottom:none}
+.result-bar{flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.result-bar-fill{height:100%;border-radius:3px}
+.result-nota{font-size:15px;font-weight:700}
+.result-aporte{font-size:12.5px;font-weight:700;color:var(--green-700);text-align:right}
+
+/* Historial */
+.hist-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f8fafc}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.hist-text{font-size:13px;color:var(--text-secondary);flex:1}
+.hist-date{font-size:11.5px;color:var(--text-muted)}
+
+/* Botones */
+.btn{height:38px;padding:0 18px;border-radius:var(--radius-md);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
+.btn-primary:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af)}
+.btn-success{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,0.25)}
+.btn-success:hover{background:linear-gradient(135deg,#15803d,#166534)}
+.btn-ghost{background:#f1f5f9;color:var(--text-secondary);border:1px solid var(--border)}
+.btn-ghost:hover{background:#e2e8f0}
+.btn-warning{background:linear-gradient(135deg,#d97706,#b45309);color:#fff}
+.btn-warning:hover{background:linear-gradient(135deg,#b45309,#92400e)}
+.btn-sm{height:30px;padding:0 12px;font-size:12px;border-radius:var(--radius-sm)}
+
+/* Badge genérico */
+.badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.b-blue{background:var(--blue-100);color:var(--blue-800)}
+.b-green{background:var(--green-100);color:var(--green-800)}
+.b-amber{background:var(--amber-100);color:var(--amber-800)}
+.b-rose{background:var(--rose-100);color:var(--rose-800)}
+.b-violet{background:var(--violet-100);color:var(--violet-800)}
+.b-gray{background:#f1f5f9;color:#64748b}
+
+/* ── MODALES ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:18px;box-shadow:var(--shadow-xl);width:100%;margin:20px;animation:modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1);max-height:90vh;overflow-y:auto}
+.modal-sm{max-width:460px}
+.modal-md{max-width:620px}
+.modal-lg{max-width:740px}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-size:16px;font-weight:700}
+.modal-sub{font-size:12.5px;color:var(--text-muted);margin-top:3px}
+.modal-close{width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-muted);transition:all 0.15s;flex-shrink:0}
+.modal-close:hover{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end}
+
+/* Form */
+.form-group{margin-bottom:14px}
+.form-label{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);display:block;margin-bottom:6px}
+.form-input{width:100%;height:38px;padding:0 13px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);transition:border-color 0.15s}
+.form-input:focus{outline:none;border-color:var(--blue-600)}
+.form-select{width:100%;height:38px;padding:0 13px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);background:#fff;cursor:pointer}
+.form-select:focus{outline:none;border-color:var(--blue-600)}
+
+/* Competencia row en modal */
+.comp-edit-row{display:grid;grid-template-columns:1fr 160px 90px 32px;gap:8px;align-items:start;margin-bottom:8px}
+.comp-edit-row input{height:36px;padding:0 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-family:inherit;font-size:13px;color:var(--text-primary);transition:border-color 0.15s}
+.comp-edit-row input:focus{outline:none;border-color:var(--blue-600)}
+.peso-total{font-size:12.5px;font-weight:700;text-align:right;margin-top:6px}
+.peso-ok{color:var(--green-700)}
+.peso-error{color:var(--rose-600)}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;transition:all 0.15s;background:#fafbff;margin-top:8px}
+.upload-zone:hover{border-color:var(--blue-600);background:var(--blue-50)}
+.upload-zone-icon{font-size:28px;margin-bottom:6px}
+.upload-zone-text{font-size:13px;color:var(--text-secondary);font-weight:500}
+.upload-zone-hint{font-size:12px;color:var(--text-muted);margin-top:3px}
+
+/* Toast */
+.toast{position:fixed;bottom:28px;right:28px;z-index:2000;background:#0f172a;color:#fff;padding:13px 18px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-xl);transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">IC</div>
+    <div><div class="logo-title">ICLAE</div><div class="logo-sub">Digital Hub · UDD</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item" href="iclae_dashboard_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>Dashboard</a>
+    <div class="nav-section-label" style="margin-top:8px;">Navegación</div>
+    <a class="nav-item" href="iclae_proyectos_v3.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>Proyectos</a>
+    <a class="nav-item" href="iclae_bitacora_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"/></svg>Bitácora</a>
+    <a class="nav-item" href="iclae_expediente.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>Expediente</a>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      Evaluaciones
+    </a>
+    <div class="nav-section-label" style="margin-top:8px;">Gestión</div>
+    <a class="nav-item" href="iclae_empresas_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4z" clip-rule="evenodd"/></svg>Empresas</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>Administración</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sideAvatar">DG</div>
+    <div style="flex:1;min-width:0;"><div class="user-name" id="sideName">Diego González</div><div class="user-role" id="sideRole">Alumno · TechSol S.A.</div></div>
+    <div style="display:flex;gap:4px;"><div class="user-btn">↩</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:16px;font-weight:700;">Evaluaciones</span>
+      <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--blue-100);color:var(--blue-800);">Período 2024-1</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div id="studentSelWrap" style="display:none;">
+        <div class="student-sel">
+          <span style="color:var(--blue-700);font-weight:600;font-size:12px;">👤</span>
+          <select id="studentSel" onchange="cambiarAlumno(this.value)">
+            <option value="diego">Diego González</option>
+            <option value="valentina">Valentina Ríos</option>
+            <option value="mateo">Mateo Soto</option>
+          </select>
+        </div>
+      </div>
+      <div class="role-sel">
+        <span style="color:var(--text-muted);font-weight:500;">Demo rol:</span>
+        <select onchange="cambiarRol(this.value)">
+          <option value="alumno">🎓 Alumno</option>
+          <option value="tutor_udd">👩‍🏫 Tutor UDD</option>
+          <option value="tutor_empresa">👔 Tutor Empresa</option>
+          <option value="admin">🔑 Admin</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="content" id="mainContent"></div>
+</main>
+
+<!-- MODAL: RÚBRICA -->
+<div class="modal-overlay" id="rubricaModal" onclick="closeMOnBg(event,'rubricaModal')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="rubricaTitle">Configurar rúbrica</div>
+        <div class="modal-sub" id="rubricaSub">Define las competencias y su ponderación</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('rubricaModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Nombre del hito</label>
+          <input class="form-input" id="rb-nombre" placeholder="Ej: Evaluación Intermedia">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Semana de aplicación</label>
+          <select class="form-select" id="rb-semana">
+            <option value="3">Semana 3</option><option value="4">Semana 4</option>
+            <option value="6">Semana 6</option><option value="7">Semana 7</option>
+            <option value="12">Semana 12</option><option value="13">Semana 13</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Peso en nota final (%)</label>
+          <input class="form-input" id="rb-peso" type="number" min="5" max="70" placeholder="Ej: 30">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Evaluado por</label>
+          <select class="form-select" id="rb-evaluador">
+            <option value="ambos">Ambos tutores</option>
+            <option value="udd">Solo Tutor UDD</option>
+            <option value="empresa">Solo Tutor Empresa</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:18px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Competencias a evaluar</div>
+          <button class="btn btn-sm btn-ghost" onclick="addCompRow()">+ Agregar competencia</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 160px 90px 32px;gap:8px;margin-bottom:6px;">
+          <div class="form-label" style="margin:0;">Competencia</div>
+          <div class="form-label" style="margin:0;">Descripción breve</div>
+          <div class="form-label" style="margin:0;text-align:center;">Peso (%)</div>
+          <div></div>
+        </div>
+        <div id="compRows"></div>
+        <div class="peso-total" id="pesoTotal">Total: 0% <span style="color:var(--text-muted);">(debe ser 100%)</span></div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;">📎 Documento de rúbrica (opcional)</div>
+        <div id="docPreview"></div>
+        <div class="upload-zone" onclick="simulateDocUpload()">
+          <div class="upload-zone-icon">📄</div>
+          <div class="upload-zone-text">Subir rúbrica en PDF o Word</div>
+          <div class="upload-zone-hint">Máx. 10 MB · PDF, DOCX, XLSX</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('rubricaModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRubrica()">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Guardar rúbrica
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EVALUAR -->
+<div class="modal-overlay" id="evaluarModal" onclick="closeMOnBg(event,'evaluarModal')">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="evalTitle">Evaluar alumno</div>
+        <div class="modal-sub" id="evalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('evaluarModal')">✕</button>
+    </div>
+    <div class="modal-body" id="evalModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('evaluarModal')">Cancelar</button>
+      <button class="btn btn-success" onclick="guardarEvaluacion()">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Confirmar evaluación
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastText"></span></div>
+
+<script>
+// ── ROLES ──
+const ROLES_INFO = {
+  alumno:        { nombre:'Diego González',  cargo:'Alumno · TechSol S.A.',    avatar:'DG', bg:'linear-gradient(135deg,#3b82f6,#6366f1)' },
+  tutor_udd:     { nombre:'Paulina Gómez',   cargo:'Tutor UDD · ICLAE',        avatar:'PG', bg:'linear-gradient(135deg,#7c3aed,#6d28d9)' },
+  tutor_empresa: { nombre:'Carlos Méndez',   cargo:'Tutor Empresa · TechSol',  avatar:'CM', bg:'linear-gradient(135deg,#d97706,#b45309)' },
+  admin:         { nombre:'Administrador',   cargo:'Admin ICLAE',              avatar:'AA', bg:'linear-gradient(135deg,#0c2461,#1d4ed8)' },
+};
+
+const ALUMNOS = {
+  diego:     { nombre:'Diego González',  empresa:'TechSol S.A.' },
+  valentina: { nombre:'Valentina Ríos',  empresa:'Google Chile' },
+  mateo:     { nombre:'Mateo Soto',      empresa:'Betterfly' },
+};
+
+// ── HITOS Y RÚBRICAS ──
+let hitos = [
+  {
+    id:1, nombre:'Diagnóstico inicial', semana:3, peso:20, evaluador:'ambos', estado:'evaluado',
+    doc:'Rubrica_H1_2024.pdf',
+    competencias:[
+      {nombre:'Adaptación al equipo',    desc:'Integración con el equipo de trabajo',     peso:30},
+      {nombre:'Comprensión del proyecto',desc:'Entiende el alcance y objetivos',           peso:40},
+      {nombre:'Comunicación inicial',    desc:'Claridad en la comunicación con tutores',   peso:30},
+    ],
+    evaluaciones:{
+      diego:    { notas:[5.5,6.0,5.5], feedback:'Buen diagnóstico. Demuestra disposición para aprender.', fecha:'Vie 15 Mar', evaluador:'Paulina Gómez' },
+      valentina:{ notas:[6.5,6.8,6.5], feedback:'Excelente adaptación desde el día uno.',  fecha:'Vie 15 Mar', evaluador:'Paulina Gómez' },
+      mateo:    { notas:[4.5,5.0,5.5], feedback:'Necesita mejorar comprensión del proyecto.',fecha:'Vie 15 Mar',evaluador:'Paulina Gómez'},
+    }
+  },
+  {
+    id:2, nombre:'Evaluación intermedia', semana:7, peso:30, evaluador:'ambos', estado:'disponible',
+    doc:null,
+    competencias:[
+      {nombre:'Trabajo en equipo',       desc:'Colaboración efectiva con el equipo',       peso:25},
+      {nombre:'Habilidades técnicas',    desc:'Dominio de tecnologías del proyecto',        peso:35},
+      {nombre:'Resolución de problemas', desc:'Capacidad para resolver obstáculos',         peso:25},
+      {nombre:'Comunicación',            desc:'Presentación de avances y resultados',       peso:15},
+    ],
+    evaluaciones:{ diego:null, valentina:null, mateo:null }
+  },
+  {
+    id:3, nombre:'Evaluación final', semana:13, peso:50, evaluador:'ambos', estado:'pendiente',
+    doc:null,
+    competencias:[
+      {nombre:'Trabajo en equipo',       desc:'Impacto en el equipo durante la práctica',  peso:20},
+      {nombre:'Habilidades técnicas',    desc:'Nivel técnico alcanzado',                   peso:30},
+      {nombre:'Liderazgo',               desc:'Iniciativa y capacidad de liderazgo',        peso:20},
+      {nombre:'Comunicación',            desc:'Presentación final del proyecto',            peso:15},
+      {nombre:'Impacto en la empresa',   desc:'Valor generado para la organización',        peso:15},
+    ],
+    evaluaciones:{ diego:null, valentina:null, mateo:null }
+  },
+];
+
+let rolActual = 'alumno';
+let alumnoActual = 'diego';
+let hitoSel = 'bita'; // por defecto muestra bitácoras primero
+let evalHitoId = null;
+let rubricaEditId = null;
+let docCargado = null;
+
+// ── ROL / ALUMNO ──
+function cambiarRol(r) {
+  rolActual = r;
+  const rd = ROLES_INFO[r];
+  document.getElementById('sideAvatar').textContent = rd.avatar;
+  document.getElementById('sideAvatar').style.background = rd.bg;
+  document.getElementById('sideName').textContent = rd.nombre;
+  document.getElementById('sideRole').textContent = rd.cargo;
+  document.getElementById('studentSelWrap').style.display = r !== 'alumno' ? 'block' : 'none';
+  if(r === 'alumno') alumnoActual = 'diego';
+  render();
+}
+function cambiarAlumno(a) { alumnoActual = a; render(); }
+
+// ── NOTA FINAL (incluye bitácoras) ──
+function calcNota(hito, alumnoId) {
+  const ev = hito.evaluaciones[alumnoId];
+  if(!ev) return null;
+  let suma = 0;
+  hito.competencias.forEach((c,i) => { suma += (ev.notas[i] || 0) * (c.peso/100); });
+  return Math.round(suma * 10) / 10;
+}
+
+const BITA_PESO = 10; // % de la nota final que representan las bitácoras
+function calcNotaBitacoras(alumnoId) {
+  // Simula datos de bitácoras por alumno
+  const dataBita = {
+    diego:    { aprobadas:4, total:13 },
+    valentina:{ aprobadas:1, total:13 },
+    mateo:    { aprobadas:6, total:13 },
+  };
+  const d = dataBita[alumnoId] || { aprobadas:0, total:13 };
+  return Math.round((d.aprobadas / d.total) * 7.0 * 10) / 10;
+}
+
+function calcNotaFinal() {
+  let total = 0, pesoAcum = 0;
+  hitos.forEach(h => {
+    const n = calcNota(h, alumnoActual);
+    if(n !== null) { total += n * (h.peso/100); pesoAcum += h.peso; }
+  });
+  // Siempre incluir bitácoras
+  total += calcNotaBitacoras(alumnoActual) * (BITA_PESO/100);
+  pesoAcum += BITA_PESO;
+  return pesoAcum > 0 ? Math.round(total * 100 / (pesoAcum/100)) / 100 : null;
+}
+
+// ── RENDER PRINCIPAL ──
+function render() {
+  const esAlumno = rolActual === 'alumno';
+  const puedeEvaluar = rolActual === 'tutor_udd' || rolActual === 'tutor_empresa' || rolActual === 'admin';
+  const puedeEditar = rolActual === 'tutor_udd' || rolActual === 'admin';
+  const alumnoNombre = ALUMNOS[alumnoActual].nombre;
+  const alumnoEmpresa = ALUMNOS[alumnoActual].empresa;
+
+  // Notas resumen
+  const notaFinal = calcNotaFinal();
+  const hitosEv = hitos.filter(h => calcNota(h, alumnoActual) !== null).length;
+  const notaH1 = calcNota(hitos[0], alumnoActual);
+  const notaH2 = calcNota(hitos[1], alumnoActual);
+
+  const notaColor = (n) => n>=6?'#15803d':n>=5?'#d97706':'#dc2626';
+
+  document.getElementById('mainContent').innerHTML = `
+
+    <!-- RESUMEN -->
+    <div class="summary-strip">
+      <div class="sum-card c-blue">
+        <div class="sum-label">Nota final estimada</div>
+        <div class="sum-value">${notaFinal !== null ? notaFinal.toFixed(1) : '—'}</div>
+        <div class="sum-sub">Sobre 7.0</div>
+        ${notaFinal ? `<span class="sum-badge" style="background:${notaFinal>=6?'var(--green-100)':notaFinal>=5?'var(--amber-100)':'var(--rose-100)'};color:${notaColor(notaFinal)};">${notaFinal>=6?'Destacado':notaFinal>=5?'Satisfactorio':'Bajo el estándar'}</span>` : ''}
+      </div>
+      <div class="sum-card c-green">
+        <div class="sum-label">Hitos evaluados</div>
+        <div class="sum-value">${hitosEv} / ${hitos.length}</div>
+        <div class="sum-sub">Del período 2024-1</div>
+      </div>
+      <div class="sum-card c-amber">
+        <div class="sum-label">Próxima evaluación</div>
+        <div class="sum-value" style="font-size:18px;letter-spacing:-0.3px;">Sem 7</div>
+        <div class="sum-sub">Evaluación intermedia</div>
+        <span class="sum-badge" style="background:var(--amber-100);color:var(--amber-800);">Disponible</span>
+      </div>
+      <div class="sum-card c-violet">
+        <div class="sum-label">Peso pendiente</div>
+        <div class="sum-value">80%</div>
+        <div class="sum-sub">De la nota final</div>
+      </div>
+    </div>
+
+    <!-- SPLIT -->
+    <div class="split">
+
+      <!-- HITOS PANEL -->
+      <div>
+        <div class="hitos-panel">
+          <div class="hitos-header">Hitos del período</div>
+          ${hitos.map(h => {
+            const n = calcNota(h, alumnoActual);
+            const statusCls = h.estado==='evaluado'?'hs-evaluado':h.estado==='disponible'?'hs-disponible':'hs-pendiente';
+            const statusLabel = h.estado==='evaluado'?'✓ Evaluado':h.estado==='disponible'?'Disponible':'Pendiente';
+            return `<div class="hito-item${hitoSel===h.id?' sel':''}" onclick="selHito(${h.id})">
+              <div class="hito-num">Hito ${h.id}</div>
+              <div class="hito-name">${h.nombre}</div>
+              <div class="hito-meta">📅 Semana ${h.semana}</div>
+              <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span class="hito-weight">${h.peso}% nota final</span>
+                <span class="hito-status ${statusCls}">${statusLabel}</span>
+                ${n!==null?`<span style="font-size:12px;font-weight:700;color:${notaColor(n)};">${n.toFixed(1)}</span>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+          <div class="hito-item${hitoSel==='bita'?' sel':''}" onclick="selHito('bita')" style="border-top:2px solid var(--amber-100);">
+            <div class="hito-num" style="color:var(--amber-600);">📓 Bitácoras</div>
+            <div class="hito-name">Registro semanal</div>
+            <div class="hito-meta">Semanas 1 – 13</div>
+            <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+              <span class="hito-weight" style="background:var(--amber-100);color:var(--amber-800);">10% nota final</span>
+              ${(() => { const n=calcNotaBitacoras(alumnoActual); const d={diego:{a:4},valentina:{a:1},mateo:{a:6}}[alumnoActual]||{a:0}; return `<span style="font-size:12px;font-weight:700;color:${notaColor(n)};">${n.toFixed(1)}</span>`; })()}
+            </div>
+          </div>
+          ${puedeEditar ? `
+          <div style="padding:12px 16px;border-top:1px solid var(--border);">
+            <button class="btn btn-sm btn-ghost" style="width:100%;" onclick="openRubricaModal(null)">
+              + Nuevo hito
+            </button>
+          </div>` : ''}
+        </div>
+      </div>
+
+      <!-- CONTENIDO HITO -->
+      <div class="eval-content" id="hitoContent"></div>
+
+    </div>
+  `;
+
+  renderHito(hitoSel);
+}
+
+function selHito(id) { hitoSel = id; renderHito(id); }
+
+function renderHito(id) {
+  if(id === 'bita') { renderBitacorasView(); return; }
+  const h = hitos.find(x => x.id === id);
+  const esAlumno = rolActual === 'alumno';
+  const puedeEvaluar = (rolActual === 'tutor_udd' || rolActual === 'tutor_empresa' || rolActual === 'admin');
+  const puedeEditar = rolActual === 'tutor_udd' || rolActual === 'admin';
+  const ev = h.evaluaciones[alumnoActual];
+  const notaFinal = calcNota(h, alumnoActual);
+  const notaColor = (n) => !n ? '#94a3b8' : n>=6?'#15803d':n>=5?'#d97706':'#dc2626';
+  const notaBarColor = (n) => !n ? '#e2e8f0' : n>=6?'#22c55e':n>=5?'#3b82f6':n>=4?'#f59e0b':'#f43f5e';
+  const alumnoNombre = ALUMNOS[alumnoActual].nombre;
+
+  const container = document.getElementById('hitoContent');
+  if(!container) return;
+  container.innerHTML = '';
+
+  // ── HEADER HITO ──
+  const hdr = document.createElement('div');
+  hdr.className = 'card';
+  hdr.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">
+        📌 Hito ${h.id}: ${h.nombre}
+        <span class="badge ${h.estado==='evaluado'?'b-green':h.estado==='disponible'?'b-amber':'b-gray'}">${h.estado==='evaluado'?'✓ Evaluado':h.estado==='disponible'?'Disponible':'Pendiente'}</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        ${puedeEditar ? `<button class="btn btn-sm btn-ghost" onclick="openRubricaModal(${h.id})">✏️ Editar rúbrica</button>` : ''}
+        ${puedeEvaluar && h.estado !== 'pendiente' ? `<button class="btn btn-sm btn-primary" onclick="openEvalModal(${h.id})">✏️ Evaluar alumno</button>` : ''}
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <div><span style="font-size:12px;color:var(--text-muted);">Semana de aplicación</span><div style="font-weight:700;margin-top:2px;">Semana ${h.semana}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Peso en nota final</span><div style="font-weight:700;margin-top:2px;">${h.peso}%</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Evaluado por</span><div style="font-weight:700;margin-top:2px;">${h.evaluador==='ambos'?'Ambos tutores':h.evaluador==='udd'?'Tutor UDD':'Tutor Empresa'}</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Competencias</span><div style="font-weight:700;margin-top:2px;">${h.competencias.length}</div></div>
+      </div>
+    </div>`;
+  container.appendChild(hdr);
+
+  // ── RÚBRICA ──
+  const rubCard = document.createElement('div');
+  rubCard.className = 'card';
+  rubCard.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">📊 Rúbrica de evaluación</div>
+      ${h.doc ? `<span class="badge b-blue">📎 Doc. adjunto</span>` : (puedeEditar ? `<span style="font-size:12px;color:var(--text-muted);">Sin documento adjunto</span>` : '')}
+    </div>
+    <div class="card-body" style="padding:0;">
+      ${h.doc ? `
+      <div style="padding:12px 20px;border-bottom:1px solid var(--border);">
+        <div class="doc-item" onclick="showToast('📄','Abriendo ${h.doc}...')">
+          <span class="doc-icon">📄</span>
+          <div><div class="doc-name">${h.doc}</div><div class="doc-meta">Rúbrica oficial del período · PDF</div></div>
+          <div class="doc-arrow">↗</div>
+        </div>
+      </div>` : ''}
+      <table class="rubrica-table" style="margin:0;">
+        <thead><tr>
+          <th>Competencia</th>
+          <th>Descripción</th>
+          <th style="text-align:center;">Peso</th>
+          <th style="text-align:center;">Criterio mín.</th>
+          <th style="text-align:center;">Criterio máx.</th>
+        </tr></thead>
+        <tbody>
+          ${h.competencias.map(c=>`
+          <tr>
+            <td><div class="comp-name-cell">${c.nombre}</div></td>
+            <td><div class="comp-desc-cell">${c.desc}</div></td>
+            <td style="text-align:center;"><span class="weight-pill">${c.peso}%</span></td>
+            <td style="text-align:center;font-size:12px;color:var(--text-muted);">1.0 – 3.9</td>
+            <td style="text-align:center;font-size:12px;color:var(--text-muted);">6.0 – 7.0</td>
+          </tr>`).join('')}
+          <tr class="total-row">
+            <td colspan="2">Total ponderación</td>
+            <td style="text-align:center;"><span class="weight-pill" style="background:var(--green-100);color:var(--green-800);">100%</span></td>
+            <td colspan="2"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+  container.appendChild(rubCard);
+
+  // ── RESULTADO (si hay evaluación) ──
+  if(ev) {
+    const resCard = document.createElement('div');
+    resCard.className = 'card';
+    resCard.innerHTML = `
+      <div class="card-header">
+        <div class="card-title">✅ Resultado de evaluación</div>
+        <span style="font-size:12px;color:var(--text-muted);">${ev.fecha} · ${ev.evaluador}</span>
+      </div>
+      <div class="card-body">
+        <div class="nota-final-preview" style="margin-bottom:20px;">
+          <div class="nota-final-left">
+            <div class="nota-final-label">Nota final del hito</div>
+            <div class="nota-final-value" style="color:${notaColor(notaFinal)}">${notaFinal?.toFixed(1) ?? '—'}</div>
+            <div class="nota-final-scale">Escala 1.0 – 7.0</div>
+          </div>
+          <div class="nota-bar-wrap">
+            <div class="nota-bar-fill" style="width:${notaFinal?Math.round((notaFinal/7)*100):0}%;background:${notaBarColor(notaFinal)};"></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Peso en nota final</div>
+            <div style="font-size:24px;font-weight:700;color:var(--blue-700);">${h.peso}%</div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:10px;">Desglose por competencia</div>
+        ${h.competencias.map((c,i)=>{
+          const nota = ev.notas[i] || 0;
+          const aporte = Math.round(nota*(c.peso/100)*10)/10;
+          const barColor = nota>=6?'#22c55e':nota>=5?'#3b82f6':nota>=4?'#f59e0b':'#f43f5e';
+          return `<div class="result-comp-row">
+            <div><div style="font-size:13px;font-weight:600;">${c.nombre}</div><div style="font-size:11.5px;color:var(--text-muted);">Peso: ${c.peso}%</div></div>
+            <div class="result-bar"><div class="result-bar-fill" style="width:${Math.round((nota/7)*100)}%;background:${barColor};height:6px;border-radius:3px;"></div></div>
+            <div class="result-nota" style="color:${notaColor(nota)};text-align:center;">${nota.toFixed(1)}</div>
+            <div class="result-aporte">+${aporte.toFixed(2)}</div>
+          </div>`;
+        }).join('')}
+        ${ev.feedback ? `
+        <div style="margin-top:14px;padding:12px 14px;background:#f8fafc;border-radius:var(--radius-md);border-left:3px solid var(--blue-200);">
+          <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">FEEDBACK DEL TUTOR</div>
+          <div style="font-size:13.5px;color:var(--text-secondary);line-height:1.6;">${ev.feedback}</div>
+        </div>` : ''}
+      </div>`;
+    container.appendChild(resCard);
+  } else if(h.estado === 'disponible' && !esAlumno) {
+    const pendCard = document.createElement('div');
+    pendCard.className = 'card';
+    pendCard.innerHTML = `
+      <div class="card-body" style="text-align:center;padding:32px;">
+        <div style="font-size:32px;margin-bottom:10px;">📝</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Aún no se ha evaluado a ${alumnoNombre}</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">La rúbrica está lista. Puedes comenzar la evaluación cuando el alumno alcance la Semana ${h.semana}.</div>
+        <button class="btn btn-primary" onclick="openEvalModal(${h.id})">Comenzar evaluación →</button>
+      </div>`;
+    container.appendChild(pendCard);
+  } else if(h.estado === 'pendiente') {
+    const futCard = document.createElement('div');
+    futCard.className = 'card';
+    futCard.innerHTML = `
+      <div class="card-body" style="text-align:center;padding:32px;">
+        <div style="font-size:32px;margin-bottom:10px;">🔒</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Evaluación disponible en Semana ${h.semana}</div>
+        <div style="font-size:13px;color:var(--text-muted);">La rúbrica ${h.doc?'está':'aún no está'} configurada. ${puedeEditar&&!h.doc?'Puedes configurarla antes de que llegue la fecha.':''}</div>
+        ${puedeEditar && !h.doc ? `<button class="btn btn-sm btn-ghost" style="margin-top:14px;" onclick="openRubricaModal(${h.id})">Configurar rúbrica</button>` : ''}
+      </div>`;
+    container.appendChild(futCard);
+  }
+}
+
+// ── MODAL RÚBRICA ──
+let compRowCount = 0;
+let docFile = null;
+
+function openRubricaModal(hitoId) {
+  rubricaEditId = hitoId;
+  const h = hitoId ? hitos.find(x=>x.id===hitoId) : null;
+  document.getElementById('rubricaTitle').textContent = h ? `Editar rúbrica — ${h.nombre}` : 'Crear nuevo hito';
+  document.getElementById('rubricaSub').textContent = h ? `Hito ${h.id} · Semana ${h.semana} · ${h.peso}% de la nota final` : 'Define nombre, semana y competencias';
+  document.getElementById('rb-nombre').value = h ? h.nombre : '';
+  document.getElementById('rb-semana').value = h ? h.semana : '7';
+  document.getElementById('rb-peso').value = h ? h.peso : '';
+  document.getElementById('rb-evaluador').value = h ? h.evaluador : 'ambos';
+  docFile = null;
+  document.getElementById('docPreview').innerHTML = h?.doc
+    ? `<div class="doc-item" style="margin-bottom:8px;cursor:default;"><span class="doc-icon">📄</span><div><div class="doc-name">${h.doc}</div><div class="doc-meta">Documento actual</div></div><span style="margin-left:auto;font-size:12px;color:var(--rose-600);cursor:pointer;" onclick="document.getElementById('docPreview').innerHTML=''">✕ Quitar</span></div>`
+    : '';
+  compRowCount = 0;
+  document.getElementById('compRows').innerHTML = '';
+  (h ? h.competencias : [
+    {nombre:'Trabajo en equipo',desc:'Colaboración efectiva',peso:25},
+    {nombre:'Habilidades técnicas',desc:'Dominio técnico',peso:35},
+    {nombre:'Comunicación',desc:'Claridad y presentación',peso:40},
+  ]).forEach(c => addCompRow(c.nombre, c.desc, c.peso));
+  updatePesoTotal();
+  document.getElementById('rubricaModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function addCompRow(nombre='', desc='', peso='') {
+  const id = ++compRowCount;
+  const row = document.createElement('div');
+  row.className = 'comp-edit-row';
+  row.id = `cr-${id}`;
+  row.innerHTML = `
+    <input type="text" placeholder="Nombre competencia" value="${nombre}" oninput="updatePesoTotal()">
+    <input type="text" placeholder="Descripción breve" value="${desc}">
+    <input type="number" min="0" max="100" placeholder="%" value="${peso}" oninput="updatePesoTotal()" style="text-align:center;">
+    <button style="width:30px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--rose-100);background:var(--rose-50);color:var(--rose-600);cursor:pointer;font-size:14px;" onclick="document.getElementById('cr-${id}').remove();updatePesoTotal()">✕</button>`;
+  document.getElementById('compRows').appendChild(row);
+}
+
+function updatePesoTotal() {
+  const rows = document.querySelectorAll('#compRows .comp-edit-row');
+  let total = 0;
+  rows.forEach(r => { const inp = r.querySelectorAll('input')[2]; total += parseFloat(inp.value)||0; });
+  const el = document.getElementById('pesoTotal');
+  el.innerHTML = `Total: <span class="${Math.abs(total-100)<0.01?'peso-ok':'peso-error'}">${total}%</span> ${Math.abs(total-100)<0.01?'✓':'(debe ser 100%)'}`;
+}
+
+function simulateDocUpload() {
+  docFile = 'Rubrica_H' + (rubricaEditId||'nuevo') + '_2024.pdf';
+  showToast('📎','Documento adjuntado correctamente');
+  document.getElementById('docPreview').innerHTML = `
+    <div class="doc-item" style="margin-bottom:8px;cursor:default;">
+      <span class="doc-icon">📄</span>
+      <div><div class="doc-name">${docFile}</div><div class="doc-meta">Listo para guardar</div></div>
+      <span style="margin-left:auto;font-size:12px;color:var(--rose-600);cursor:pointer;" onclick="docFile=null;document.getElementById('docPreview').innerHTML=''">✕ Quitar</span>
+    </div>`;
+}
+
+function saveRubrica() {
+  const nombre = document.getElementById('rb-nombre').value.trim();
+  if(!nombre) { showToast('⚠️','Escribe el nombre del hito'); return; }
+  const rows = document.querySelectorAll('#compRows .comp-edit-row');
+  let total = 0;
+  const comps = [];
+  rows.forEach(r => {
+    const inps = r.querySelectorAll('input');
+    const n = inps[0].value.trim(), d = inps[1].value.trim(), p = parseFloat(inps[2].value)||0;
+    if(n) { comps.push({nombre:n,desc:d,peso:p}); total+=p; }
+  });
+  if(Math.abs(total-100)>0.5) { showToast('⚠️','El total de pesos debe ser 100%'); return; }
+  if(rubricaEditId) {
+    const h = hitos.find(x=>x.id===rubricaEditId);
+    h.nombre=nombre; h.semana=parseInt(document.getElementById('rb-semana').value);
+    h.peso=parseInt(document.getElementById('rb-peso').value)||h.peso;
+    h.evaluador=document.getElementById('rb-evaluador').value;
+    h.competencias=comps; if(docFile) h.doc=docFile;
+    if(h.estado==='pendiente') h.estado='disponible';
+    showToast('✅','Rúbrica actualizada correctamente');
+  } else {
+    const newId = hitos.length + 1;
+    hitos.push({ id:newId, nombre, semana:parseInt(document.getElementById('rb-semana').value),
+      peso:parseInt(document.getElementById('rb-peso').value)||20,
+      evaluador:document.getElementById('rb-evaluador').value, estado:'disponible', doc:docFile,
+      competencias:comps,
+      evaluaciones:{diego:null,valentina:null,mateo:null} });
+    hitoSel = newId;
+    showToast('✅','Nuevo hito creado');
+  }
+  closeModal('rubricaModal');
+  render();
+}
+
+// ── MODAL EVALUAR ──
+function openEvalModal(hitoId) {
+  evalHitoId = hitoId;
+  const h = hitos.find(x=>x.id===hitoId);
+  const alumnoNombre = ALUMNOS[alumnoActual].nombre;
+  document.getElementById('evalTitle').textContent = `Evaluar — ${h.nombre}`;
+  document.getElementById('evalSub').textContent = `${alumnoNombre} · Hito ${h.id} · ${h.peso}% de la nota final`;
+
+  const body = document.getElementById('evalModalBody');
+  body.innerHTML = `
+    <div style="background:var(--blue-50);border:1px solid var(--blue-200);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;color:var(--blue-800);">
+      Ingresa una nota del <strong>1.0 al 7.0</strong> para cada competencia. La nota final se calcula automáticamente según los pesos definidos en la rúbrica.
+    </div>
+    <div id="evalCompRows">
+      ${h.competencias.map((c,i)=>`
+      <div class="eval-comp-row">
+        <div>
+          <div class="eval-comp-name">${c.nombre}</div>
+          <div class="eval-comp-desc">${c.desc}</div>
+        </div>
+        <div class="peso-cell">${c.peso}% del hito</div>
+        <input class="nota-input" type="number" id="eval-nota-${i}" min="1" max="7" step="0.1" placeholder="—"
+          value="${h.evaluaciones[alumnoActual]?.notas[i]||''}"
+          oninput="recalcEvalModal()" style="width:100%;">
+        <div class="aporte-cell" id="aporte-${i}">—</div>
+      </div>`).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;margin-top:14px;padding:14px;background:var(--green-50);border:1px solid #bbf7d0;border-radius:var(--radius-md);">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--green-700);">Nota final del hito</div>
+        <div style="font-size:32px;font-weight:700;letter-spacing:-1px;color:var(--green-700);" id="evalNotaFinal">—</div>
+      </div>
+      <div style="flex:1;height:8px;background:#bbf7d0;border-radius:4px;overflow:hidden;"><div id="evalNotaBar" style="height:100%;border-radius:4px;background:#22c55e;width:0%;transition:width 0.3s;"></div></div>
+    </div>
+    <div class="feedback-section">
+      <span class="feedback-label">Feedback para el alumno</span>
+      <textarea class="feedback-ta" id="eval-feedback" placeholder="Escribe tu retroalimentación al alumno sobre su desempeño en este hito...">${h.evaluaciones[alumnoActual]?.feedback||''}</textarea>
+    </div>`;
+  recalcEvalModal();
+  document.getElementById('evaluarModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function recalcEvalModal() {
+  const h = hitos.find(x=>x.id===evalHitoId);
+  let total = 0, allFilled = true;
+  h.competencias.forEach((c,i) => {
+    const v = parseFloat(document.getElementById(`eval-nota-${i}`)?.value);
+    if(!isNaN(v) && v>=1 && v<=7) {
+      const aporte = Math.round(v*(c.peso/100)*100)/100;
+      total += aporte;
+      document.getElementById(`aporte-${i}`).textContent = '+'+aporte.toFixed(2);
+    } else {
+      allFilled = false;
+      if(document.getElementById(`aporte-${i}`)) document.getElementById(`aporte-${i}`).textContent = '—';
+    }
+  });
+  const notaEl = document.getElementById('evalNotaFinal');
+  const barEl = document.getElementById('evalNotaBar');
+  if(allFilled) {
+    const nota = Math.round(total*10)/10;
+    notaEl.textContent = nota.toFixed(1);
+    barEl.style.width = Math.round((nota/7)*100)+'%';
+  } else {
+    notaEl.textContent = '—';
+    barEl.style.width = '0%';
+  }
+}
+
+function guardarEvaluacion() {
+  const h = hitos.find(x=>x.id===evalHitoId);
+  const notas = h.competencias.map((_,i)=>{
+    const v = parseFloat(document.getElementById(`eval-nota-${i}`)?.value);
+    return isNaN(v) ? 0 : Math.min(7, Math.max(1, v));
+  });
+  const feedback = document.getElementById('eval-feedback')?.value || '';
+  const tutorNombre = ROLES_INFO[rolActual].nombre;
+  h.evaluaciones[alumnoActual] = { notas, feedback, fecha:'Hoy', evaluador: tutorNombre };
+  h.estado = 'evaluado';
+  closeModal('evaluarModal');
+  render();
+  const nota = calcNota(h, alumnoActual);
+  showToast('✅', `Hito ${h.id} evaluado · Nota: ${nota?.toFixed(1) ?? '—'}`);
+}
+
+// ── UTILS ──
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeMOnBg(e, id) { if(e.target === document.getElementById(id)) closeModal(id); }
+function showToast(icon, msg) {
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastText').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') { closeModal('rubricaModal'); closeModal('evaluarModal'); }
+});
+
+// ── VISTA BITÁCORAS ──
+function renderBitacorasView() {
+  const container = document.getElementById('hitoContent');
+  if(!container) return;
+  container.innerHTML = '';
+  const notaColor = (n) => !n?'#94a3b8':n>=6?'#15803d':n>=5?'#d97706':'#dc2626';
+  const notaBarColor = (n) => !n?'#e2e8f0':n>=6?'#22c55e':n>=5?'#3b82f6':n>=4?'#f59e0b':'#f43f5e';
+  const dataBita = {
+    diego:    { aprobadas:4, corregidas:1, reprobadas:1, pendientes:7, total:13 },
+    valentina:{ aprobadas:1, corregidas:0, reprobadas:0, pendientes:11, total:13 },
+    mateo:    { aprobadas:6, corregidas:1, reprobadas:1, pendientes:5, total:13 },
+  };
+  const d = dataBita[alumnoActual] || { aprobadas:0, corregidas:0, reprobadas:0, pendientes:13, total:13 };
+  const nota = calcNotaBitacoras(alumnoActual);
+  const semanasData = Array.from({length:13},(_,i)=>{
+    const n = i+1;
+    if(n<=d.aprobadas) return {n,estado:'aprobado'};
+    if(n===d.aprobadas+1&&d.corregidas>0) return {n,estado:'corregido'};
+    if(n===d.aprobadas+2&&d.reprobadas>0) return {n,estado:'reprobado'};
+    return {n,estado:'pendiente'};
+  });
+  const hdr = document.createElement('div');
+  hdr.className = 'card';
+  hdr.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">📓 Bitácoras semanales <span class="badge b-amber" style="background:var(--amber-100);color:var(--amber-800);">10% nota final</span></div>
+      <a href="iclae_bitacora_v2.html" style="font-size:12.5px;color:var(--blue-600);font-weight:500;cursor:pointer;">Ver bitácoras →</a>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+        <div><span style="font-size:12px;color:var(--text-muted);">Método</span><div style="font-weight:700;margin-top:2px;">% semanas aprobadas × 7.0</div></div>
+        <div><span style="font-size:12px;color:var(--text-muted);">Umbral mínimo</span><div style="font-weight:700;margin-top:2px;">80% aprobadas → nota ≥ 4.0</div></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="padding:10px 16px;border-radius:10px;background:#dcfce7;border:1px solid #bbf7d0;text-align:center;"><div style="font-size:20px;font-weight:700;color:#15803d;">${d.aprobadas}</div><div style="font-size:11px;color:#16a34a;font-weight:600;">Aprobadas</div></div>
+        <div style="padding:10px 16px;border-radius:10px;background:#ffedd5;border:1px solid #fed7aa;text-align:center;"><div style="font-size:20px;font-weight:700;color:#c2410c;">${d.corregidas}</div><div style="font-size:11px;color:#ea580c;font-weight:600;">Corregidas</div></div>
+        <div style="padding:10px 16px;border-radius:10px;background:#ffe4e6;border:1px solid #fecaca;text-align:center;"><div style="font-size:20px;font-weight:700;color:#be123c;">${d.reprobadas}</div><div style="font-size:11px;color:#e11d48;font-weight:600;">Reprobadas</div></div>
+        <div style="padding:10px 16px;border-radius:10px;background:#f1f5f9;border:1px solid #e2e8f0;text-align:center;"><div style="font-size:20px;font-weight:700;color:#94a3b8;">${d.pendientes}</div><div style="font-size:11px;color:#94a3b8;font-weight:600;">Pendientes</div></div>
+      </div>
+    </div>`;
+  container.appendChild(hdr);
+  const dotsCard = document.createElement('div');
+  dotsCard.className = 'card';
+  dotsCard.innerHTML = `
+    <div class="card-header"><div class="card-title">Estado por semana</div></div>
+    <div class="card-body">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${semanasData.map(s=>{
+          const cls=s.estado==='aprobado'?'wd-aprobado':s.estado==='corregido'?'wd-corregido':s.estado==='reprobado'?'wd-reprobado':'wd-pendiente';
+          const icon=s.estado==='aprobado'?'✓':s.estado==='corregido'?'↺':s.estado==='reprobado'?'✕':s.n;
+          return '<div class="wd-box '+cls+'" title="Sem '+s.n+': '+s.estado+'">'+icon+'</div>';
+        }).join('')}
+      </div>
+    </div>`;
+  container.appendChild(dotsCard);
+  const resCard = document.createElement('div');
+  resCard.className = 'card';
+  resCard.innerHTML = `
+    <div class="card-header"><div class="card-title">📊 Nota de bitácoras</div></div>
+    <div class="card-body">
+      <div class="nota-final-preview" style="background:linear-gradient(135deg,#fffbeb,#fef9ee);border-color:#fde68a;margin-bottom:16px;">
+        <div class="nota-final-left">
+          <div class="nota-final-label" style="color:#b45309;">Nota bitácoras</div>
+          <div class="nota-final-value" style="color:${notaColor(nota)}">${nota.toFixed(1)}</div>
+          <div class="nota-final-scale">(${d.aprobadas}/13) × 7.0</div>
+        </div>
+        <div class="nota-bar-wrap" style="background:#fde68a;">
+          <div class="nota-bar-fill" style="width:${Math.round((nota/7)*100)}%;background:${notaBarColor(nota)};"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Peso en nota final</div>
+          <div style="font-size:24px;font-weight:700;color:#b45309;">10%</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Aporte: <strong style="color:${notaColor(nota)};">+${(nota*0.1).toFixed(2)}</strong></div>
+        </div>
+      </div>
+      <div style="padding:11px 14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;font-size:13px;color:#64748b;">
+        <strong>Fórmula:</strong> (${d.aprobadas} aprobadas ÷ 13) × 7.0 = <strong style="color:${notaColor(nota)};">${nota.toFixed(1)}</strong><br>
+        <span style="font-size:12px;color:#94a3b8;">Configurable desde Administración de evaluaciones.</span>
+      </div>
+    </div>`;
+  container.appendChild(resCard);
+}
+
+
+render();
+</script>
+</body>
+</html>

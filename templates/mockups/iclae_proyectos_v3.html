@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICLAE — Proyectos</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-bg:#0c2461;--sidebar-border:rgba(255,255,255,0.08);--sidebar-hover:rgba(255,255,255,0.08);--sidebar-active:rgba(255,255,255,0.15);--sidebar-text:rgba(255,255,255,0.65);--sidebar-accent:#60a5fa;
+  --page-bg:#eef2ff;--card-bg:#fff;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;
+  --green-50:#f0fdf4;--green-100:#dcfce7;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
+  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-600:#d97706;--amber-700:#b45309;--amber-800:#92400e;
+  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-600:#7c3aed;--violet-700:#6d28d9;--violet-800:#5b21b6;
+  --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-600:#e11d48;--rose-800:#9f1239;
+  --cyan-100:#cffafe;--cyan-800:#155e75;
+  --orange-50:#fff7ed;--orange-100:#ffedd5;--orange-800:#9a3412;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-xl:0 20px 60px rgba(0,0,0,0.18),0 8px 24px rgba(0,0,0,0.1);
+  --sidebar-width:220px;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--page-bg);color:var(--text-primary);display:flex;min-height:100vh;font-size:14px}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-width);background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:34px;height:34px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.logo-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.3px}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-md);cursor:pointer;color:var(--sidebar-text);font-size:13.5px;font-weight:500;transition:background 0.15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-item.active .nav-icon{color:var(--sidebar-accent);opacity:1}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(96,165,250,0.2);color:#93c5fd}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:#fff}
+.user-role{font-size:10.5px;color:rgba(255,255,255,0.4)}
+.user-btn{width:26px;height:26px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.5);font-size:12px}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.topbar{background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0}
+.page-title{font-size:16px;font-weight:700}
+.topbar-btn{height:34px;padding:0 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-family:inherit;transition:all 0.15s}
+.topbar-btn:hover{border-color:#93c5fd;color:var(--blue-700);background:var(--blue-50)}
+
+/* ── FILTERS ── */
+.filters-bar{padding:16px 28px 0;flex-shrink:0}
+.filters-top-row{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.search-wrap{position:relative;max-width:260px}
+.search-input{width:100%;height:38px;padding:0 12px 0 38px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:13px;font-family:inherit;color:var(--text-primary);transition:border-color 0.15s}
+.search-input:focus{outline:none;border-color:var(--blue-600)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+.results-meta{font-size:12.5px;color:var(--text-muted);margin-left:auto}
+.sort-select{height:38px;padding:0 28px 0 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-family:inherit;color:var(--text-secondary);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.clear-btn{height:38px;padding:0 14px;border-radius:var(--radius-md);border:1.5px solid #fca5a5;background:#fff1f2;font-size:12.5px;font-weight:600;color:#dc2626;cursor:pointer;font-family:inherit;display:none;align-items:center;gap:6px;transition:all 0.15s}
+.clear-btn:hover{background:#fee2e2}
+.clear-btn.visible{display:flex}
+
+/* Panel de filtros v2 */
+.filters-panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.frow{display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border)}
+.frow:last-child{border-bottom:none}
+.frow.row-rubro{background:#ddeaff}
+.frow.row-bottom{padding:0;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:none}
+.fsub{display:flex;flex-direction:column;gap:8px;padding:11px 16px}
+.fsub.sub-empresa{background:#fff8f0;border-right:1px solid #fde8c8}
+.fsub.sub-carrera{background:#f0fff8;border-right:1px solid #c8fde0}
+.fsub.sub-modalidad{background:#faf6ff;border-right:1px solid #e8dff7}
+.fsub.sub-estado{background:#fff0f8}
+.fsub-header{display:flex;align-items:center;gap:6px}
+.fsub-icon{font-size:13px}
+.fsub-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px}
+.frow.row-rubro .fsub-label{color:#3b5fc0}
+.fsub.sub-empresa .fsub-label{color:#c2621f}
+.fsub.sub-carrera .fsub-label{color:#15803d}
+.fsub.sub-modalidad .fsub-label{color:#7c3aed}
+.fsub.sub-estado .fsub-label{color:#be185d}
+.fchips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{padding:5px 12px;border-radius:20px;border:1.5px solid rgba(0,0,0,0.1);background:rgba(255,255,255,0.75);font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.15s;font-family:inherit;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.fchip:hover{background:#fff;border-color:rgba(0,0,0,0.2);color:var(--text-primary)}
+
+/* Activos con colores específicos */
+.fchip.active[data-rubro="todos"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+.fchip.active[data-rubro="banca"]{background:var(--blue-100);border-color:#93c5fd;color:var(--blue-800);font-weight:600}
+.fchip.active[data-rubro="fintech"]{background:var(--green-100);border-color:#86efac;color:var(--green-800);font-weight:600}
+.fchip.active[data-rubro="retail"]{background:var(--rose-100);border-color:#fda4af;color:var(--rose-800);font-weight:600}
+.fchip.active[data-rubro="energia"]{background:var(--cyan-100);border-color:#67e8f9;color:var(--cyan-800);font-weight:600}
+.fchip.active[data-rubro="hrtech"]{background:var(--amber-100);border-color:#fcd34d;color:var(--amber-800);font-weight:600}
+.fchip.active[data-rubro="tecnologia"]{background:#d1fae5;border-color:#6ee7b7;color:#065f46;font-weight:600}
+.fchip.active[data-rubro="insurtech"]{background:var(--violet-100);border-color:#c4b5fd;color:var(--violet-800);font-weight:600}
+.fchip.active[data-empresa]{background:#fff3e0;border-color:#ffcc80;color:#e65100;font-weight:600}
+.fchip.active[data-carrera]{background:#e8f5e9;border-color:#a5d6a7;color:#2e7d32;font-weight:600}
+.fchip.active[data-modalidad="presencial"]{background:var(--green-100);border-color:#86efac;color:var(--green-800);font-weight:600}
+.fchip.active[data-modalidad="hibrido"]{background:var(--blue-100);border-color:#93c5fd;color:var(--blue-800);font-weight:600}
+.fchip.active[data-modalidad="remoto"]{background:var(--violet-100);border-color:#c4b5fd;color:var(--violet-800);font-weight:600}
+.fchip.active[data-modalidad="todos"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+.fchip.active[data-estado="abierto"]{background:var(--green-100);border-color:#86efac;color:var(--green-800);font-weight:600}
+.fchip.active[data-estado="en-curso"]{background:var(--amber-100);border-color:#fcd34d;color:var(--amber-800);font-weight:600}
+.fchip.active[data-estado="cerrado"]{background:#f1f5f9;border-color:#94a3b8;color:#475569;font-weight:600}
+.fchip.active[data-estado="todos"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+.fchip.active[data-empresa="todos"],.fchip.active[data-carrera="todas"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+
+/* ── BODY LAYOUT ── */
+.body-layout{display:flex;flex:1;overflow:hidden}
+.list-area{flex:1;overflow-y:auto;padding:0 28px 28px}
+
+/* ── PROJECT ROWS ── */
+.projects-table{background:var(--card-bg);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden}
+.table-header{display:grid;grid-template-columns:44px 1fr 110px 140px 95px 90px 85px 100px;align-items:center;gap:10px;padding:10px 20px;background:#f8fafc;border-bottom:1.5px solid var(--border)}
+.body-layout.panel-open .table-header{grid-template-columns:44px 1fr 90px 115px 80px 75px 75px 95px}
+
+.project-row{display:grid;grid-template-columns:44px 1fr 110px 140px 95px 90px 85px 100px;align-items:center;gap:10px;padding:13px 20px;cursor:pointer;transition:background 0.12s;border-bottom:1px solid #f8fafc;position:relative}
+.body-layout.panel-open .project-row{grid-template-columns:44px 1fr 90px 115px 80px 75px 75px 95px}
+.project-row:last-child{border-bottom:none}
+.project-row:hover{background:#f8fbff}
+.project-row.selected{background:var(--blue-50);border-left:3px solid var(--blue-600)}
+.project-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:var(--blue-600);transition:width 0.15s}
+.project-row:hover::before,.project-row.selected::before{width:3px}
+
+/* Logo empresa */
+.empresa-logo{width:38px;height:38px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;letter-spacing:-0.5px}
+
+/* Nombre columna */
+.col-title{min-width:0}
+.project-title{font-size:14px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.project-empresa{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:5px}
+
+/* Rubro + carrera */
+.col-rubro{display:flex;flex-direction:column;gap:4px}
+.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;width:fit-content}
+.badge-rubro-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* Modalidad */
+.badge-presencial{background:var(--green-100);color:var(--green-800)}
+.badge-hibrido{background:var(--blue-100);color:var(--blue-800)}
+.badge-remoto{background:var(--violet-100);color:var(--violet-800)}
+
+/* Estado */
+.badge-abierto{background:var(--green-100);color:var(--green-800)}
+.badge-en-curso{background:var(--amber-100);color:var(--amber-800)}
+.badge-cerrado{background:#f1f5f9;color:#64748b}
+
+/* Campus */
+.col-campus{font-size:12.5px;color:var(--text-secondary);font-weight:500}
+
+/* Postular btn */
+.btn-postular{height:32px;padding:0 14px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;white-space:nowrap;box-shadow:0 2px 6px rgba(37,99,235,0.25)}
+.btn-postular:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af);box-shadow:0 4px 12px rgba(37,99,235,0.35)}
+.btn-postulado{height:32px;padding:0 14px;border-radius:var(--radius-md);border:none;background:var(--green-100);color:var(--green-800);font-size:12px;font-weight:600;cursor:default;font-family:inherit;white-space:nowrap}
+.btn-editar{height:32px;padding:0 12px;border-radius:var(--radius-md);border:1.5px solid var(--amber-600);background:var(--amber-50);color:var(--amber-700);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-editar:hover{background:var(--amber-100);border-color:var(--amber-700)}
+.project-row:hover .col-arrow{color:var(--blue-600);transform:translateX(2px)}
+.project-row.selected .col-arrow{color:var(--blue-600)}
+
+/* ── DETAIL PANEL ── */
+.detail-panel{width:0;overflow:hidden;background:var(--card-bg);border-left:1px solid var(--border);transition:width 0.35s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;display:flex;flex-direction:column}
+.body-layout.panel-open .detail-panel{width:380px}
+.panel-inner{width:380px;overflow-y:auto;flex:1}
+.panel-close{width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-muted);transition:all 0.15s}
+.panel-close:hover{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+.panel-section{padding:16px 20px;border-bottom:1px solid var(--border)}
+.panel-section:last-child{border-bottom:none}
+.panel-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-muted);margin-bottom:12px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f8fafc;font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--text-muted);font-weight:500}
+.info-value{color:var(--text-primary);font-weight:600;text-align:right}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi-mini{text-align:center;padding:10px 6px;border-radius:var(--radius-md)}
+.kpi-mini-value{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.kpi-mini-label{font-size:10px;color:var(--text-muted);font-weight:500;margin-top:2px}
+.panel-link{cursor:pointer;transition:all 0.15s;border-radius:var(--radius-md)}
+.panel-link:hover{background:var(--blue-50)!important;border-color:var(--blue-200)!important}
+.panel-link:hover .plink-name{color:var(--blue-700);text-decoration:underline;text-underline-offset:2px}
+.click-hint{font-size:10px;color:var(--text-muted);opacity:0;transition:opacity 0.15s;margin-left:auto}
+.panel-link:hover .click-hint{opacity:1}
+.week-timeline{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.week-dot{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;cursor:default}
+.week-dot.done{background:var(--green-100);color:var(--green-700)}
+.week-dot.active{background:var(--blue-600);color:#fff}
+.week-dot.pending{background:#f1f5f9;color:var(--text-muted)}
+.week-dot.rejected{background:var(--rose-100);color:var(--rose-700)}
+.panel-postular-btn{width:100%;height:40px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.15s;box-shadow:0 2px 8px rgba(37,99,235,0.3);display:flex;align-items:center;justify-content:center;gap:8px}
+.panel-postular-btn:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af);box-shadow:0 4px 14px rgba(37,99,235,0.4)}
+
+/* ── MODAL POSTULACIÓN ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:18px;box-shadow:var(--shadow-xl);width:100%;max-width:540px;margin:20px;animation:modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1);max-height:90vh;overflow-y:auto}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:22px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:17px;font-weight:700}
+.modal-subtitle{font-size:13px;color:var(--text-muted);margin-top:3px}
+.modal-close{width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);flex-shrink:0;transition:all 0.15s}
+.modal-close:hover{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:0 24px 22px;display:flex;gap:10px;justify-content:flex-end}
+.btn{height:38px;padding:0 20px;border-radius:var(--radius-md);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all 0.15s;display:flex;align-items:center;gap:7px}
+.btn-secondary{background:#f1f5f9;color:var(--text-secondary)}
+.btn-secondary:hover{background:#e2e8f0}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.3)}
+.btn-primary:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;box-shadow:none}
+
+/* Perfil checker */
+.profile-checker{background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:18px}
+.profile-checker-title{font-size:12.5px;font-weight:700;color:var(--text-secondary);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.profile-pct{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.pct-complete{color:var(--green-700)}
+.pct-incomplete{color:var(--amber-700)}
+.profile-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.profile-item:last-child{border-bottom:none}
+.profile-item-icon{width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.profile-item-icon.ok{background:var(--green-100)}
+.profile-item-icon.missing{background:var(--rose-100)}
+.profile-item-info{flex:1}
+.profile-item-label{font-size:13px;font-weight:600}
+.profile-item-value{font-size:11.5px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
+.profile-item-value.ok-val{color:var(--blue-600)}
+.profile-item-value.missing-val{color:var(--rose-600)}
+.profile-item-status{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;flex-shrink:0}
+.status-ok{background:var(--green-100);color:var(--green-800)}
+.status-missing{background:var(--rose-100);color:var(--rose-700)}
+
+/* Banner de alerta perfil incompleto */
+.incomplete-banner{background:#fffbeb;border:1.5px solid #fde68a;border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+.incomplete-banner-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.incomplete-banner-text{font-size:13px;color:var(--amber-800);line-height:1.5}
+.incomplete-banner-link{color:var(--blue-600);font-weight:600;cursor:pointer;text-decoration:underline}
+
+/* Auto-envío info */
+.auto-send-box{background:var(--green-50);border:1.5px solid #bbf7d0;border-radius:var(--radius-md);padding:14px 16px;margin-bottom:16px}
+.auto-send-title{font-size:13px;font-weight:700;color:var(--green-800);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.auto-send-item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--green-700)}
+.auto-send-item a{color:var(--blue-600);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px;display:inline-block;vertical-align:middle}
+
+/* Carta motivación */
+.form-label{font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:7px}
+.msg-textarea{width:100%;min-height:95px;padding:12px 14px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);resize:vertical;line-height:1.6;transition:border-color 0.15s;background:#fafbff}
+.msg-textarea:focus{outline:none;border-color:var(--blue-600);background:#fff}
+.msg-textarea::placeholder{color:var(--text-muted)}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;z-index:2000;background:#0f172a;color:#fff;padding:13px 18px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-xl);transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">IC</div>
+    <div><div class="logo-title">ICLAE</div><div class="logo-sub">Digital Hub · UDD</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item" href="iclae_dashboard_v2.html">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>Dashboard
+    </a>
+    <div class="nav-section-label" style="margin-top:8px;">Navegación</div>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>Proyectos <span class="nav-badge">8</span>
+    </a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"/></svg>Evaluaciones</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd"/></svg>Reportes</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>Analítico</a>
+    <div class="nav-section-label" style="margin-top:8px;">Gestión</div>
+    <a class="nav-item" href="iclae_empresas_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>Empresas</a>
+    <a class="nav-item" href="iclae_postulaciones.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>Postulaciones <span class="nav-badge">12</span></a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>Administración</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">DG</div>
+    <div style="flex:1;min-width:0;"><div class="user-name">Diego González</div><div class="user-role">Alumno · Ing. Informática</div></div>
+    <div style="display:flex;gap:4px;"><div class="user-btn">↩</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="page-title">Explorador de Proyectos</span>
+      <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--blue-100);color:var(--blue-800);">Período 2024-1</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <!-- Selector de rol (demo) -->
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:12px;">
+        <span style="color:var(--text-muted);font-weight:500;">Demo rol:</span>
+        <select id="rolSelector" onchange="cambiarRol(this.value)" style="border:none;outline:none;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-primary);background:transparent;cursor:pointer;">
+          <option value="alumno">🎓 Alumno</option>
+          <option value="tutor_empresa">👔 Tutor Empresa (Buk)</option>
+          <option value="admin">🔑 Admin ICLAE</option>
+        </select>
+      </div>
+      <!-- Botón nuevo proyecto — solo admin y tutor_empresa -->
+      <button id="btnNuevoProyecto" class="topbar-btn" style="display:none;background:var(--blue-600);color:#fff;border-color:var(--blue-600);font-weight:600;" onclick="openProjectModal(null)">
+        <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+        Nuevo proyecto
+      </button>
+      <button class="topbar-btn">
+        <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <div class="filters-top-row">
+      <div class="search-wrap">
+        <svg class="search-icon" style="width:15px;height:15px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+        <input class="search-input" type="text" placeholder="Buscar proyecto o empresa..." oninput="filterProjects()">
+      </div>
+      <span class="results-meta" id="resultsMeta"></span>
+      <button class="clear-btn" id="clearBtn" onclick="clearFilters()">
+        <svg style="width:12px;height:12px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        Limpiar filtros
+      </button>
+      <select class="sort-select" onchange="sortProjects(this.value)">
+        <option value="reciente">Más recientes</option>
+        <option value="empresa">Por empresa</option>
+        <option value="progreso">Mayor progreso</option>
+      </select>
+    </div>
+
+    <div class="filters-panel">
+      <!-- Rubro -->
+      <div class="frow row-rubro">
+        <div class="fsub-header"><span class="fsub-icon">🏭</span><span class="fsub-label" style="color:#3b5fc0;">Rubro</span></div>
+        <div style="width:1px;height:20px;background:rgba(59,95,192,0.2);flex-shrink:0;"></div>
+        <div class="fchips" id="fRubro">
+          <button class="fchip active" data-rubro="todos" onclick="setF('rubro','todos',this)">Todos</button>
+          <button class="fchip" data-rubro="banca" onclick="setF('rubro','banca',this)"><span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;flex-shrink:0;"></span>Banca</button>
+          <button class="fchip" data-rubro="fintech" onclick="setF('rubro','fintech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;"></span>Fintech</button>
+          <button class="fchip" data-rubro="retail" onclick="setF('rubro','retail',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f43f5e;display:inline-block;flex-shrink:0;"></span>Retail</button>
+          <button class="fchip" data-rubro="energia" onclick="setF('rubro','energia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;display:inline-block;flex-shrink:0;"></span>Energía</button>
+          <button class="fchip" data-rubro="hrtech" onclick="setF('rubro','hrtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;flex-shrink:0;"></span>HR Tech</button>
+          <button class="fchip" data-rubro="tecnologia" onclick="setF('rubro','tecnologia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;flex-shrink:0;"></span>Tecnología</button>
+          <button class="fchip" data-rubro="insurtech" onclick="setF('rubro','insurtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#8b5cf6;display:inline-block;flex-shrink:0;"></span>InsurTech</button>
+        </div>
+      </div>
+
+      <!-- Segunda fila: Empresa / Carrera / Modalidad / Estado -->
+      <div class="frow row-bottom">
+        <div class="fsub sub-empresa">
+          <div class="fsub-header"><span class="fsub-icon">🏢</span><span class="fsub-label">Empresa</span></div>
+          <div class="fchips" id="fEmpresa">
+            <button class="fchip active" data-empresa="todos" onclick="setF('empresa','todos',this)">Todas</button>
+            <button class="fchip" data-empresa="banco-chile" onclick="setF('empresa','banco-chile',this)">Banco de Chile</button>
+            <button class="fchip" data-empresa="buk" onclick="setF('empresa','buk',this)">Buk</button>
+            <button class="fchip" data-empresa="betterfly" onclick="setF('empresa','betterfly',this)">Betterfly</button>
+            <button class="fchip" data-empresa="fintual" onclick="setF('empresa','fintual',this)">Fintual</button>
+            <button class="fchip" data-empresa="google" onclick="setF('empresa','google',this)">Google</button>
+          </div>
+        </div>
+        <div class="fsub sub-carrera">
+          <div class="fsub-header"><span class="fsub-icon">🎓</span><span class="fsub-label">Carrera</span></div>
+          <div class="fchips" id="fCarrera">
+            <button class="fchip active" data-carrera="todas" onclick="setF('carrera','todas',this)">Todas</button>
+            <button class="fchip" data-carrera="informatica" onclick="setF('carrera','informatica',this)">Ing. Informática</button>
+            <button class="fchip" data-carrera="comercial" onclick="setF('carrera','comercial',this)">Ing. Comercial</button>
+            <button class="fchip" data-carrera="industrial" onclick="setF('carrera','industrial',this)">Ing. Industrial</button>
+            <button class="fchip" data-carrera="diseno" onclick="setF('carrera','diseno',this)">Diseño</button>
+          </div>
+        </div>
+        <div class="fsub sub-modalidad">
+          <div class="fsub-header"><span class="fsub-icon">💼</span><span class="fsub-label">Modalidad</span></div>
+          <div class="fchips" id="fModalidad">
+            <button class="fchip active" data-modalidad="todos" onclick="setF('modalidad','todos',this)">Todas</button>
+            <button class="fchip" data-modalidad="presencial" onclick="setF('modalidad','presencial',this)">Presencial</button>
+            <button class="fchip" data-modalidad="hibrido" onclick="setF('modalidad','hibrido',this)">Híbrido</button>
+            <button class="fchip" data-modalidad="remoto" onclick="setF('modalidad','remoto',this)">Remoto</button>
+          </div>
+        </div>
+        <div class="fsub sub-estado">
+          <div class="fsub-header"><span class="fsub-icon">📌</span><span class="fsub-label">Estado</span></div>
+          <div class="fchips" id="fEstado">
+            <button class="fchip active" data-estado="todos" onclick="setF('estado','todos',this)">Todos</button>
+            <button class="fchip" data-estado="abierto" onclick="setF('estado','abierto',this)">Abierto</button>
+            <button class="fchip" data-estado="en-curso" onclick="setF('estado','en-curso',this)">En curso</button>
+            <button class="fchip" data-estado="cerrado" onclick="setF('estado','cerrado',this)">Cerrado</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body-layout" id="bodyLayout">
+    <div class="list-area">
+      <div class="projects-table" id="projectsTable"></div>
+    </div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="panel-inner" id="panelInner"></div>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL CREAR / EDITAR PROYECTO -->
+<div class="modal-overlay" id="projectModal" onclick="closeProjOnBg(event)">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="projModalTitle">Nuevo proyecto</div>
+        <div class="modal-subtitle" id="projModalSubtitle">Completa los datos del proyecto</div>
+      </div>
+      <button class="modal-close" onclick="closeProjectModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Banner de empresa fija (tutor empresa) -->
+      <div id="empresaFijaBanner" style="display:none;background:#fff8f0;border:1.5px solid #fde8c8;border-radius:var(--radius-md);padding:11px 14px;margin-bottom:16px;display:none;align-items:center;gap:10px;">
+        <span style="font-size:16px;">🏢</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#c2621f;">Empresa asignada: <span id="empresaFijaLabel"></span></div>
+          <div style="font-size:11.5px;color:#d97706;">Solo puedes crear proyectos para tu empresa</div>
+        </div>
+      </div>
+
+      <!-- Empresa (solo admin puede cambiarla) -->
+      <div id="empresaSelectWrap" style="margin-bottom:16px;">
+        <label class="form-label">Empresa</label>
+        <select id="projEmpresa" style="width:100%;height:38px;padding:0 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);background:#fff;">
+          <option value="">Selecciona una empresa...</option>
+          <option value="banco-chile">Banco de Chile</option>
+          <option value="buk">Buk</option>
+          <option value="betterfly">Betterfly</option>
+          <option value="fintual">Fintual</option>
+          <option value="google">Google Chile</option>
+          <option value="falabella">Falabella</option>
+        </select>
+      </div>
+
+      <!-- Título -->
+      <div style="margin-bottom:16px;">
+        <label class="form-label">Título del proyecto</label>
+        <input id="projTitulo" type="text" placeholder="Ej: Desarrollador Full Stack" style="width:100%;height:38px;padding:0 14px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);">
+      </div>
+
+      <!-- Descripción -->
+      <div style="margin-bottom:16px;">
+        <label class="form-label">Descripción</label>
+        <textarea id="projDesc" rows="3" placeholder="Describe las actividades, tecnologías y objetivos del proyecto..." style="width:100%;padding:12px 14px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);resize:vertical;line-height:1.6;"></textarea>
+      </div>
+
+      <!-- Grid: Carrera + Vacantes -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div>
+          <label class="form-label">Carrera requerida</label>
+          <select id="projCarrera" style="width:100%;height:38px;padding:0 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);background:#fff;">
+            <option value="informatica">Ing. Informática</option>
+            <option value="comercial">Ing. Comercial</option>
+            <option value="industrial">Ing. Industrial</option>
+            <option value="diseno">Diseño</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Vacantes disponibles</label>
+          <input id="projVacantes" type="number" min="1" max="20" value="2" style="width:100%;height:38px;padding:0 14px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);">
+        </div>
+      </div>
+
+      <!-- Grid: Modalidad + Campus -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div>
+          <label class="form-label">Modalidad</label>
+          <select id="projModalidad" style="width:100%;height:38px;padding:0 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);background:#fff;">
+            <option value="presencial">Presencial</option>
+            <option value="hibrido">Híbrido</option>
+            <option value="remoto">Remoto</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Campus</label>
+          <select id="projCampus" style="width:100%;height:38px;padding:0 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);background:#fff;">
+            <option value="Santiago">Santiago</option>
+            <option value="Concepción">Concepción</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Aviso permisos (solo lectura para campos bloqueados) -->
+      <div id="permisosAviso" style="display:none;background:var(--blue-50);border:1px solid var(--blue-200);border-radius:var(--radius-md);padding:10px 14px;font-size:12.5px;color:var(--blue-800);">
+        <strong>Nota:</strong> Como Tutor Empresa, el proyecto quedará asociado automáticamente a tu empresa y al período activo.
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeProjectModal()">Cancelar</button>
+      <button class="btn btn-primary" id="projSaveBtn" onclick="saveProject()">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Guardar proyecto
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL POSTULACIÓN -->
+<div class="modal-overlay" id="applyModal" onclick="closeOnBg(event)">
+  <div class="modal" id="applyModalContent">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="applyTitle">Postular a proyecto</div>
+        <div class="modal-subtitle" id="applySubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="applyBody"></div>
+    <div class="modal-footer" id="applyFooter"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastText"></span></div>
+
+<script>
+// ── ROLES ──
+const roles = {
+  alumno:         { nombre:'Diego González',   cargo:'Alumno · Ing. Informática', empresa:null,  puedCrear:false, puedEditarTodos:false },
+  tutor_empresa:  { nombre:'María Lagos',      cargo:'Tutor Empresa · Buk',       empresa:'buk', puedCrear:true,  puedEditarTodos:false },
+  admin:          { nombre:'Admin ICLAE',      cargo:'Administrador ICLAE',       empresa:null,  puedCrear:true,  puedEditarTodos:true  },
+};
+let rolActual = 'alumno';
+
+function cambiarRol(rol) {
+  rolActual = rol;
+  const r = roles[rol];
+  // Actualizar sidebar user
+  document.querySelector('.user-name').textContent = r.nombre;
+  document.querySelector('.user-role').textContent = r.cargo;
+  document.querySelector('.user-avatar').textContent = r.nombre.split(' ').map(w=>w[0]).join('').slice(0,2);
+  // Mostrar/ocultar botón nuevo proyecto
+  document.getElementById('btnNuevoProyecto').style.display = r.puedCrear ? 'flex' : 'none';
+  // Re-renderizar tabla
+  renderTable(getFiltered());
+  // Cerrar panel si está abierto
+  if(selectedId) closeDetail();
+}
+
+let editingProjectId = null;
+
+function openProjectModal(projectId) {
+  editingProjectId = projectId;
+  const r = roles[rolActual];
+  const isEdit = projectId !== null;
+  const p = isEdit ? projects.find(x=>x.id===projectId) : null;
+
+  document.getElementById('projModalTitle').textContent = isEdit ? 'Editar proyecto' : 'Nuevo proyecto';
+  document.getElementById('projModalSubtitle').textContent = isEdit
+    ? `Editando: ${p.titulo} · ${p.empresa}`
+    : 'Completa los datos del nuevo proyecto';
+
+  // Lógica de empresa: tutor empresa no puede cambiarla
+  const banner = document.getElementById('empresaFijaBanner');
+  const selectWrap = document.getElementById('empresaSelectWrap');
+  const aviso = document.getElementById('permisosAviso');
+
+  if(r.empresa) {
+    // Tutor empresa: empresa fija
+    banner.style.display = 'flex';
+    selectWrap.style.display = 'none';
+    aviso.style.display = 'block';
+    document.getElementById('empresaFijaLabel').textContent = r.nombre.split('·')[1]?.trim() || 'Buk';
+  } else {
+    // Admin: puede elegir empresa
+    banner.style.display = 'none';
+    selectWrap.style.display = 'block';
+    aviso.style.display = 'none';
+  }
+
+  // Pre-llenar campos si es edición
+  if(isEdit) {
+    document.getElementById('projTitulo').value = p.titulo;
+    document.getElementById('projDesc').value = p.descripcion;
+    document.getElementById('projCarrera').value = p.carrera;
+    document.getElementById('projVacantes').value = p.vacantes;
+    document.getElementById('projModalidad').value = p.modalidad;
+    document.getElementById('projCampus').value = p.campus;
+    if(!r.empresa) document.getElementById('projEmpresa').value = p.empresaId;
+  } else {
+    document.getElementById('projTitulo').value = '';
+    document.getElementById('projDesc').value = '';
+    document.getElementById('projVacantes').value = '2';
+    if(!r.empresa) document.getElementById('projEmpresa').value = '';
+  }
+
+  document.getElementById('projectModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProjectModal() {
+  document.getElementById('projectModal').classList.remove('open');
+  document.body.style.overflow = '';
+  editingProjectId = null;
+}
+function closeProjOnBg(e) { if(e.target===document.getElementById('projectModal')) closeProjectModal(); }
+
+function saveProject() {
+  const titulo = document.getElementById('projTitulo').value.trim();
+  if(!titulo) {
+    document.getElementById('projTitulo').style.borderColor = '#dc2626';
+    document.getElementById('projTitulo').focus();
+    setTimeout(()=>{ document.getElementById('projTitulo').style.borderColor=''; },2000);
+    return;
+  }
+  const isEdit = editingProjectId !== null;
+  closeProjectModal();
+  if(isEdit) {
+    const p = projects.find(x=>x.id===editingProjectId);
+    p.titulo = titulo;
+    p.descripcion = document.getElementById('projDesc').value;
+    p.carrera = document.getElementById('projCarrera').value;
+    p.vacantes = parseInt(document.getElementById('projVacantes').value);
+    p.modalidad = document.getElementById('projModalidad').value;
+    p.campus = document.getElementById('projCampus').value;
+    renderTable(getFiltered());
+    if(selectedId === editingProjectId) openDetail(editingProjectId);
+    showToast('✅', `Proyecto "${titulo}" actualizado`);
+  } else {
+    showToast('✅', `Proyecto "${titulo}" creado exitosamente`);
+  }
+}
+const userProfile = {
+  nombre: 'Diego González',
+  carrera: 'Ing. Informática',
+  linkedin: 'linkedin.com/in/diegogonzalez',
+  cv: 'drive.google.com/cv-diego-gonzalez.pdf',
+  youtube: null, // no tiene video
+  completitud: 73
+};
+
+const projects = [
+  { id:1, titulo:'Desarrollador Full Stack', empresa:'Banco de Chile', empresaId:'banco-chile', initials:'BC', rubro:'banca', rubroLabel:'Banca', carrera:'informatica', carreraLabel:'Ing. Informática', modalidad:'hibrido', estado:'abierto', campus:'Santiago', periodo:'2024-1', semana:5, totalSemanas:13, alumnos:25, vacantes:3, descripcion:'Desarrollo de nuevas funcionalidades para la banca digital. Trabajo con React, Node.js y AWS. El proyecto incluye metodologías ágiles (Scrum) y revisiones semanales con el equipo de tecnología.', tutorUDD:'Paulina Gómez', tutorEmpresa:'Carlos Mendez', aplicado:false, semanas:[{s:1,ok:true},{s:2,ok:true},{s:3,ok:false},{s:4,ok:true},{s:5,active:true}] },
+  { id:2, titulo:'Analista de Datos Junior', empresa:'Fintual', empresaId:'fintual', initials:'FT', rubro:'fintech', rubroLabel:'Fintech', carrera:'comercial', carreraLabel:'Ing. Comercial', modalidad:'remoto', estado:'abierto', campus:'Santiago', periodo:'2024-1', semana:3, totalSemanas:13, alumnos:24, vacantes:2, descripcion:'Análisis de datos de inversiones y comportamiento de usuarios. Uso de Python, SQL y Tableau para generación de reportes ejecutivos y modelos predictivos.', tutorUDD:'Roberto Vera', tutorEmpresa:'Ana Pizarro', aplicado:false, semanas:[{s:1,ok:true},{s:2,ok:true},{s:3,active:true}] },
+  { id:3, titulo:'UX Designer Practicante', empresa:'Betterfly', empresaId:'betterfly', initials:'BT', rubro:'insurtech', rubroLabel:'InsurTech', carrera:'diseno', carreraLabel:'Diseño', modalidad:'hibrido', estado:'abierto', campus:'Santiago', periodo:'2024-1', semana:7, totalSemanas:13, alumnos:24, vacantes:1, descripcion:'Diseño de interfaces y experiencia de usuario para la plataforma de bienestar corporativo. Uso de Figma, investigación con usuarios y prototipado de alto fidelidad.', tutorUDD:'Paulina Gómez', tutorEmpresa:'Sofía Reyes', aplicado:true, semanas:[{s:1,ok:true},{s:2,ok:true},{s:3,ok:true},{s:4,ok:false},{s:5,ok:true},{s:6,ok:true},{s:7,active:true}] },
+  { id:4, titulo:'Desarrollador Backend Python', empresa:'Buk', empresaId:'buk', initials:'BK', rubro:'hrtech', rubroLabel:'HR Tech', carrera:'informatica', carreraLabel:'Ing. Informática', modalidad:'presencial', estado:'en-curso', campus:'Santiago', periodo:'2024-1', semana:9, totalSemanas:13, alumnos:24, vacantes:4, descripcion:'Desarrollo de APIs REST y microservicios para el módulo de remuneraciones. Stack: Python, FastAPI, PostgreSQL, Docker. Equipo de 5 desarrolladores con metodología Kanban.', tutorUDD:'Jorge Soto', tutorEmpresa:'María Lagos', aplicado:false, semanas:[{s:1,ok:true},{s:2,ok:true},{s:3,ok:true},{s:4,ok:true},{s:5,ok:true},{s:6,ok:false},{s:7,ok:true},{s:8,ok:true},{s:9,active:true}] },
+  { id:5, titulo:'Software Engineer Intern', empresa:'Google Chile', empresaId:'google', initials:'GC', rubro:'tecnologia', rubroLabel:'Tecnología', carrera:'informatica', carreraLabel:'Ing. Informática', modalidad:'presencial', estado:'abierto', campus:'Santiago', periodo:'2024-1', semana:2, totalSemanas:13, alumnos:20, vacantes:2, descripcion:'Proyecto de desarrollo en infraestructura cloud para clientes empresariales en Latam. Uso de Google Cloud Platform, Go y Kubernetes. Mentoría directa con ingenieros senior de Google.', tutorUDD:'Carolina Muñoz', tutorEmpresa:'Felipe Torres', aplicado:false, semanas:[{s:1,ok:true},{s:2,active:true}] },
+  { id:6, titulo:'Analista Business Intelligence', empresa:'Falabella', empresaId:'falabella', initials:'FL', rubro:'retail', rubroLabel:'Retail', carrera:'comercial', carreraLabel:'Ing. Comercial', modalidad:'hibrido', estado:'en-curso', campus:'Santiago', periodo:'2024-1', semana:11, totalSemanas:13, alumnos:24, vacantes:2, descripcion:'Análisis de tendencias de ventas y comportamiento de clientes omnicanal. Herramientas: Power BI, SQL Server, Python. El proyecto genera reportes estratégicos para la gerencia comercial.', tutorUDD:'Roberto Vera', tutorEmpresa:'Cristina Vargas', aplicado:false, semanas:[{s:1,ok:true},{s:2,ok:true},{s:3,ok:true},{s:4,ok:true},{s:5,ok:true},{s:6,ok:true},{s:7,ok:true},{s:8,ok:false},{s:9,ok:true},{s:10,ok:true},{s:11,active:true}] },
+  { id:7, titulo:'Ingeniero de Procesos Digitales', empresa:'Enel Chile', empresaId:'enel', initials:'EN', rubro:'energia', rubroLabel:'Energía', carrera:'industrial', carreraLabel:'Ing. Industrial', modalidad:'presencial', estado:'cerrado', campus:'Santiago', periodo:'2024-1', semana:13, totalSemanas:13, alumnos:24, vacantes:0, descripcion:'Optimización de procesos operativos mediante herramientas digitales y automatización. Proyecto ya cerrado del período anterior.', tutorUDD:'Paulina Gómez', tutorEmpresa:'Tomás Ibáñez', aplicado:false, semanas:'full' },
+  { id:8, titulo:'Desarrollador Móvil React Native', empresa:'Buk', empresaId:'buk', initials:'BK', rubro:'hrtech', rubroLabel:'HR Tech', carrera:'informatica', carreraLabel:'Ing. Informática', modalidad:'remoto', estado:'abierto', campus:'Concepción', periodo:'2024-1', semana:4, totalSemanas:13, alumnos:24, vacantes:3, descripcion:'Desarrollo de la aplicación móvil de Buk para gestión de asistencia y solicitudes de empleados. Tecnologías: React Native, TypeScript, Redux.', tutorUDD:'Luis Araya', tutorEmpresa:'Pedro Castro', aplicado:false, semanas:[{s:1,ok:true},{s:2,ok:true},{s:3,ok:true},{s:4,active:true}] },
+];
+
+const rubroColors = {banca:'#3b82f6',fintech:'#22c55e',insurtech:'#8b5cf6',hrtech:'#f59e0b',energia:'#06b6d4',retail:'#f43f5e',tecnologia:'#10b981',mineria:'#ea580c'};
+const logoColors  = {banca:'#dbeafe|#1e40af',fintech:'#dcfce7|#166534',insurtech:'#ede9fe|#5b21b6',hrtech:'#fef3c7|#92400e',energia:'#cffafe|#155e75',retail:'#ffe4e6|#9f1239',tecnologia:'#d1fae5|#065f46',mineria:'#ffedd5|#9a3412'};
+
+let activeF = {rubro:'todos',empresa:'todos',carrera:'todas',modalidad:'todos',estado:'todos'};
+let searchTxt = '';
+let selectedId = null;
+let currentApplyProject = null;
+
+function getLogo(rubro){ return (logoColors[rubro]||'#f1f5f9|#475569').split('|'); }
+
+// ── RENDER TABLE ──
+function renderTable(list) {
+  const table = document.getElementById('projectsTable');
+  const isOpen = document.getElementById('bodyLayout').classList.contains('panel-open');
+  table.innerHTML = `
+    <div class="table-header">
+      <div></div>
+      <div class="th">Proyecto</div>
+      <div class="th">Rubro</div>
+      <div class="th">Carrera</div>
+      <div class="th">Modalidad</div>
+      <div class="th">Campus</div>
+      <div class="th">Estado</div>
+      <div class="th">Acción</div>
+    </div>`;
+
+  if(list.length === 0){
+    table.innerHTML += `<div style="padding:48px;text-align:center;color:var(--text-muted);">
+      <div style="font-size:32px;margin-bottom:10px;">🔍</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text-secondary);">Sin proyectos que coincidan</div>
+      <div style="font-size:13px;margin-top:4px;">Prueba ajustando los filtros</div>
+    </div>`;
+    document.getElementById('resultsMeta').textContent = '0 proyectos';
+    return;
+  }
+
+  list.forEach(p => {
+    const [lBg,lTxt] = getLogo(p.rubro);
+    const dotColor = rubroColors[p.rubro]||'#94a3b8';
+    const modalBadge = p.modalidad==='presencial' ? `<span class="badge badge-presencial">Presencial</span>` : p.modalidad==='hibrido' ? `<span class="badge badge-hibrido">Híbrido</span>` : `<span class="badge badge-remoto">Remoto</span>`;
+    const estadoBadge = p.estado==='abierto' ? `<span class="badge badge-abierto">● Abierto</span>` : p.estado==='en-curso' ? `<span class="badge badge-en-curso">◐ En curso</span>` : `<span class="badge badge-cerrado">○ Cerrado</span>`;
+    const progPct = Math.round((p.semana/p.totalSemanas)*100);
+    const r = roles[rolActual];
+    const puedeEditar = r.puedEditarTodos || (r.empresa && p.empresaId === r.empresa);
+
+    const accionBtn = puedeEditar
+      ? `<div style="display:flex;gap:6px;">
+           <button class="btn-editar" onclick="event.stopPropagation();openProjectModal(${p.id})" title="Editar proyecto">
+             <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+             Editar
+           </button>
+         </div>`
+      : p.aplicado
+        ? `<button class="btn-postulado">✓ Postulado</button>`
+        : p.estado==='cerrado'
+          ? `<button class="btn-postulado" style="background:#f1f5f9;color:#94a3b8;cursor:not-allowed;">Cerrado</button>`
+          : rolActual === 'alumno'
+            ? `<button class="btn-postular" onclick="event.stopPropagation();openApply(${p.id})">Postular →</button>`
+            : `<span style="font-size:12px;color:var(--text-muted);">—</span>`;
+
+    const row = document.createElement('div');
+    row.className = 'project-row' + (selectedId===p.id?' selected':'');
+    row.onclick = () => openDetail(p.id);
+    row.innerHTML = `
+      <div class="empresa-logo" style="background:${lBg};color:${lTxt};">${p.initials}</div>
+      <div class="col-title">
+        <div class="project-title">${p.titulo}</div>
+        <div class="project-empresa">
+          <span style="width:6px;height:6px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0;"></span>
+          ${p.empresa}
+        </div>
+      </div>
+      <div>
+        <span class="badge" style="background:${lBg};color:${lTxt};">
+          <span class="badge-rubro-dot" style="background:${dotColor};"></span>${p.rubroLabel}
+        </span>
+      </div>
+      <div>
+        <span class="badge" style="background:#f1f5f9;color:#475569;">${p.carreraLabel}</span>
+      </div>
+      <div>${modalBadge}</div>
+      <div>
+        <span style="font-size:12.5px;color:var(--text-secondary);font-weight:500;">📍 ${p.campus}</span>
+      </div>
+      ${estadoBadge}
+      ${accionBtn}
+    `;
+    table.appendChild(row);
+  });
+  document.getElementById('resultsMeta').textContent = list.length + ' proyecto' + (list.length===1?'':'s');
+}
+
+// ── DETAIL PANEL ──
+function openDetail(id) {
+  selectedId = id;
+  const p = projects.find(x=>x.id===id);
+  const [lBg,lTxt] = getLogo(p.rubro);
+  const dotColor = rubroColors[p.rubro]||'#94a3b8';
+
+  const semanasHtml = () => {
+    if(p.semanas === 'full') {
+      return `<div style="font-size:12px;color:var(--green-700);font-weight:600;">✓ Proyecto completado — 13/13 semanas</div>`;
+    }
+    const dots = [];
+    for(let i=1;i<=p.totalSemanas;i++){
+      const s = Array.isArray(p.semanas) ? p.semanas.find(x=>x.s===i) : null;
+      let cls = 'pending', label = i;
+      if(s){ if(s.active) cls='active'; else if(s.ok) cls='done'; else cls='rejected'; }
+      dots.push(`<div class="week-dot ${cls}" title="Semana ${i}">${i}</div>`);
+    }
+    return `<div class="week-timeline">${dots.join('')}</div>
+    <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--text-muted);">
+      <span><span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:3px;">✓</span> Aprobada</span>
+      <span><span style="background:#2563eb;color:#fff;padding:1px 6px;border-radius:3px;">●</span> Actual</span>
+      <span><span style="background:#ffe4e6;color:#9f1239;padding:1px 6px;border-radius:3px;">✗</span> Rechazada</span>
+      <span><span style="background:#f1f5f9;color:#94a3b8;padding:1px 6px;border-radius:3px;">○</span> Pendiente</span>
+    </div>`;
+  };
+
+  const r = roles[rolActual];
+  const puedeEditar = r.puedEditarTodos || (r.empresa && p.empresaId === r.empresa);
+
+  const accionPanel = puedeEditar
+    ? `<button class="panel-postular-btn" style="background:linear-gradient(135deg,#d97706,#b45309);box-shadow:0 2px 8px rgba(217,119,6,0.3);" onclick="openProjectModal(${p.id})">
+        <svg style="width:16px;height:16px;" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+        Editar este proyecto
+      </button>`
+    : p.aplicado
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--green-50);border:1.5px solid #bbf7d0;border-radius:var(--radius-md);">
+        <span style="font-size:18px;">✅</span>
+        <div><div style="font-size:13px;font-weight:700;color:var(--green-800);">Ya postulaste a este proyecto</div>
+        <div style="font-size:12px;color:var(--green-700);">Tu postulación está en revisión</div></div>
+      </div>`
+    : p.estado==='cerrado'
+    ? `<div style="padding:12px 14px;background:#f1f5f9;border-radius:var(--radius-md);text-align:center;font-size:13px;color:var(--text-muted);">Este proyecto ya no acepta postulaciones</div>`
+    : rolActual === 'alumno'
+    ? `<button class="panel-postular-btn" onclick="openApply(${p.id})">
+        <svg style="width:16px;height:16px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+        Postular a este proyecto
+      </button>`
+    : `<div style="padding:12px 14px;background:#f8fafc;border-radius:var(--radius-md);text-align:center;font-size:13px;color:var(--text-muted);">Solo alumnos pueden postular</div>`;
+
+  document.getElementById('panelInner').innerHTML = `
+    <div style="padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="empresa-logo" style="background:${lBg};color:${lTxt};width:40px;height:40px;">${p.initials}</div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);font-weight:500;">${p.empresa}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:-0.2px;">${p.titulo}</div>
+        </div>
+      </div>
+      <button class="panel-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div style="padding:10px 20px 14px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);">
+      <span class="badge" style="background:${lBg};color:${lTxt};"><span class="badge-rubro-dot" style="background:${dotColor};"></span>${p.rubroLabel}</span>
+      ${p.modalidad==='presencial'?`<span class="badge badge-presencial">Presencial</span>`:p.modalidad==='hibrido'?`<span class="badge badge-hibrido">Híbrido</span>`:`<span class="badge badge-remoto">Remoto</span>`}
+      ${p.estado==='abierto'?`<span class="badge badge-abierto">● Abierto</span>`:p.estado==='en-curso'?`<span class="badge badge-en-curso">◐ En curso</span>`:`<span class="badge badge-cerrado">○ Cerrado</span>`}
+      <span class="badge" style="background:#f1f5f9;color:#475569;">📍 ${p.campus}</span>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Descripción del proyecto</div>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.65;">${p.descripcion}</p>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Detalles</div>
+      <div class="info-row"><span class="info-label">Carrera requerida</span><span class="info-value">${p.carreraLabel}</span></div>
+      <div class="info-row"><span class="info-label">Vacantes disponibles</span><span class="info-value" style="color:var(--green-700);">${p.vacantes} vacantes</span></div>
+      <div class="info-row"><span class="info-label">Alumnos activos</span><span class="info-value">${p.alumnos}</span></div>
+      <div class="info-row"><span class="info-label">Período</span><span class="info-value">${p.periodo}</span></div>
+      <div class="info-row"><span class="info-label">Duración</span><span class="info-value">${p.totalSemanas} semanas</span></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Tutores asignados</div>
+      <div class="info-row panel-link" onclick="showToast('👤','Abriendo perfil de ${p.tutorUDD}...')" style="padding:8px 10px;border-radius:var(--radius-md);border:1px solid var(--border);margin-bottom:6px;">
+        <div><div class="plink-name" style="font-size:13px;font-weight:600;">👩‍🏫 ${p.tutorUDD}</div><div style="font-size:11px;color:var(--text-muted);">Tutor UDD</div></div>
+        <span class="click-hint">Ver perfil →</span>
+      </div>
+      <div class="info-row panel-link" onclick="showToast('👤','Abriendo perfil de ${p.tutorEmpresa}...')" style="padding:8px 10px;border-radius:var(--radius-md);border:1px solid var(--border);">
+        <div><div class="plink-name" style="font-size:13px;font-weight:600;">👔 ${p.tutorEmpresa}</div><div style="font-size:11px;color:var(--text-muted);">Tutor Empresa</div></div>
+        <span class="click-hint">Ver perfil →</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title" style="margin-bottom:10px;">Seguimiento semanal — Semana ${p.semana}/${p.totalSemanas}</div>
+      ${semanasHtml()}
+    </div>
+
+    <div class="panel-section" style="border-bottom:none;">
+      ${accionPanel}
+    </div>
+  `;
+
+  document.getElementById('bodyLayout').classList.add('panel-open');
+  renderTable(getFiltered());
+}
+
+function closeDetail() {
+  selectedId = null;
+  document.getElementById('bodyLayout').classList.remove('panel-open');
+  renderTable(getFiltered());
+}
+
+// ── POSTULACIÓN ──
+function openApply(id) {
+  currentApplyProject = projects.find(p=>p.id===id);
+  const p = currentApplyProject;
+  document.getElementById('applyTitle').textContent = p.titulo;
+  document.getElementById('applySubtitle').textContent = p.empresa + ' · ' + p.rubroLabel;
+
+  const hasLinkedin = !!userProfile.linkedin;
+  const hasCV = !!userProfile.cv;
+  const hasYoutube = !!userProfile.youtube;
+  const allComplete = hasLinkedin && hasCV && hasYoutube;
+
+  const profileItems = [
+    { key:'linkedin', label:'LinkedIn', icon:'💼', ok:hasLinkedin, value:userProfile.linkedin, missingMsg:'No tienes LinkedIn en tu perfil' },
+    { key:'cv', label:'Currículum (CV)', icon:'📄', ok:hasCV, value:userProfile.cv, missingMsg:'No tienes CV subido' },
+    { key:'youtube', label:'Video presentación', icon:'🎥', ok:hasYoutube, value:userProfile.youtube, missingMsg:'No tienes video de YouTube' },
+  ];
+
+  const pct = [hasLinkedin,hasCV,hasYoutube].filter(Boolean).length;
+  const pctPct = Math.round(pct/3*100);
+
+  let bodyHtml = `
+    <div class="profile-checker">
+      <div class="profile-checker-title">
+        <span>📋 Verificación de perfil</span>
+        <span class="profile-pct ${allComplete?'pct-complete':'pct-incomplete'}">${pctPct}% completo</span>
+      </div>`;
+
+  profileItems.forEach(item => {
+    bodyHtml += `
+      <div class="profile-item">
+        <div class="profile-item-icon ${item.ok?'ok':'missing'}">${item.icon}</div>
+        <div class="profile-item-info">
+          <div class="profile-item-label">${item.label}</div>
+          <div class="profile-item-value ${item.ok?'ok-val':'missing-val'}">${item.ok ? item.value : item.missingMsg}</div>
+        </div>
+        <span class="profile-item-status ${item.ok?'status-ok':'status-missing'}">${item.ok?'✓ Listo':'✗ Falta'}</span>
+      </div>`;
+  });
+  bodyHtml += `</div>`;
+
+  if(!allComplete) {
+    const missing = profileItems.filter(i=>!i.ok).map(i=>i.label).join(', ');
+    bodyHtml += `
+      <div class="incomplete-banner">
+        <span class="incomplete-banner-icon">⚠️</span>
+        <div class="incomplete-banner-text">
+          Te falta: <strong>${missing}</strong>. Puedes <span class="incomplete-banner-link" onclick="showToast('👤','Redirigiendo a tu perfil...')">completar tu perfil ahora</span> para enviar todos tus datos automáticamente, o continuar de todas formas con lo que tienes.
+        </div>
+      </div>`;
+  }
+
+  if(allComplete || hasLinkedin || hasCV) {
+    const sentItems = profileItems.filter(i=>i.ok);
+    bodyHtml += `
+      <div class="auto-send-box">
+        <div class="auto-send-title">
+          <svg style="width:15px;height:15px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          Se enviará automáticamente a ${p.empresa}
+        </div>
+        ${sentItems.map(i=>`<div class="auto-send-item">
+          <span>${i.icon}</span>
+          <span style="font-weight:600;color:var(--green-800);">${i.label}:</span>
+          <a href="#">${i.value}</a>
+        </div>`).join('')}
+      </div>`;
+  }
+
+  bodyHtml += `
+    <label class="form-label">Carta de motivación (opcional)</label>
+    <textarea class="msg-textarea" id="motivationLetter" placeholder="Cuéntale al equipo de ${p.empresa} por qué eres el candidato ideal para este proyecto..."></textarea>
+    <div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">La carta será visible para el Tutor Empresa y el Tutor UDD.</div>`;
+
+  document.getElementById('applyBody').innerHTML = bodyHtml;
+
+  const footerHtml = allComplete
+    ? `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+       <button class="btn btn-primary" onclick="confirmApply()">
+         <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+         Enviar postulación completa
+       </button>`
+    : `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+       <button class="btn" style="background:#f1f5f9;color:var(--text-secondary);border:1.5px solid var(--border);" onclick="confirmApply()">Postular con perfil incompleto</button>
+       <button class="btn btn-primary" onclick="showToast('👤','Redirigiendo a completar perfil...');closeModal()">Completar perfil →</button>`;
+
+  document.getElementById('applyFooter').innerHTML = footerHtml;
+  document.getElementById('applyModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function confirmApply() {
+  const p = currentApplyProject;
+  closeModal();
+  p.aplicado = true;
+  renderTable(getFiltered());
+  if(selectedId === p.id) openDetail(p.id);
+  showToast('🎉', `¡Postulación enviada a ${p.empresa}!`);
+}
+
+function closeModal() {
+  document.getElementById('applyModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeOnBg(e){ if(e.target===document.getElementById('applyModal')) closeModal(); }
+
+// ── FILTROS ──
+function setF(type, value, el) {
+  activeF[type] = value;
+  const groups = {rubro:'fRubro',empresa:'fEmpresa',carrera:'fCarrera',modalidad:'fModalidad',estado:'fEstado'};
+  document.querySelectorAll('#'+groups[type]+' .fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  updateClear();
+  renderTable(getFiltered());
+}
+function filterProjects(){ searchTxt = document.querySelector('.search-input').value; updateClear(); renderTable(getFiltered()); }
+function getFiltered(){
+  return projects.filter(p=>{
+    if(activeF.rubro!=='todos' && p.rubro!==activeF.rubro) return false;
+    if(activeF.empresa!=='todos' && p.empresaId!==activeF.empresa) return false;
+    if(activeF.carrera!=='todas' && p.carrera!==activeF.carrera) return false;
+    if(activeF.modalidad!=='todos' && p.modalidad!==activeF.modalidad) return false;
+    if(activeF.estado!=='todos' && p.estado!==activeF.estado) return false;
+    if(searchTxt && !p.titulo.toLowerCase().includes(searchTxt.toLowerCase()) && !p.empresa.toLowerCase().includes(searchTxt.toLowerCase())) return false;
+    return true;
+  });
+}
+function updateClear(){
+  const active = Object.entries(activeF).some(([k,v])=> k==='carrera'?v!=='todas':v!=='todos') || searchTxt;
+  document.getElementById('clearBtn').classList.toggle('visible', !!active);
+}
+function clearFilters(){
+  activeF = {rubro:'todos',empresa:'todos',carrera:'todas',modalidad:'todos',estado:'todos'};
+  searchTxt = '';
+  document.querySelector('.search-input').value = '';
+  [['fRubro','rubro'],['fEmpresa','empresa'],['fCarrera','carrera'],['fModalidad','modalidad'],['fEstado','estado']].forEach(([id])=>{
+    const chips = document.querySelectorAll('#'+id+' .fchip');
+    chips.forEach(c=>c.classList.remove('active'));
+    chips[0].classList.add('active');
+  });
+  document.getElementById('clearBtn').classList.remove('visible');
+  renderTable(getFiltered());
+}
+function sortProjects(val){
+  if(val==='empresa') projects.sort((a,b)=>a.empresa.localeCompare(b.empresa));
+  else if(val==='progreso') projects.sort((a,b)=>(b.semana/b.totalSemanas)-(a.semana/a.totalSemanas));
+  else projects.sort((a,b)=>a.id-b.id);
+  renderTable(getFiltered());
+}
+function showToast(icon, msg){ const t=document.getElementById('toast'); document.getElementById('toastIcon').textContent=icon; document.getElementById('toastText').textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3500); }
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+renderTable(projects);
+</script>
+</body>
+</html>

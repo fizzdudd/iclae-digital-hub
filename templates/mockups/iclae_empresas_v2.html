@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICLAE — Directorio de Empresas</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-bg:#0c2461;--sidebar-border:rgba(255,255,255,0.08);--sidebar-hover:rgba(255,255,255,0.08);--sidebar-active:rgba(255,255,255,0.15);--sidebar-text:rgba(255,255,255,0.65);--sidebar-accent:#60a5fa;
+  --page-bg:#eef2ff;--card-bg:#fff;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;--blue-900:#1e3a8a;
+  --green-50:#f0fdf4;--green-100:#dcfce7;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
+  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-600:#d97706;--amber-700:#b45309;--amber-800:#92400e;
+  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-600:#7c3aed;--violet-700:#6d28d9;--violet-800:#5b21b6;
+  --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-600:#e11d48;--rose-800:#9f1239;
+  --cyan-50:#ecfeff;--cyan-100:#cffafe;--cyan-600:#0891b2;--cyan-800:#155e75;
+  --orange-50:#fff7ed;--orange-100:#ffedd5;--orange-600:#ea580c;--orange-800:#9a3412;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:18px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:0 10px 30px rgba(0,0,0,0.1),0 4px 10px rgba(0,0,0,0.06);
+  --sidebar-width:220px;
+}
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--page-bg); color:var(--text-primary); display:flex; min-height:100vh; font-size:14px; }
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-width);background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:34px;height:34px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.logo-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.3px}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-md);cursor:pointer;color:var(--sidebar-text);font-size:13.5px;font-weight:500;transition:background 0.15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-item.active .nav-icon{color:var(--sidebar-accent);opacity:1}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(96,165,250,0.2);color:#93c5fd}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:#fff}
+.user-role{font-size:10.5px;color:rgba(255,255,255,0.4)}
+.user-btn{width:26px;height:26px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.5);font-size:12px}
+
+/* ── LAYOUT PRINCIPAL ── */
+.main{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.topbar{background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0}
+.page-title{font-size:16px;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-btn{height:34px;padding:0 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-family:inherit;transition:all 0.15s}
+.topbar-btn:hover{border-color:#93c5fd;color:var(--blue-700);background:var(--blue-50)}
+.topbar-btn.active-filter{background:var(--blue-600);color:#fff;border-color:var(--blue-600)}
+
+/* ── BODY LAYOUT: LIST + PANEL ── */
+.body-layout{display:flex;flex:1;overflow:hidden;position:relative}
+
+/* ── FILTERS BAR ── */
+.filters-bar{padding:16px 28px 0;background:transparent;flex-shrink:0}
+.filters-top-row{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.search-wrap{position:relative;max-width:260px}
+.search-input{width:100%;height:38px;padding:0 12px 0 38px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:13px;font-family:inherit;color:var(--text-primary);transition:border-color 0.15s}
+.search-input:focus{outline:none;border-color:var(--blue-600)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+.results-meta{font-size:12.5px;color:var(--text-muted);margin-left:auto}
+.sort-select{height:38px;padding:0 28px 0 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-family:inherit;color:var(--text-secondary);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+
+/* Filtros en panel unificado */
+.filters-panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:12px}
+.filter-group{display:flex;align-items:center;gap:10px}
+.filter-group-label{display:flex;align-items:center;gap:6px;min-width:86px;flex-shrink:0}
+.filter-group-icon{font-size:14px;line-height:1}
+.filter-group-text{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted)}
+.filter-divider-v{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Chip base */
+.filter-chip{padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:#f8fafc;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.15s;font-family:inherit;display:flex;align-items:center;gap:5px}
+.filter-chip:hover{background:#f1f5f9;border-color:#cbd5e1;color:var(--text-primary)}
+
+/* Rubro — cada valor activo tiene su propio color */
+.filter-chip.rubro-chip.active[data-rubro="todos"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+.filter-chip.rubro-chip.active[data-rubro="banca"]{background:var(--blue-100);border-color:#93c5fd;color:var(--blue-800);font-weight:600}
+.filter-chip.rubro-chip.active[data-rubro="fintech"]{background:var(--green-100);border-color:#86efac;color:var(--green-800);font-weight:600}
+.filter-chip.rubro-chip.active[data-rubro="insurtech"]{background:var(--violet-100);border-color:#c4b5fd;color:var(--violet-800);font-weight:600}
+.filter-chip.rubro-chip.active[data-rubro="hrtech"]{background:var(--amber-100);border-color:#fcd34d;color:var(--amber-800);font-weight:600}
+.filter-chip.rubro-chip.active[data-rubro="energia"]{background:var(--cyan-100);border-color:#67e8f9;color:var(--cyan-800);font-weight:600}
+.filter-chip.rubro-chip.active[data-rubro="retail"]{background:var(--rose-100);border-color:#fda4af;color:var(--rose-800);font-weight:600}
+.filter-chip.rubro-chip.active[data-rubro="tecnologia"]{background:#d1fae5;border-color:#6ee7b7;color:#065f46;font-weight:600}
+
+/* Presencia — iconografía prominente */
+.filter-chip.presencia-chip.active[data-presencia="todos"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+.filter-chip.presencia-chip.active[data-presencia="multinacional"]{background:#f0fdf4;border-color:#86efac;color:#166534;font-weight:600}
+.filter-chip.presencia-chip.active[data-presencia="chile"]{background:var(--blue-50);border-color:#93c5fd;color:var(--blue-800);font-weight:600}
+
+/* Tamaño — barras de escala visual */
+.tamano-bars{display:flex;align-items:flex-end;gap:1.5px;height:11px;flex-shrink:0}
+.tamano-bar{width:3px;border-radius:1px;background:currentColor;opacity:0.35;transition:opacity 0.15s}
+.filter-chip.tamano-chip.active .tamano-bar{opacity:1}
+.filter-chip.tamano-chip.active[data-tamano="todos"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+.filter-chip.tamano-chip.active[data-tamano="grande"]{background:#f1f5f9;border-color:#94a3b8;color:#1e293b;font-weight:600}
+.filter-chip.tamano-chip.active[data-tamano="mediana"]{background:var(--violet-50);border-color:#c4b5fd;color:var(--violet-700);font-weight:600}
+.filter-chip.tamano-chip.active[data-tamano="pequeña"]{background:var(--orange-50);border-color:#fed7aa;color:var(--orange-800);font-weight:600}
+
+/* Campus */
+.filter-chip.campus-chip.active[data-campus="todos"]{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-weight:600}
+.filter-chip.campus-chip.active[data-campus="santiago"]{background:var(--blue-50);border-color:#93c5fd;color:var(--blue-800);font-weight:600}
+.filter-chip.campus-chip.active[data-campus="concepcion"]{background:var(--violet-50);border-color:#c4b5fd;color:var(--violet-800);font-weight:600}
+
+/* ── CLICKEABLE LINKS EN PANEL ── */
+.alumni-item.panel-link,.tutor-item.panel-link{cursor:pointer;transition:all 0.15s}
+.alumni-item.panel-link:hover{background:var(--blue-50);border-color:var(--blue-200)}
+.alumni-item.panel-link:hover .alumni-name{color:var(--blue-700);text-decoration:underline;text-underline-offset:2px}
+.tutor-item.panel-link:hover{background:var(--blue-50);border-color:var(--blue-200)}
+.tutor-item.panel-link:hover .tutor-name{color:var(--blue-700)}
+.click-hint{font-size:10px;color:var(--text-muted);opacity:0;transition:opacity 0.15s;white-space:nowrap;margin-left:4px}
+.alumni-item.panel-link:hover .click-hint,.tutor-item.panel-link:hover .click-hint{opacity:1}
+
+/* ── COMPANY ROWS ── */
+.list-area{flex:1;overflow-y:auto;padding:0 28px 28px;transition:all 0.35s cubic-bezier(0.4,0,0.2,1)}
+.companies-grid{display:flex;flex-direction:column;gap:0;background:var(--card-bg);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden}
+
+/* Table header */
+.companies-header{display:grid;grid-template-columns:48px 1fr 240px 220px 120px 36px;align-items:center;gap:16px;padding:10px 20px;background:#f8fafc;border-bottom:1.5px solid var(--border)}
+.body-layout.panel-open .companies-header{grid-template-columns:48px 1fr 180px 160px 100px 36px}
+.col-header{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted)}
+
+/* Row */
+.company-card{display:grid;grid-template-columns:48px 1fr 240px 220px 120px 36px;align-items:center;gap:16px;padding:14px 20px;cursor:pointer;transition:background 0.12s;border-bottom:1px solid #f8fafc;position:relative}
+.body-layout.panel-open .company-card{grid-template-columns:48px 1fr 180px 160px 100px 36px}
+.company-card:last-child{border-bottom:none}
+.company-card:hover{background:#f8fbff}
+.company-card.selected{background:var(--blue-50);border-left:3px solid var(--blue-600)}
+.company-card.selected .col-name-main{color:var(--blue-700)}
+
+/* Left strip accent — now a left border on hover */
+.company-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:var(--blue-600);transition:width 0.15s}
+.company-card:hover::before{width:3px}
+.company-card.selected::before{width:3px}
+
+/* Logo col */
+.company-logo{width:40px;height:40px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;letter-spacing:-0.5px}
+
+/* Name col */
+.col-name{display:flex;flex-direction:column;gap:4px;min-width:0}
+.col-name-main{font-size:15.5px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px;transition:color 0.12s}
+.col-name-sub{display:flex;align-items:center;gap:6px}
+.company-rubro{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
+
+/* Pills col */
+.col-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px}
+.pill-globe{background:#f0fdf4;color:#166534}
+.pill-chile{background:var(--blue-50);color:var(--blue-800)}
+.pill-grande{background:#f8fafc;color:#475569}
+.pill-mediana{background:#fafbff;color:#6366f1}
+.pill-pequeña{background:#fff7ed;color:#9a3412}
+.campus-pill{background:#f1f5f9;color:#64748b}
+
+/* Stats col */
+.col-stats{display:flex;align-items:center;gap:0}
+.stat-item{text-align:center;flex:1}
+.stat-item:not(:last-child){border-right:1px solid #f1f5f9}
+.stat-value{font-size:14px;font-weight:700;color:var(--text-primary)}
+.stat-label{font-size:10px;color:var(--text-muted);font-weight:500;margin-top:1px}
+
+/* eNPS col */
+.col-enps{text-align:right;flex-shrink:0}
+.enps-score{font-size:18px;font-weight:700;line-height:1;letter-spacing:-0.5px}
+.enps-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-top:1px}
+.stars{font-size:10px;color:#f59e0b;letter-spacing:-1px;margin-top:2px}
+
+/* Arrow col */
+.col-arrow{color:var(--text-muted);font-size:16px;transition:all 0.15s;text-align:center}
+.company-card:hover .col-arrow{color:var(--blue-600);transform:translateX(2px)}
+.company-card.selected .col-arrow{color:var(--blue-600)}
+
+/* Rank badge inline */
+.rank-badge{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* Strip color visible as a tiny dot next to rubro */
+.rubro-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+
+/* ── DETAIL PANEL ── */
+.detail-panel{width:0;overflow:hidden;background:var(--card-bg);border-left:1px solid var(--border);transition:width 0.35s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;display:flex;flex-direction:column}
+.body-layout.panel-open .detail-panel{width:400px}
+
+.panel-inner{width:400px;overflow-y:auto;flex:1;display:flex;flex-direction:column}
+
+.panel-header{padding:20px 22px 0;flex-shrink:0}
+.panel-close{width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-muted);transition:all 0.15s;float:right}
+.panel-close:hover{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+.panel-company-hero{padding:20px 22px 16px;border-bottom:1px solid var(--border)}
+.panel-logo{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;letter-spacing:-0.5px;margin-bottom:12px}
+.panel-name{font-size:20px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px}
+.panel-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+
+.panel-enps-row{display:flex;align-items:center;gap:16px;padding:16px 22px;border-bottom:1px solid var(--border);background:#fafbff}
+.panel-enps-big{font-size:36px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.panel-enps-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.panel-stars-big{display:flex;gap:3px;margin-top:4px}
+.star-big{font-size:16px}
+
+.panel-section{padding:16px 22px;border-bottom:1px solid var(--border)}
+.panel-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-muted);margin-bottom:12px}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-item{padding:10px 12px;border-radius:var(--radius-md);background:#f8fafc;border:1px solid var(--border)}
+.info-item-label{font-size:10.5px;color:var(--text-muted);font-weight:500;margin-bottom:4px}
+.info-item-value{font-size:13.5px;font-weight:600;color:var(--text-primary)}
+
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi-mini{text-align:center;padding:12px 8px;border-radius:var(--radius-md)}
+.kpi-mini-value{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.kpi-mini-label{font-size:10px;color:var(--text-muted);font-weight:500;margin-top:2px}
+
+.alumni-list{display:flex;flex-direction:column;gap:8px}
+.alumni-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fafbff}
+.alumni-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.alumni-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.alumni-career{font-size:11px;color:var(--text-muted)}
+.alumni-progress{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.progress-mini{width:60px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.progress-mini-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.progress-pct{font-size:10px;font-weight:600;color:var(--blue-700)}
+
+.vacancy-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fafbff;margin-bottom:7px}
+.vacancy-name{font-size:13px;font-weight:600;color:var(--text-primary);flex:1}
+.vacancy-meta{font-size:11px;color:var(--text-muted)}
+.vacancy-count{font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--green-100);color:var(--green-800)}
+
+.tutor-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-md);background:#f8fafc;border:1px solid var(--border)}
+.tutor-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.tutor-name{font-size:13.5px;font-weight:600;color:var(--text-primary)}
+.tutor-meta{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+.tutor-contact{margin-left:auto;font-size:11.5px;color:var(--blue-600);cursor:pointer}
+
+.hist-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f8fafc}
+.hist-row:last-child{border-bottom:none}
+.hist-period{font-size:12px;font-weight:600;color:var(--text-secondary);width:60px;flex-shrink:0}
+.hist-bar-wrap{flex:1;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.hist-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#93c5fd)}
+.hist-value{font-size:12px;font-weight:600;color:var(--text-primary);width:50px;text-align:right}
+
+/* RUBRO COLORS */
+.rubro-banca{background:var(--blue-100);color:var(--blue-800)}
+.rubro-fintech{background:var(--green-100);color:var(--green-800)}
+.rubro-insurtech{background:var(--violet-100);color:var(--violet-800)}
+.rubro-hrtech{background:var(--amber-100);color:var(--amber-800)}
+.rubro-energia{background:var(--cyan-100);color:var(--cyan-800)}
+.rubro-retail{background:var(--rose-100);color:var(--rose-800)}
+.rubro-tecnologia{background:#f0fdf4;color:#166534}
+.rubro-mineria{background:var(--orange-100);color:var(--orange-800)}
+
+.strip-banca{background:linear-gradient(90deg,#3b82f6,#93c5fd)}
+.strip-fintech{background:linear-gradient(90deg,#22c55e,#86efac)}
+.strip-insurtech{background:linear-gradient(90deg,#8b5cf6,#c4b5fd)}
+.strip-hrtech{background:linear-gradient(90deg,#f59e0b,#fcd34d)}
+.strip-energia{background:linear-gradient(90deg,#06b6d4,#67e8f9)}
+.strip-retail{background:linear-gradient(90deg,#f43f5e,#fda4af)}
+.strip-tecnologia{background:linear-gradient(90deg,#10b981,#6ee7b7)}
+.strip-mineria{background:linear-gradient(90deg,#ea580c,#fb923c)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">IC</div>
+    <div><div class="logo-title">ICLAE</div><div class="logo-sub">Digital Hub · UDD</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item" href="iclae_dashboard_v2.html">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label" style="margin-top:8px;">Navegación</div>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>Proyecto</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"/></svg>Evaluaciones</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd"/></svg>Reportes</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>Analítico</a>
+    <div class="nav-section-label" style="margin-top:8px;">Gestión</div>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>
+      Empresas
+    </a>
+    <a class="nav-item" href="iclae_postulaciones.html">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>
+      Postulaciones <span class="nav-badge">12</span>
+    </a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>Administración</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AA</div>
+    <div style="flex:1;min-width:0;"><div class="user-name">Administrador ICLAE</div><div class="user-role">Perfil ICLAE · Admin</div></div>
+    <div style="display:flex;gap:4px;"><div class="user-btn">🔑</div><div class="user-btn">↩</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="page-title">Directorio de Empresas</span>
+      <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--green-100);color:var(--green-800);">25 empresas activas</span>
+    </div>
+    <div class="topbar-right">
+      <button class="topbar-btn">
+        <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+        Registrar empresa
+      </button>
+      <button class="topbar-btn">
+        <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <div class="filters-top-row">
+      <div class="search-wrap">
+        <svg class="search-icon" style="width:15px;height:15px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+        <input class="search-input" type="text" placeholder="Buscar empresa..." oninput="filterCompanies()">
+      </div>
+      <span class="results-meta" id="resultsMeta">25 empresas</span>
+      <select class="sort-select" onchange="sortCompanies(this.value)">
+        <option value="enps">Mejor evaluadas</option>
+        <option value="alumnos">Más alumnos</option>
+        <option value="nombre">A → Z</option>
+        <option value="proyectos">Más proyectos</option>
+      </select>
+    </div>
+
+    <div class="filters-panel">
+
+      <!-- Rubro -->
+      <div class="filter-group">
+        <div class="filter-group-label">
+          <span class="filter-group-icon">🏭</span>
+          <span class="filter-group-text">Rubro</span>
+        </div>
+        <div class="filter-divider-v"></div>
+        <div class="filter-chips" id="rubroFilters">
+          <button class="filter-chip rubro-chip active" data-rubro="todos" onclick="setFilter('rubro','todos',this)">Todos</button>
+          <button class="filter-chip rubro-chip" data-rubro="banca" onclick="setFilter('rubro','banca',this)"><span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;"></span>Banca</button>
+          <button class="filter-chip rubro-chip" data-rubro="fintech" onclick="setFilter('rubro','fintech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;"></span>Fintech</button>
+          <button class="filter-chip rubro-chip" data-rubro="retail" onclick="setFilter('rubro','retail',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f43f5e;display:inline-block;"></span>Retail</button>
+          <button class="filter-chip rubro-chip" data-rubro="energia" onclick="setFilter('rubro','energia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;display:inline-block;"></span>Energía</button>
+          <button class="filter-chip rubro-chip" data-rubro="hrtech" onclick="setFilter('rubro','hrtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>HR Tech</button>
+          <button class="filter-chip rubro-chip" data-rubro="tecnologia" onclick="setFilter('rubro','tecnologia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span>Tecnología</button>
+          <button class="filter-chip rubro-chip" data-rubro="insurtech" onclick="setFilter('rubro','insurtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span>InsurTech</button>
+        </div>
+      </div>
+
+      <!-- Divider horizontal -->
+      <div style="height:1px;background:var(--border);margin:0 -18px;"></div>
+
+      <!-- Segunda fila: Presencia + Tamaño + Campus -->
+      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+
+        <!-- Presencia -->
+        <div class="filter-group" style="flex:0 0 auto;">
+          <div class="filter-group-label">
+            <span class="filter-group-icon">🌍</span>
+            <span class="filter-group-text">Presencia</span>
+          </div>
+          <div class="filter-divider-v"></div>
+          <div class="filter-chips" id="presenciaFilters">
+            <button class="filter-chip presencia-chip active" data-presencia="todos" onclick="setFilter('presencia','todos',this)">Todas</button>
+            <button class="filter-chip presencia-chip" data-presencia="multinacional" onclick="setFilter('presencia','multinacional',this)">🌎 Multinacional</button>
+            <button class="filter-chip presencia-chip" data-presencia="chile" onclick="setFilter('presencia','chile',this)">🇨🇱 Solo Chile</button>
+          </div>
+        </div>
+
+        <div style="width:1px;height:20px;background:var(--border);"></div>
+
+        <!-- Tamaño -->
+        <div class="filter-group" style="flex:0 0 auto;">
+          <div class="filter-group-label">
+            <span class="filter-group-icon">📊</span>
+            <span class="filter-group-text">Tamaño</span>
+          </div>
+          <div class="filter-divider-v"></div>
+          <div class="filter-chips" id="tamanoFilters">
+            <button class="filter-chip tamano-chip active" data-tamano="todos" onclick="setFilter('tamano','todos',this)">Todos</button>
+            <button class="filter-chip tamano-chip" data-tamano="grande" onclick="setFilter('tamano','grande',this)">
+              <span class="tamano-bars"><span class="tamano-bar" style="height:11px;"></span><span class="tamano-bar" style="height:8px;"></span><span class="tamano-bar" style="height:11px;"></span></span>
+              Grande
+            </button>
+            <button class="filter-chip tamano-chip" data-tamano="mediana" onclick="setFilter('tamano','mediana',this)">
+              <span class="tamano-bars"><span class="tamano-bar" style="height:7px;"></span><span class="tamano-bar" style="height:10px;"></span><span class="tamano-bar" style="height:7px;"></span></span>
+              Mediana
+            </button>
+            <button class="filter-chip tamano-chip" data-tamano="pequeña" onclick="setFilter('tamano','pequeña',this)">
+              <span class="tamano-bars"><span class="tamano-bar" style="height:5px;"></span><span class="tamano-bar" style="height:7px;"></span><span class="tamano-bar" style="height:5px;"></span></span>
+              Pequeña
+            </button>
+          </div>
+        </div>
+
+        <div style="width:1px;height:20px;background:var(--border);"></div>
+
+        <!-- Campus -->
+        <div class="filter-group" style="flex:0 0 auto;">
+          <div class="filter-group-label">
+            <span class="filter-group-icon">📍</span>
+            <span class="filter-group-text">Campus</span>
+          </div>
+          <div class="filter-divider-v"></div>
+          <div class="filter-chips" id="campusFilters">
+            <button class="filter-chip campus-chip active" data-campus="todos" onclick="setFilter('campus','todos',this)">Todos</button>
+            <button class="filter-chip campus-chip" data-campus="santiago" onclick="setFilter('campus','santiago',this)">Santiago</button>
+            <button class="filter-chip campus-chip" data-campus="concepcion" onclick="setFilter('campus','concepcion',this)">Concepción</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY: LIST + PANEL -->
+  <div class="body-layout" id="bodyLayout">
+    <div class="list-area" id="listArea">
+      <div class="companies-grid" id="companiesGrid"></div>
+    </div>
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-panel" id="detailPanel">
+      <div class="panel-inner" id="panelInner"></div>
+    </div>
+  </div>
+</main>
+
+<div id="toast" style="position:fixed;bottom:28px;right:28px;z-index:2000;background:#0f172a;color:#fff;padding:13px 18px;border-radius:10px;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,0.18);transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+  <span>👤</span><span id="toastText"></span>
+</div>
+<style>.toast.show{transform:translateY(0)!important;opacity:1!important}</style>
+
+<script>
+const companies = [
+  {id:1, name:'Google Chile', initials:'GC', rubro:'tecnologia', rubroLabel:'Tecnología', tamano:'grande', presencia:'multinacional', campus:'santiago', empleados:'180.000+', enps:9.8, alumnos:20, proyectos:2, contratados:6, vacantes:2, sede:'Las Condes, Santiago', descripcion:'Filial chilena de Google LLC. Enfocada en ventas, cloud computing y desarrollo de soluciones para el mercado latinoamericano.', tutor:{nombre:'Ana Torres', area:'People & Culture', email:'a.torres@google.com', initials:'AT', color:'#dbeafe|#1e40af'}, historico:[{periodo:'2022',alumnos:12},{periodo:'2023',alumnos:18},{periodo:'2024',alumnos:20}], alumnosActivos:[{nombre:'Valentina Ríos',carrera:'Ing. Informática',progreso:80,initials:'VR',color:'#ede9fe|#5b21b6'},{nombre:'Mateo Soto',carrera:'Ing. Informática',progreso:65,initials:'MS',color:'#dbeafe|#1e40af'}], vacanciasList:[{nombre:'Software Engineer Intern',carrera:'Ing. Informática',disponibles:2}]},
+
+  {id:2, name:'Betterfly', initials:'BT', rubro:'insurtech', rubroLabel:'InsurTech', tamano:'mediana', presencia:'multinacional', campus:'santiago', empleados:'800+', enps:9.5, alumnos:24, proyectos:2, contratados:4, vacantes:1, sede:'Providencia, Santiago', descripcion:'Plataforma de bienestar corporativo que opera en 12 países de Latam. Combina seguros de vida con beneficios de salud mental y fitness.', tutor:{nombre:'Carlos Fuentes',area:'HR Tech',email:'c.fuentes@betterfly.com',initials:'CF',color:'#ede9fe|#5b21b6'}, historico:[{periodo:'2022',alumnos:10},{periodo:'2023',alumnos:19},{periodo:'2024',alumnos:24}], alumnosActivos:[{nombre:'Diego González',carrera:'Diseño',progreso:62,initials:'DG',color:'#dcfce7|#166534'},{nombre:'Sofía Mendez',carrera:'Ing. Comercial',progreso:77,initials:'SM',color:'#fef3c7|#92400e'}], vacanciasList:[{nombre:'UX Designer Practicante',carrera:'Diseño',disponibles:1}]},
+
+  {id:3, name:'Fintual', initials:'FT', rubro:'fintech', rubroLabel:'Fintech', tamano:'pequeña', presencia:'chile', campus:'santiago', empleados:'120+', enps:9.3, alumnos:24, proyectos:2, contratados:3, vacantes:2, sede:'Vitacura, Santiago', descripcion:'Gestora de fondos de inversión 100% digital, regulada por la CMF. Pionera en democratizar la inversión en Chile y México.', tutor:{nombre:'Roberto Peña',area:'Engineering',email:'r.pena@fintual.com',initials:'RP',color:'#dcfce7|#166534'}, historico:[{periodo:'2022',alumnos:8},{periodo:'2023',alumnos:15},{periodo:'2024',alumnos:24}], alumnosActivos:[{nombre:'Ignacio Vera',carrera:'Ing. Informática',progreso:90,initials:'IV',color:'#dbeafe|#1e40af'},{nombre:'Camila Riquelme',carrera:'Ing. Comercial',progreso:55,initials:'CR',color:'#ffe4e6|#9f1239'}], vacanciasList:[{nombre:'Analista de Datos Junior',carrera:'Ing. Comercial',disponibles:2}]},
+
+  {id:4, name:'Banco de Chile', initials:'BC', rubro:'banca', rubroLabel:'Banca', tamano:'grande', presencia:'chile', campus:'santiago', empleados:'12.000+', enps:9.2, alumnos:25, proyectos:2, contratados:7, vacantes:3, sede:'Santiago Centro', descripcion:'Banco privado más grande de Chile. Ofrece servicios financieros integrales a personas, empresas e instituciones. Fundado en 1893.', tutor:{nombre:'Paulina Gómez',area:'Innovación Digital',email:'p.gomez@bancochile.cl',initials:'PG',color:'#dbeafe|#1e40af'}, historico:[{periodo:'2022',alumnos:18},{periodo:'2023',alumnos:22},{periodo:'2024',alumnos:25}], alumnosActivos:[{nombre:'Javiera Morales',carrera:'Ing. Informática',progreso:100,initials:'JM',color:'#dcfce7|#166534'},{nombre:'Nicolás Vega',carrera:'Ing. Comercial',progreso:85,initials:'NV',color:'#fef3c7|#92400e'}], vacanciasList:[{nombre:'Desarrollador Full Stack',carrera:'Ing. Informática',disponibles:3}]},
+
+  {id:5, name:'Buk', initials:'BK', rubro:'hrtech', rubroLabel:'HR Tech', tamano:'mediana', presencia:'multinacional', campus:'santiago', empleados:'600+', enps:9.1, alumnos:24, proyectos:2, contratados:5, vacantes:4, sede:'Las Condes, Santiago', descripcion:'Software de gestión de personas líder en Latam. Presente en 7 países. Integra remuneraciones, asistencia, clima laboral y reclutamiento.', tutor:{nombre:'María José Lagos',area:'Product',email:'mj.lagos@buk.cl',initials:'ML',color:'#fef3c7|#92400e'}, historico:[{periodo:'2022',alumnos:14},{periodo:'2023',alumnos:20},{periodo:'2024',alumnos:24}], alumnosActivos:[{nombre:'Andrés Muñoz',carrera:'Ing. Informática',progreso:73,initials:'AM',color:'#ede9fe|#5b21b6'},{nombre:'Paula Cisternas',carrera:'Psicología',progreso:48,initials:'PC',color:'#dcfce7|#166534'}], vacanciasList:[{nombre:'Desarrollador Backend Python',carrera:'Ing. Informática',disponibles:4}]},
+
+  {id:6, name:'Global66', initials:'GL', rubro:'fintech', rubroLabel:'Fintech', tamano:'mediana', presencia:'multinacional', campus:'santiago', empleados:'400+', enps:8.9, alumnos:24, proyectos:2, contratados:2, vacantes:3, sede:'Providencia, Santiago', descripcion:'Plataforma de envío internacional de dinero y pagos globales. Opera en 66 países con tarifas cero para transferencias internacionales.', tutor:{nombre:'Luis Araya',area:'Engineering',email:'l.araya@global66.com',initials:'LA',color:'#dcfce7|#166534'}, historico:[{periodo:'2022',alumnos:10},{periodo:'2023',alumnos:16},{periodo:'2024',alumnos:24}], alumnosActivos:[{nombre:'Felipe Rojas',carrera:'Ing. Informática',progreso:55,initials:'FR',color:'#dbeafe|#1e40af'}], vacanciasList:[{nombre:'Ingeniero de Software',carrera:'Ing. Informática',disponibles:3}]},
+
+  {id:7, name:'BCI', initials:'BC', rubro:'banca', rubroLabel:'Banca', tamano:'grande', presencia:'chile', campus:'santiago', empleados:'8.000+', enps:8.8, alumnos:24, proyectos:2, contratados:4, vacantes:2, sede:'El Golf, Santiago', descripcion:'Banco privado de capitales chilenos, fundado en 1937. Presente en Chile y Miami. Enfocado en banca de personas y empresas medianas.', tutor:{nombre:'Jorge Herrera',area:'Transformación Digital',email:'j.herrera@bci.cl',initials:'JH',color:'#dbeafe|#1e40af'}, historico:[{periodo:'2022',alumnos:16},{periodo:'2023',alumnos:20},{periodo:'2024',alumnos:24}], alumnosActivos:[{nombre:'Renata Cortés',carrera:'Ing. Comercial',progreso:68,initials:'RC',color:'#fef3c7|#92400e'}], vacanciasList:[{nombre:'Analista TI',carrera:'Ing. Informática',disponibles:2}]},
+
+  {id:8, name:'Falabella', initials:'FL', rubro:'retail', rubroLabel:'Retail', tamano:'grande', presencia:'multinacional', campus:'santiago', empleados:'95.000+', enps:8.6, alumnos:24, proyectos:2, contratados:3, vacantes:2, sede:'Las Condes, Santiago', descripcion:'Grupo retail líder en Sudamérica. Opera tiendas por departamento, supermercados (Tottus), home improvement (Sodimac) y servicios financieros (CMR).', tutor:{nombre:'Cristina Vargas',area:'Digital & Ecommerce',email:'c.vargas@falabella.com',initials:'CV',color:'#ffe4e6|#9f1239'}, historico:[{periodo:'2022',alumnos:14},{periodo:'2023',alumnos:18},{periodo:'2024',alumnos:24}], alumnosActivos:[{nombre:'Sebastián Díaz',carrera:'Ing. Comercial',progreso:82,initials:'SD',color:'#dcfce7|#166534'}], vacanciasList:[{nombre:'Analista Business Intelligence',carrera:'Ing. Comercial',disponibles:2}]},
+
+  {id:9, name:'Enel Chile', initials:'EN', rubro:'energia', rubroLabel:'Energía', tamano:'grande', presencia:'multinacional', campus:'santiago', empleados:'2.800+', enps:8.4, alumnos:24, proyectos:2, contratados:2, vacantes:1, sede:'Providencia, Santiago', descripcion:'Empresa de generación y distribución eléctrica filial de Enel Group (Italia). Operadora de Enel X para soluciones de movilidad eléctrica y eficiencia energética.', tutor:{nombre:'Tomás Ibáñez',area:'Digital Innovation',email:'t.ibanez@enel.com',initials:'TI',color:'#cffafe|#155e75'}, historico:[{periodo:'2022',alumnos:10},{periodo:'2023',alumnos:17},{periodo:'2024',alumnos:24}], alumnosActivos:[{nombre:'Francisca Leal',carrera:'Ing. Civil Industrial',progreso:91,initials:'FL',color:'#cffafe|#155e75'}], vacanciasList:[{nombre:'Ingeniero de Procesos',carrera:'Ing. Civil Industrial',disponibles:1}]},
+
+  {id:10, name:'Aguas Andinas', initials:'AA', rubro:'energia', rubroLabel:'Servicios', tamano:'grande', presencia:'chile', campus:'santiago', empleados:'1.200+', enps:7.8, alumnos:10, proyectos:1, contratados:1, vacantes:0, sede:'Maipú, Santiago', descripcion:'Empresa sanitaria que opera el sistema de agua potable y alcantarillado en Santiago. Atiende a más de 8 millones de personas.', tutor:{nombre:'Marcela Saavedra',area:'Operaciones',email:'m.saavedra@aguasandinas.cl',initials:'MS',color:'#cffafe|#155e75'}, historico:[{periodo:'2022',alumnos:6},{periodo:'2023',alumnos:8},{periodo:'2024',alumnos:10}], alumnosActivos:[{nombre:'Matías Espinoza',carrera:'Ing. Civil Industrial',progreso:40,initials:'ME',color:'#dbeafe|#1e40af'}], vacanciasList:[]},
+];
+
+let activeFilters = { rubro:'todos', presencia:'todos', tamano:'todos', campus:'todos' };
+let searchText = '';
+let selectedId = null;
+
+function getStars(enps) {
+  const full = Math.floor(enps/2);
+  const half = (enps/2 - full) >= 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+  return '★'.repeat(full) + (half?'½':'') + '☆'.repeat(empty);
+}
+
+function getEnpsColor(enps) {
+  if(enps>=9.5) return {text:'#15803d',bg:'#dcfce7'};
+  if(enps>=9.0) return {text:'#1d4ed8',bg:'#dbeafe'};
+  if(enps>=8.5) return {text:'#b45309',bg:'#fef3c7'};
+  return {text:'#9f1239',bg:'#ffe4e6'};
+}
+
+function renderCards(list) {
+  const grid = document.getElementById('companiesGrid');
+  grid.innerHTML = `
+    <div class="companies-header">
+      <div></div>
+      <div class="col-header">Empresa</div>
+      <div class="col-header">Características</div>
+      <div class="col-header" style="text-align:center;">Alumnos · Proyectos · Contratados</div>
+      <div class="col-header" style="text-align:right;">eNPS</div>
+      <div></div>
+    </div>
+  `;
+
+  const rubroColors = { banca:'#3b82f6', fintech:'#22c55e', insurtech:'#8b5cf6', hrtech:'#f59e0b', energia:'#06b6d4', retail:'#f43f5e', tecnologia:'#10b981', mineria:'#ea580c' };
+  const logoColors  = { banca:'#dbeafe|#1e40af', fintech:'#dcfce7|#166534', insurtech:'#ede9fe|#5b21b6', hrtech:'#fef3c7|#92400e', energia:'#cffafe|#155e75', retail:'#ffe4e6|#9f1239', tecnologia:'#d1fae5|#065f46', mineria:'#ffedd5|#9a3412' };
+
+  list.forEach((c, i) => {
+    const rank = i < 3 ? i+1 : null;
+    const ec = getEnpsColor(c.enps);
+    const [logoBg, logoText] = (logoColors[c.rubro]||'#f1f5f9|#475569').split('|');
+    const dotColor = rubroColors[c.rubro] || '#94a3b8';
+
+    const row = document.createElement('div');
+    row.className = 'company-card' + (selectedId===c.id?' selected':'');
+    row.onclick = () => openDetail(c.id);
+    row.innerHTML = `
+      <div class="company-logo" style="background:${logoBg};color:${logoText};">${c.initials}</div>
+
+      <div class="col-name">
+        <div class="col-name-main">
+          ${rank ? `<span class="rank-badge" style="margin-right:7px;">${rank}</span>` : ''}${c.name}
+        </div>
+        <div class="col-name-sub">
+          <span class="rubro-dot" style="background:${dotColor};"></span>
+          <span class="company-rubro rubro-${c.rubro}">${c.rubroLabel}</span>
+        </div>
+      </div>
+
+      <div class="col-pills">
+        <span class="pill ${c.presencia==='multinacional'?'pill-globe':'pill-chile'}">${c.presencia==='multinacional'?'🌎 Multinacional':'🇨🇱 Solo Chile'}</span>
+        <span class="pill pill-${c.tamano}">${c.tamano.charAt(0).toUpperCase()+c.tamano.slice(1)}</span>
+        <span class="pill campus-pill">📍 ${c.campus.charAt(0).toUpperCase()+c.campus.slice(1)}</span>
+      </div>
+
+      <div class="col-stats">
+        <div class="stat-item"><div class="stat-value">${c.alumnos}</div><div class="stat-label">Alumnos</div></div>
+        <div class="stat-item"><div class="stat-value">${c.proyectos}</div><div class="stat-label">Proyectos</div></div>
+        <div class="stat-item"><div class="stat-value">${c.contratados}</div><div class="stat-label">Contratados</div></div>
+      </div>
+
+      <div class="col-enps">
+        <div class="enps-score" style="color:${ec.text};">${c.enps}</div>
+        <div class="enps-label">eNPS</div>
+        <div class="stars">${'★'.repeat(Math.round(c.enps/2))}</div>
+      </div>
+
+      <div class="col-arrow">›</div>
+    `;
+    grid.appendChild(row);
+  });
+  document.getElementById('resultsMeta').textContent = list.length + ' empresa' + (list.length===1?'':'s');
+}
+
+function getFiltered() {
+  return companies.filter(c => {
+    if(activeFilters.rubro!=='todos' && c.rubro!==activeFilters.rubro) return false;
+    if(activeFilters.presencia!=='todos' && c.presencia!==activeFilters.presencia) return false;
+    if(activeFilters.tamano!=='todos' && c.tamano!==activeFilters.tamano) return false;
+    if(activeFilters.campus!=='todos' && c.campus!==activeFilters.campus) return false;
+    if(searchText && !c.name.toLowerCase().includes(searchText.toLowerCase()) && !c.rubroLabel.toLowerCase().includes(searchText.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function setFilter(type, value, el) {
+  activeFilters[type] = value;
+  const groupMap = {rubro:'rubroFilters',presencia:'presenciaFilters',tamano:'tamanoFilters',campus:'campusFilters'};
+  const classMap = {rubro:'rubro-chip',presencia:'presencia-chip',tamano:'tamano-chip',campus:'campus-chip'};
+  document.querySelectorAll('#'+groupMap[type]+' .filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderCards(getFiltered());
+}
+
+function filterCompanies() {
+  searchText = document.querySelector('.search-input').value;
+  renderCards(getFiltered());
+}
+
+function sortCompanies(val) {
+  const sorted = [...companies].sort((a,b)=>{
+    if(val==='enps') return b.enps-a.enps;
+    if(val==='alumnos') return b.alumnos-a.alumnos;
+    if(val==='nombre') return a.name.localeCompare(b.name);
+    if(val==='proyectos') return b.proyectos-a.proyectos;
+    return 0;
+  });
+  companies.length=0; sorted.forEach(s=>companies.push(s));
+  renderCards(getFiltered());
+}
+
+function openDetail(id) {
+  selectedId = id;
+  const c = companies.find(x=>x.id===id);
+  if(!c) return;
+  const logoColors = { banca:'#dbeafe|#1e40af', fintech:'#dcfce7|#166534', insurtech:'#ede9fe|#5b21b6', hrtech:'#fef3c7|#92400e', energia:'#cffafe|#155e75', retail:'#ffe4e6|#9f1239', tecnologia:'#d1fae5|#065f46', mineria:'#ffedd5|#9a3412' };
+  const [logoBg, logoText] = (logoColors[c.rubro]||'#f1f5f9|#475569').split('|');
+  const ec = getEnpsColor(c.enps);
+  const [tBg,tText] = c.tutor.color.split('|');
+  const maxHist = Math.max(...c.historico.map(h=>h.alumnos));
+
+  const panel = document.getElementById('panelInner');
+  panel.innerHTML = `
+    <div class="panel-header">
+      <button class="panel-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="panel-company-hero">
+      <div class="panel-logo" style="background:${logoBg};color:${logoText};">${c.initials}</div>
+      <div class="panel-name">${c.name}</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">📍 ${c.sede}</div>
+      <div class="panel-tags">
+        <span class="pill rubro-${c.rubro} company-rubro">${c.rubroLabel}</span>
+        <span class="pill ${c.presencia==='multinacional'?'pill-globe':'pill-chile'}">${c.presencia==='multinacional'?'🌎 Multinacional':'🇨🇱 Solo Chile'}</span>
+        <span class="pill pill-${c.tamano}">${c.tamano.charAt(0).toUpperCase()+c.tamano.slice(1)}</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;">${c.descripcion}</p>
+    </div>
+
+    <div class="panel-enps-row">
+      <div>
+        <div class="panel-enps-big" style="color:${ec.text};">${c.enps}</div>
+        <div class="panel-enps-label">eNPS — Satisfacción empresa</div>
+        <div class="panel-stars-big">${'★'.repeat(Math.round(c.enps/2)).split('').map(s=>`<span class="star-big" style="color:#f59e0b;">${s}</span>`).join('')}</div>
+      </div>
+      <div style="flex:1;text-align:right;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Rango de mercado</div>
+        <div style="background:#f1f5f9;border-radius:20px;height:8px;overflow:hidden;"><div style="height:100%;width:${c.enps*10}%;background:linear-gradient(90deg,${ec.text}88,${ec.text});border-radius:20px;"></div></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${c.enps >= 9.5 ? '🏆 Excepcional' : c.enps >= 9 ? '✨ Excelente' : c.enps >= 8.5 ? '👍 Muy bueno' : '📊 Bueno'}</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Información de la empresa</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="info-item-label">Empleados</div><div class="info-item-value">${c.empleados}</div></div>
+        <div class="info-item"><div class="info-item-label">Presencia</div><div class="info-item-value">${c.presencia==='multinacional'?'Multinacional 🌎':'Solo Chile 🇨🇱'}</div></div>
+        <div class="info-item"><div class="info-item-label">Tamaño empresa</div><div class="info-item-value">${c.tamano.charAt(0).toUpperCase()+c.tamano.slice(1)}</div></div>
+        <div class="info-item"><div class="info-item-label">Campus UDD</div><div class="info-item-value">${c.campus.charAt(0).toUpperCase()+c.campus.slice(1)}</div></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Métricas ICLAE</div>
+      <div class="kpi-row">
+        <div class="kpi-mini" style="background:var(--blue-50);border:1px solid var(--blue-200);">
+          <div class="kpi-mini-value" style="color:var(--blue-700);">${c.alumnos}</div>
+          <div class="kpi-mini-label">Alumnos activos</div>
+        </div>
+        <div class="kpi-mini" style="background:var(--green-50);border:1px solid #bbf7d0;">
+          <div class="kpi-mini-value" style="color:var(--green-700);">${c.contratados}</div>
+          <div class="kpi-mini-label">Contratados</div>
+        </div>
+        <div class="kpi-mini" style="background:var(--amber-50);border:1px solid #fde68a;">
+          <div class="kpi-mini-value" style="color:var(--amber-700);">${c.vacantes}</div>
+          <div class="kpi-mini-label">Vacantes abiertas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Tutor empresa designado</div>
+      <div class="tutor-item panel-link" onclick="goToProfile('tutor','${c.tutor.nombre}')">
+        <div class="tutor-avatar" style="background:${tBg};color:${tText};">${c.tutor.initials}</div>
+        <div>
+          <div class="tutor-name">${c.tutor.nombre}</div>
+          <div class="tutor-meta">${c.tutor.area}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+          <span style="font-size:11.5px;color:var(--blue-600);">${c.tutor.email}</span>
+          <span class="click-hint">Ver perfil →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Alumnos activos (${c.alumnosActivos.length})</div>
+      <div class="alumni-list">
+        ${c.alumnosActivos.map(a => {
+          const [aBg,aText] = a.color.split('|');
+          return `<div class="alumni-item panel-link" onclick="goToProfile('alumno','${a.nombre}')">
+            <div class="alumni-avatar" style="background:${aBg};color:${aText};">${a.initials}</div>
+            <div><div class="alumni-name">${a.nombre}</div><div class="alumni-career">${a.carrera}</div></div>
+            <div class="alumni-progress">
+              <div class="progress-mini"><div class="progress-mini-fill" style="width:${a.progreso}%"></div></div>
+              <span class="progress-pct">${a.progreso}%</span>
+              <span class="click-hint">Ver perfil →</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    ${c.vacanciasList.length ? `
+    <div class="panel-section">
+      <div class="panel-section-title">Vacantes publicadas</div>
+      ${c.vacanciasList.map(v=>`
+        <div class="vacancy-item">
+          <div>
+            <div class="vacancy-name">${v.nombre}</div>
+            <div class="vacancy-meta">${v.carrera}</div>
+          </div>
+          <span class="vacancy-count">${v.disponibles} disp.</span>
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    <div class="panel-section" style="border-bottom:none;">
+      <div class="panel-section-title">Histórico de participación</div>
+      ${c.historico.map(h=>`
+        <div class="hist-row">
+          <span class="hist-period">${h.periodo}</span>
+          <div class="hist-bar-wrap"><div class="hist-bar-fill" style="width:${Math.round(h.alumnos/maxHist*100)}%"></div></div>
+          <span class="hist-value">${h.alumnos} alumnos</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('bodyLayout').classList.add('panel-open');
+  renderCards(getFiltered());
+}
+
+function closeDetail() {
+  selectedId = null;
+  document.getElementById('bodyLayout').classList.remove('panel-open');
+  renderCards(getFiltered());
+}
+
+function goToProfile(type, nombre) {
+  const toast = document.getElementById('toast');
+  const msg = type === 'alumno'
+    ? `Abriendo perfil de ${nombre}...`
+    : `Abriendo perfil de tutor: ${nombre}...`;
+  document.getElementById('toastText').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 3000);
+  // Aquí iría: window.location.href = `/perfil/${type}/${encodeURIComponent(nombre)}`
+}
+
+// Init
+renderCards(companies);
+</script>
+</body>
+</html>

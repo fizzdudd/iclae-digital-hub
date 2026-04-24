@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICLAE — Bitácora</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-bg:#0c2461;--sidebar-border:rgba(255,255,255,0.08);--sidebar-hover:rgba(255,255,255,0.08);--sidebar-active:rgba(255,255,255,0.15);--sidebar-text:rgba(255,255,255,0.65);--sidebar-accent:#60a5fa;
+  --page-bg:#eef2ff;--card-bg:#fff;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;
+  --green-50:#f0fdf4;--green-100:#dcfce7;--green-500:#22c55e;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
+  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-500:#f59e0b;--amber-600:#d97706;--amber-700:#b45309;--amber-800:#92400e;
+  --orange-50:#fff7ed;--orange-100:#ffedd5;--orange-500:#f97316;--orange-600:#ea580c;--orange-700:#c2410c;--orange-800:#9a3412;
+  --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-500:#f43f5e;--rose-600:#e11d48;--rose-700:#be123c;--rose-800:#9f1239;
+  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-600:#7c3aed;--violet-800:#5b21b6;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-xl:0 20px 60px rgba(0,0,0,0.18),0 8px 24px rgba(0,0,0,0.1);
+  --sidebar-width:220px;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--page-bg);color:var(--text-primary);display:flex;min-height:100vh;font-size:14px}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-width);background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:34px;height:34px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.logo-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.3px}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-md);cursor:pointer;color:var(--sidebar-text);font-size:13.5px;font-weight:500;transition:background 0.15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-item.active .nav-icon{color:var(--sidebar-accent);opacity:1}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(96,165,250,0.2);color:#93c5fd}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:#fff}
+.user-role{font-size:10.5px;color:rgba(255,255,255,0.4)}
+.user-btn{width:26px;height:26px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.5);font-size:12px}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.topbar{background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+.role-sel{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:12px}
+.role-sel select{border:none;outline:none;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-primary);background:transparent;cursor:pointer}
+
+/* PROGRESS BAR */
+.prog-wrap{padding:18px 28px 0;flex-shrink:0}
+.prog-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 20px;display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.prog-label{font-size:13px;font-weight:600;color:var(--text-primary);flex-shrink:0}
+.prog-bar{flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#22c55e,#4ade80);transition:width 0.5s}
+.prog-pct{font-size:14px;font-weight:700;color:var(--green-700);flex-shrink:0;min-width:36px;text-align:right}
+.prog-pills{display:flex;gap:8px;flex-shrink:0}
+.prog-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+
+/* SPLIT */
+.split{display:flex;flex:1;overflow:hidden;padding:0 28px 28px;gap:14px}
+
+/* SEMANAS PANEL */
+.weeks-nav{width:200px;flex-shrink:0;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;overflow:hidden}
+.weeks-nav-header{padding:12px 14px;border-bottom:1px solid var(--border);background:#f8fafc;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted)}
+.weeks-scroll{overflow-y:auto;flex:1}
+.w-item{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid #f8fafc;transition:background 0.12s}
+.w-item:last-child{border-bottom:none}
+.w-item:hover{background:#f8fbff}
+.w-item.sel{background:var(--blue-50);border-left:3px solid var(--blue-600)}
+.w-num{font-size:12.5px;font-weight:600;color:var(--text-secondary);flex:1}
+.w-item.sel .w-num{color:var(--blue-800);font-weight:700}
+.w-dots{display:flex;gap:3px}
+.wd{width:8px;height:8px;border-radius:50%}
+.wd-aprobado{background:var(--green-500)}
+.wd-pendiente{background:#cbd5e1}
+.wd-corregido{background:var(--orange-500)}
+.wd-reprobado{background:var(--rose-500)}
+.w-tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px}
+.wt-aprobado{background:var(--green-100);color:var(--green-800)}
+.wt-pendiente{background:#f1f5f9;color:#94a3b8}
+.wt-corregido{background:var(--orange-100);color:var(--orange-800)}
+.wt-reprobado{background:var(--rose-100);color:var(--rose-700)}
+.wt-activa{background:var(--blue-100);color:var(--blue-800)}
+.wt-futura{background:#f8fafc;color:#cbd5e1}
+
+/* CONTENIDO */
+.week-view{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+
+/* Cabecera semana */
+.wv-header{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between}
+.wv-title{font-size:17px;font-weight:700;letter-spacing:-0.3px}
+.wv-meta{font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:10px}
+.wv-date{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--text-muted)}
+.wv-badges{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+
+/* Bloque de registro */
+.log-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+.log-card-top{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.log-card-title{font-size:13px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:7px}
+.log-card-body{padding:14px 18px}
+.log-textarea{width:100%;min-height:110px;padding:12px 14px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);resize:vertical;line-height:1.7;transition:border-color 0.15s;background:#fafbff}
+.log-textarea:focus{outline:none;border-color:var(--blue-600);background:#fff}
+.log-textarea[readonly]{background:#f8fafc;color:var(--text-secondary);cursor:default;border-color:transparent}
+.log-textarea::placeholder{color:var(--text-muted)}
+.log-hint{font-size:11.5px;color:var(--text-muted);margin-top:6px}
+
+/* Evidencia */
+.ev-list{display:flex;flex-direction:column;gap:7px}
+.ev-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fafbff;transition:background 0.12s}
+.ev-item:hover{background:var(--blue-50)}
+.ev-icon{font-size:16px;flex-shrink:0}
+.ev-name{font-size:13px;font-weight:600;color:var(--blue-600);cursor:pointer;flex:1}
+.ev-name:hover{text-decoration:underline}
+.ev-size{font-size:11px;color:var(--text-muted)}
+.ev-remove{font-size:11.5px;color:var(--rose-600);cursor:pointer;padding:2px 8px;border-radius:var(--radius-sm);transition:background 0.12s;flex-shrink:0}
+.ev-remove:hover{background:var(--rose-50)}
+.upload-btn{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:var(--radius-md);border:1.5px dashed var(--border);background:#fafbff;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:500;color:var(--text-secondary);width:100%;margin-top:8px;font-family:inherit}
+.upload-btn:hover{border-color:var(--blue-600);color:var(--blue-700);background:var(--blue-50)}
+
+/* Estado tutores */
+.eval-row{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 18px;display:flex;align-items:center;gap:14px}
+.eval-item{display:flex;align-items:center;gap:10px;flex:1;padding:10px 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:#f8fafc}
+.eval-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0}
+.eval-who{font-size:12.5px;font-weight:600;color:var(--text-primary)}
+.eval-role-text{font-size:11px;color:var(--text-muted)}
+.eval-status{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.eval-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.eb-aprobado{background:var(--green-100);color:var(--green-800)}
+.eb-pendiente{background:#f1f5f9;color:#94a3b8}
+.eb-corregido{background:var(--orange-100);color:var(--orange-800)}
+.eb-reprobado{background:var(--rose-100);color:var(--rose-700)}
+.eval-fecha{font-size:10.5px;color:var(--text-muted)}
+.eval-feedback{font-size:12px;color:var(--text-secondary);margin-top:4px;font-style:italic;line-height:1.4;max-width:280px}
+
+/* Botón evaluar */
+.btn-eval{height:34px;padding:0 16px;border-radius:var(--radius-md);border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.btn-eval-emp{background:linear-gradient(135deg,#d97706,#b45309);color:#fff;box-shadow:0 2px 6px rgba(217,119,6,0.25)}
+.btn-eval-emp:hover{background:linear-gradient(135deg,#b45309,#92400e)}
+.btn-eval-udd{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;box-shadow:0 2px 6px rgba(124,58,237,0.25)}
+.btn-eval-udd:hover{background:linear-gradient(135deg,#6d28d9,#5b21b6)}
+
+/* Acción fila alumno */
+.action-row{display:flex;gap:10px;justify-content:flex-end}
+.btn{height:38px;padding:0 20px;border-radius:var(--radius-md);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
+.btn-primary:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af)}
+.btn-ghost{background:#f1f5f9;color:var(--text-secondary);border:1px solid var(--border)}
+.btn-ghost:hover{background:#e2e8f0}
+
+/* Empty / futura */
+.week-empty{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:48px 24px;text-align:center;color:var(--text-muted)}
+.week-empty-icon{font-size:32px;margin-bottom:10px}
+
+/* ── MODAL EVALUACIÓN ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.eval-modal{background:#fff;border-radius:18px;box-shadow:var(--shadow-xl);width:100%;max-width:480px;margin:20px;animation:modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.eval-modal-header{padding:20px 22px 16px;border-bottom:1px solid var(--border)}
+.eval-modal-title{font-size:16px;font-weight:700}
+.eval-modal-sub{font-size:12.5px;color:var(--text-muted);margin-top:3px}
+.eval-modal-body{padding:20px 22px}
+.eval-opts{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.eval-opt{border-radius:var(--radius-md);border:2px solid;padding:14px 8px;text-align:center;cursor:pointer;transition:all 0.15s;background:#fff}
+.eval-opt:hover{transform:translateY(-1px)}
+.eval-opt-icon{font-size:22px;margin-bottom:6px}
+.eval-opt-label{font-size:12px;font-weight:700;display:block}
+.eval-opt-sub{font-size:10.5px;margin-top:3px;display:block}
+
+/* Colores por opción */
+.opt-aprobado{border-color:#86efac;background:var(--green-50)}
+.opt-aprobado .eval-opt-label{color:var(--green-700)}
+.opt-aprobado .eval-opt-sub{color:var(--green-600)}
+.opt-aprobado.selected,.opt-aprobado:hover{border-color:var(--green-600);background:#dcfce7}
+
+.opt-pendiente{border-color:#cbd5e1;background:#f8fafc}
+.opt-pendiente .eval-opt-label{color:#475569}
+.opt-pendiente .eval-opt-sub{color:#94a3b8}
+.opt-pendiente.selected,.opt-pendiente:hover{border-color:#94a3b8;background:#f1f5f9}
+
+.opt-corregido{border-color:#fed7aa;background:var(--orange-50)}
+.opt-corregido .eval-opt-label{color:var(--orange-700)}
+.opt-corregido .eval-opt-sub{color:var(--orange-600)}
+.opt-corregido.selected,.opt-corregido:hover{border-color:var(--orange-600);background:#ffedd5}
+
+.opt-reprobado{border-color:#fecaca;background:var(--rose-50)}
+.opt-reprobado .eval-opt-label{color:var(--rose-700)}
+.opt-reprobado .eval-opt-sub{color:var(--rose-600)}
+.opt-reprobado.selected,.opt-reprobado:hover{border-color:var(--rose-600);background:#ffe4e6}
+
+.eval-feedback-wrap{margin-bottom:18px}
+.eval-feedback-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted);margin-bottom:7px;display:block}
+.eval-feedback-textarea{width:100%;min-height:80px;padding:11px 13px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);resize:vertical;line-height:1.6;transition:border-color 0.15s;background:#fafbff}
+.eval-feedback-textarea:focus{outline:none;border-color:var(--blue-600);background:#fff}
+.eval-feedback-textarea::placeholder{color:var(--text-muted)}
+.eval-modal-footer{padding:0 22px 20px;display:flex;gap:10px;justify-content:flex-end}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;z-index:2000;background:#0f172a;color:#fff;padding:13px 18px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-xl);transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">IC</div>
+    <div><div class="logo-title">ICLAE</div><div class="logo-sub">Digital Hub · UDD</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item" href="iclae_dashboard_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>Dashboard</a>
+    <div class="nav-section-label" style="margin-top:8px;">Navegación</div>
+    <a class="nav-item" href="iclae_proyectos_v3.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>Proyectos</a>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+      Bitácora <span class="nav-badge">Sem 5</span>
+    </a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>Analítico</a>
+    <div class="nav-section-label" style="margin-top:8px;">Gestión</div>
+    <a class="nav-item" href="iclae_empresas_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>Empresas</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>Administración</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sideAvatar">DG</div>
+    <div style="flex:1;min-width:0;">
+      <div class="user-name" id="sideName">Diego González</div>
+      <div class="user-role" id="sideRole">Alumno · TechSol S.A.</div>
+    </div>
+    <div style="display:flex;gap:4px;"><div class="user-btn">↩</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:16px;font-weight:700;">Bitácora ICLAE</span>
+      <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--blue-100);color:var(--blue-800);">TechSol S.A. · 2024-1</span>
+    </div>
+    <div class="topbar-right">
+      <div class="role-sel">
+        <span style="color:var(--text-muted);font-weight:500;">Demo rol:</span>
+        <select onchange="cambiarRol(this.value)">
+          <option value="alumno">🎓 Alumno</option>
+          <option value="tutor_empresa">👔 Tutor Empresa</option>
+          <option value="tutor_udd">👩‍🏫 Tutor UDD</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="prog-wrap">
+    <div class="prog-card">
+      <span class="prog-label">Progreso práctica</span>
+      <div class="prog-bar"><div class="prog-fill" style="width:38%"></div></div>
+      <span class="prog-pct">38%</span>
+      <div class="prog-pills">
+        <span class="prog-pill" style="background:var(--green-100);color:var(--green-800);">✓ 4 aprobadas</span>
+        <span class="prog-pill" style="background:var(--orange-100);color:var(--orange-800);">⚠ 1 a corregir</span>
+        <span class="prog-pill" style="background:#f1f5f9;color:#94a3b8;">○ 8 pendientes</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPLIT -->
+  <div class="split">
+
+    <!-- SEMANAS -->
+    <div class="weeks-nav">
+      <div class="weeks-nav-header">Semanas del período</div>
+      <div class="weeks-scroll" id="weeksList"></div>
+    </div>
+
+    <!-- CONTENIDO -->
+    <div class="week-view" id="weekView"></div>
+
+  </div>
+</main>
+
+<!-- MODAL EVALUACIÓN -->
+<div class="modal-overlay" id="evalModal" onclick="closeEvalOnBg(event)">
+  <div class="eval-modal">
+    <div class="eval-modal-header">
+      <div class="eval-modal-title" id="evalModalTitle">Evaluar Semana 1</div>
+      <div class="eval-modal-sub" id="evalModalSub">Diego González · TechSol S.A.</div>
+    </div>
+    <div class="eval-modal-body">
+      <div class="eval-opts">
+        <div class="eval-opt opt-aprobado" id="opt-aprobado" onclick="selectEvalOpt('aprobado')">
+          <div class="eval-opt-icon">✓</div>
+          <span class="eval-opt-label">Aprobado</span>
+          <span class="eval-opt-sub">Trabajo aprobado</span>
+        </div>
+        <div class="eval-opt opt-pendiente" id="opt-pendiente" onclick="selectEvalOpt('pendiente')">
+          <div class="eval-opt-icon">●</div>
+          <span class="eval-opt-label">Pendiente</span>
+          <span class="eval-opt-sub">Sin revisión final</span>
+        </div>
+        <div class="eval-opt opt-corregido" id="opt-corregido" onclick="selectEvalOpt('corregido')">
+          <div class="eval-opt-icon">↺</div>
+          <span class="eval-opt-label">Corregido</span>
+          <span class="eval-opt-sub">Requiere ajustes</span>
+        </div>
+        <div class="eval-opt opt-reprobado" id="opt-reprobado" onclick="selectEvalOpt('reprobado')">
+          <div class="eval-opt-icon">✕</div>
+          <span class="eval-opt-label">Reprobado</span>
+          <span class="eval-opt-sub">Requiere revisión</span>
+        </div>
+      </div>
+      <div class="eval-feedback-wrap">
+        <span class="eval-feedback-label">Feedback opcional</span>
+        <textarea class="eval-feedback-textarea" id="evalFeedback" placeholder="Describe brevemente tu evaluación al alumno..."></textarea>
+      </div>
+    </div>
+    <div class="eval-modal-footer">
+      <button class="btn btn-ghost" onclick="closeEvalModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmEval()">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastText"></span></div>
+
+<script>
+// ── DATOS ──
+const ROLES = {
+  alumno:        { nombre:'Diego González', cargo:'Alumno · TechSol S.A.',        avatar:'DG', bg:'linear-gradient(135deg,#3b82f6,#6366f1)' },
+  tutor_empresa: { nombre:'Carlos Méndez',  cargo:'Tutor Empresa · TechSol S.A.', avatar:'CM', bg:'linear-gradient(135deg,#d97706,#b45309)' },
+  tutor_udd:     { nombre:'Paulina Gómez',  cargo:'Tutor UDD · ICLAE',            avatar:'PG', bg:'linear-gradient(135deg,#7c3aed,#6d28d9)' },
+};
+let rol = 'alumno';
+let semSel = 5;
+let evalSemNum = null;
+let evalTutorTipo = null;
+let evalOptSel = null;
+
+const semanas = [
+  { n:1, texto:'Inducción al proyecto. Configuración del entorno de desarrollo (Docker, variables de entorno). Lectura de documentación técnica y primer acercamiento al repositorio en Git.', fecha:'Lun 4 Mar 09:22', evidencias:[{nombre:'Setup_entorno.pdf',tipo:'pdf',tamaño:'1.2 MB'},{nombre:'Screenshot_docker.png',tipo:'img',tamaño:'320 KB'}], emp:{estado:'aprobado',fecha:'Mar 5 Mar',feedback:''}, udd:{estado:'aprobado',fecha:'Mié 6 Mar',feedback:'Buen inicio. Recuerda registrar cada semana con detalle.'} },
+  { n:2, texto:'Resolución de bugs en validaciones de formularios reportados por QA. Se cerraron 3 tickets del backlog. Reunión de seguimiento con el equipo de producto.', fecha:'Lun 11 Mar 10:05', evidencias:[{nombre:'Bug_fixes_PR.pdf',tipo:'pdf',tamaño:'850 KB'}], emp:{estado:'aprobado',fecha:'Mar 12 Mar',feedback:''}, udd:{estado:'aprobado',fecha:'Mié 13 Mar',feedback:'Excelente semana, los bugs resueltos demuestran iniciativa.'} },
+  { n:3, texto:'Desarrollo de API endpoints.', fecha:'Lun 18 Mar 18:47', evidencias:[], emp:{estado:'corregido',fecha:'Mar 19 Mar',feedback:'El registro es muy escueto. Por favor amplía las actividades realizadas con más detalle.'}, udd:{estado:'aprobado',fecha:'Mié 20 Mar',feedback:'Coincido con el tutor empresa, necesita más detalle.'} },
+  { n:4, texto:'Desarrollo de API: Creación de endpoints con Django REST Framework para autenticación y gestión de usuarios. Se implementó JWT y se documentaron los endpoints en Swagger.', fecha:'Lun 25 Mar 11:30', evidencias:[{nombre:'API_docs_v2.pdf',tipo:'pdf',tamaño:'2.1 MB'},{nombre:'Diagrama_endpoints.png',tipo:'img',tamaño:'540 KB'}], emp:{estado:'aprobado',fecha:'Mar 26 Mar',feedback:'Mucho mejor. Bien la documentación Swagger.'}, udd:{estado:'aprobado',fecha:'Mié 27 Mar',feedback:''} },
+  { n:5, texto:'', fecha:null, evidencias:[], emp:{estado:'pendiente',fecha:'',feedback:''}, udd:{estado:'pendiente',fecha:'',feedback:''} },
+  ...Array.from({length:8},(_,i)=>({ n:i+6, texto:'', fecha:null, evidencias:[], emp:{estado:'pendiente',fecha:'',feedback:''}, udd:{estado:'pendiente',fecha:'',feedback:''} }))
+];
+
+const drafts = {};
+
+// ── CAMBIAR ROL ──
+function cambiarRol(r) {
+  rol = r;
+  const rd = ROLES[r];
+  document.getElementById('sideAvatar').textContent = rd.avatar;
+  document.getElementById('sideAvatar').style.background = rd.bg;
+  document.getElementById('sideName').textContent = rd.nombre;
+  document.getElementById('sideRole').textContent = rd.cargo;
+  renderList();
+  renderWeek(semSel);
+}
+
+// ── RENDER LISTA ──
+function renderList() {
+  const el = document.getElementById('weeksList');
+  el.innerHTML = '';
+  semanas.forEach(s => {
+    const isSel = s.n === semSel;
+    const isActiva = s.n === 5;
+    const isFutura = s.n > 5;
+    const div = document.createElement('div');
+    div.className = 'w-item' + (isSel ? ' sel' : '');
+    div.onclick = () => selectWeek(s.n);
+
+    let tag = '';
+    if(isActiva) tag = `<span class="w-tag wt-activa">Actual</span>`;
+    else if(isFutura) tag = `<span class="w-tag wt-futura">—</span>`;
+    else {
+      const empE = s.emp.estado, uddE = s.udd.estado;
+      if(empE === 'aprobado' && uddE === 'aprobado') tag = `<span class="w-tag wt-aprobado">✓</span>`;
+      else if(empE === 'corregido' || uddE === 'corregido') tag = `<span class="w-tag wt-corregido">↺</span>`;
+      else if(empE === 'reprobado' || uddE === 'reprobado') tag = `<span class="w-tag wt-reprobado">✕</span>`;
+      else tag = `<span class="w-tag wt-pendiente">—</span>`;
+    }
+
+    const empDot = `wd wd-${s.emp.estado}`;
+    const uddDot = `wd wd-${s.udd.estado}`;
+
+    div.innerHTML = `
+      <span class="w-num">Sem ${s.n}</span>
+      ${tag}
+      <div class="w-dots">
+        <div class="${empDot}" title="Tutor Empresa: ${s.emp.estado}"></div>
+        <div class="${uddDot}" title="Tutor UDD: ${s.udd.estado}"></div>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+// ── RENDER SEMANA ──
+function renderWeek(num) {
+  const s = semanas.find(x => x.n === num);
+  const container = document.getElementById('weekView');
+  container.innerHTML = '';
+  const isActiva = num === 5;
+  const isFutura = num > 5;
+  const isAlumno = rol === 'alumno';
+  const texto = drafts[num]?.texto !== undefined ? drafts[num].texto : s.texto;
+  const evidencias = drafts[num]?.evidencias || s.evidencias;
+
+  // Mapas de badge
+  const badgeClass = { aprobado:'eb-aprobado', pendiente:'eb-pendiente', corregido:'eb-corregido', reprobado:'eb-reprobado' };
+  const badgeLabel = { aprobado:'✓ Aprobado', pendiente:'Pendiente', corregido:'↺ Corregido', reprobado:'✕ Reprobado' };
+
+  // ── HEADER ──
+  const empBadge = `<span class="eval-badge ${badgeClass[s.emp.estado]}">${badgeLabel[s.emp.estado]}</span>`;
+  const uddBadge = `<span class="eval-badge ${badgeClass[s.udd.estado]}">${badgeLabel[s.udd.estado]}</span>`;
+  const fechaHtml = s.fecha ? `<span class="wv-date">🕐 Enviada el ${s.fecha}</span>` : isActiva ? `<span style="font-size:11.5px;color:var(--amber-600);">⚠ Sin enviar aún</span>` : '';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'wv-header';
+  hdr.innerHTML = `
+    <div>
+      <div class="wv-title">Semana ${s.n} <span style="font-weight:400;color:var(--text-muted);font-size:14px;">/ 13</span></div>
+      <div class="wv-meta">${fechaHtml}</div>
+    </div>
+    <div class="wv-badges">${empBadge}${uddBadge}</div>`;
+  container.appendChild(hdr);
+
+  // ── FUTURA ──
+  if(isFutura) {
+    const empty = document.createElement('div');
+    empty.className = 'week-empty';
+    empty.innerHTML = `<div class="week-empty-icon">🔒</div><div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Semana no disponible aún</div><div style="font-size:13px;">Se habilitará al llegar su turno en el programa.</div>`;
+    container.appendChild(empty);
+    return;
+  }
+
+  // ── LOG ──
+  const logCard = document.createElement('div');
+  logCard.className = 'log-card';
+  const canEdit = isAlumno && isActiva;
+  logCard.innerHTML = `
+    <div class="log-card-top">
+      <div class="log-card-title">📝 Registro semanal</div>
+      ${canEdit ? `<span style="font-size:11.5px;color:var(--text-muted);">El alumno puede editar hasta enviar</span>` : ''}
+    </div>
+    <div class="log-card-body">
+      <textarea class="log-textarea" id="ta-log" ${canEdit ? '' : 'readonly'}
+        placeholder="Describe brevemente las actividades que realizaste esta semana..."
+        oninput="saveDraft(${num},'texto',this.value)">${texto}</textarea>
+      ${canEdit ? `<div class="log-hint">Sé concreto: ¿qué hiciste?, ¿con quién?, ¿qué resultado tuvo?</div>` : ''}
+    </div>`;
+  container.appendChild(logCard);
+
+  // ── EVIDENCIA ──
+  const evCard = document.createElement('div');
+  evCard.className = 'log-card';
+  const evItems = evidencias.map((e,i) => `
+    <div class="ev-item">
+      <span class="ev-icon">${e.tipo==='pdf'?'📄':'🖼️'}</span>
+      <span class="ev-name">${e.nombre}</span>
+      <span class="ev-size">${e.tamaño}</span>
+      ${canEdit ? `<span class="ev-remove" onclick="removeEv(${num},${i})">✕ Quitar</span>` : ''}
+    </div>`).join('');
+
+  evCard.innerHTML = `
+    <div class="log-card-top">
+      <div class="log-card-title">📎 Evidencia <span style="font-weight:400;font-size:12px;color:var(--text-muted);">${evidencias.length} archivo${evidencias.length!==1?'s':''}</span></div>
+    </div>
+    <div class="log-card-body">
+      ${evItems || `<div style="font-size:13px;color:var(--text-muted);font-style:italic;">Sin archivos adjuntos.</div>`}
+      ${canEdit ? `<button class="upload-btn" onclick="addEv(${num})">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+        Subir archivo
+      </button>` : ''}
+    </div>`;
+  container.appendChild(evCard);
+
+  // ── ESTADO EVALUACIONES ──
+  const evalCard = document.createElement('div');
+  evalCard.className = 'eval-row';
+
+  const canEvalEmp = (rol === 'tutor_empresa') && !isFutura && s.texto;
+  const canEvalUDD = (rol === 'tutor_udd') && !isFutura && s.texto;
+
+  evalCard.innerHTML = `
+    <div class="eval-item">
+      <div class="eval-avatar" style="background:linear-gradient(135deg,#d97706,#b45309);color:#fff;">CM</div>
+      <div>
+        <div class="eval-who">Tutor Empresa</div>
+        <div class="eval-role-text">Carlos Méndez</div>
+        ${s.emp.feedback ? `<div class="eval-feedback">"${s.emp.feedback}"</div>` : ''}
+      </div>
+      <div class="eval-status">
+        <span class="eval-badge ${badgeClass[s.emp.estado]}">${badgeLabel[s.emp.estado]}</span>
+        ${s.emp.fecha ? `<span class="eval-fecha">${s.emp.fecha}</span>` : ''}
+        ${canEvalEmp ? `<button class="btn-eval btn-eval-emp" onclick="openEvalModal(${num},'emp')">
+          <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+          Evaluar
+        </button>` : ''}
+      </div>
+    </div>
+    <div style="width:1px;height:50px;background:var(--border);flex-shrink:0;"></div>
+    <div class="eval-item">
+      <div class="eval-avatar" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;">PG</div>
+      <div>
+        <div class="eval-who">Tutor UDD</div>
+        <div class="eval-role-text">Paulina Gómez</div>
+        ${s.udd.feedback ? `<div class="eval-feedback">"${s.udd.feedback}"</div>` : ''}
+      </div>
+      <div class="eval-status">
+        <span class="eval-badge ${badgeClass[s.udd.estado]}">${badgeLabel[s.udd.estado]}</span>
+        ${s.udd.fecha ? `<span class="eval-fecha">${s.udd.fecha}</span>` : ''}
+        ${canEvalUDD ? `<button class="btn-eval btn-eval-udd" onclick="openEvalModal(${num},'udd')">
+          <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+          Evaluar
+        </button>` : ''}
+      </div>
+    </div>`;
+  container.appendChild(evalCard);
+
+  // ── BOTONES ALUMNO ──
+  if(canEdit) {
+    const acts = document.createElement('div');
+    acts.className = 'action-row';
+    acts.innerHTML = `
+      <button class="btn btn-ghost" onclick="toast('💾','Borrador guardado')">Guardar borrador</button>
+      <button class="btn btn-primary" onclick="enviarBitacora(${num})">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+        Enviar bitácora
+      </button>`;
+    container.appendChild(acts);
+  }
+}
+
+// ── MODAL EVAL ──
+function openEvalModal(num, tutor) {
+  evalSemNum = num;
+  evalTutorTipo = tutor;
+  evalOptSel = null;
+  document.getElementById('evalModalTitle').textContent = `Evaluar Semana ${num}`;
+  document.getElementById('evalModalSub').textContent = tutor === 'emp'
+    ? 'Carlos Méndez · Tutor Empresa'
+    : 'Paulina Gómez · Tutor UDD';
+  document.getElementById('evalFeedback').value = '';
+  ['aprobado','pendiente','corregido','reprobado'].forEach(o =>
+    document.getElementById('opt-'+o).classList.remove('selected'));
+  document.getElementById('evalModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeEvalModal() {
+  document.getElementById('evalModal').classList.remove('open');
+  document.body.style.overflow = '';
+  evalSemNum = null; evalTutorTipo = null; evalOptSel = null;
+}
+function closeEvalOnBg(e) { if(e.target === document.getElementById('evalModal')) closeEvalModal(); }
+
+function selectEvalOpt(opt) {
+  evalOptSel = opt;
+  ['aprobado','pendiente','corregido','reprobado'].forEach(o =>
+    document.getElementById('opt-'+o).classList.toggle('selected', o === opt));
+}
+
+function confirmEval() {
+  if(!evalOptSel) { toast('⚠️','Selecciona un estado para continuar'); return; }
+  const s = semanas.find(x => x.n === evalSemNum);
+  const feedback = document.getElementById('evalFeedback').value.trim();
+  const now = 'Hoy';
+  if(evalTutorTipo === 'emp') {
+    s.emp.estado = evalOptSel;
+    s.emp.feedback = feedback;
+    s.emp.fecha = now;
+  } else {
+    s.udd.estado = evalOptSel;
+    s.udd.feedback = feedback;
+    s.udd.fecha = now;
+  }
+  closeEvalModal();
+  renderList();
+  renderWeek(evalSemNum);
+  const labels = { aprobado:'Aprobada ✓', pendiente:'Marcada como pendiente', corregido:'Marcada para corrección', reprobado:'Reprobada' };
+  toast('✅', `Semana ${evalSemNum} — ${labels[evalOptSel]}`);
+}
+
+// ── ACCIONES ──
+function selectWeek(n) { semSel = n; renderList(); renderWeek(n); }
+function saveDraft(n, k, v) { if(!drafts[n]) drafts[n]={}; drafts[n][k]=v; }
+function addEv(n) {
+  if(!drafts[n]) drafts[n]={};
+  if(!drafts[n].evidencias) drafts[n].evidencias=[...semanas.find(x=>x.n===n).evidencias];
+  drafts[n].evidencias.push({nombre:`Evidencia_sem${n}_${Date.now()%1000}.pdf`,tipo:'pdf',tamaño:'1.1 MB'});
+  toast('📎','Archivo adjuntado'); renderWeek(n);
+}
+function removeEv(n,i) {
+  if(!drafts[n]) drafts[n]={};
+  if(!drafts[n].evidencias) drafts[n].evidencias=[...semanas.find(x=>x.n===n).evidencias];
+  drafts[n].evidencias.splice(i,1); renderWeek(n);
+}
+function enviarBitacora(n) {
+  const s = semanas.find(x=>x.n===n);
+  const txt = document.getElementById('ta-log')?.value||'';
+  if(!txt.trim()) { toast('⚠️','Escribe algo antes de enviar'); return; }
+  s.texto = txt;
+  s.fecha = 'Hoy ' + new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+  if(drafts[n]) { delete drafts[n].texto; }
+  toast('✅','Bitácora enviada. Los tutores serán notificados.');
+  renderList(); renderWeek(n);
+}
+function toast(icon, msg) {
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastText').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeEvalModal(); });
+
+// INIT
+renderList();
+renderWeek(semSel);
+</script>
+</body>
+</html>

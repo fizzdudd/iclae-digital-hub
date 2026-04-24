@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICLAE — Postulaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-bg:#0c2461;--sidebar-border:rgba(255,255,255,0.08);--sidebar-hover:rgba(255,255,255,0.08);--sidebar-active:rgba(255,255,255,0.15);--sidebar-text:rgba(255,255,255,0.65);--sidebar-accent:#60a5fa;
+  --page-bg:#eef2ff;--card-bg:#fff;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;
+  --green-50:#f0fdf4;--green-100:#dcfce7;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
+  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-600:#d97706;--amber-700:#b45309;--amber-800:#92400e;
+  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-600:#7c3aed;--violet-700:#6d28d9;--violet-800:#5b21b6;
+  --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-600:#e11d48;--rose-800:#9f1239;
+  --cyan-50:#ecfeff;--cyan-100:#cffafe;--cyan-600:#0891b2;--cyan-800:#155e75;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-xl:0 20px 60px rgba(0,0,0,0.18),0 8px 24px rgba(0,0,0,0.1);
+  --sidebar-width:220px;
+}
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--page-bg); color:var(--text-primary); display:flex; min-height:100vh; font-size:14px; }
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-width);background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:34px;height:34px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.logo-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.3px}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-md);cursor:pointer;color:var(--sidebar-text);font-size:13.5px;font-weight:500;transition:background 0.15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-item.active .nav-icon{color:var(--sidebar-accent);opacity:1}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(96,165,250,0.2);color:#93c5fd}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:#fff}
+.user-role{font-size:10.5px;color:rgba(255,255,255,0.4)}
+.user-btn{width:26px;height:26px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.5);font-size:12px}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:rgba(255,255,255,0.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-size:16px;font-weight:700}
+.topbar-btn{height:34px;padding:0 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-family:inherit;transition:all 0.15s}
+.topbar-btn:hover{border-color:#93c5fd;color:var(--blue-700);background:var(--blue-50)}
+.content{padding:24px 28px;flex:1}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:4px;width:fit-content;box-shadow:var(--shadow-sm)}
+.tab{padding:8px 20px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;cursor:pointer;color:var(--text-secondary);transition:all 0.15s;display:flex;align-items:center;gap:7px;border:none;background:none;font-family:inherit}
+.tab:hover{color:var(--text-primary);background:#f8fafc}
+.tab.active{background:var(--blue-600);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
+.tab-count{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}
+.tab.active .tab-count{background:rgba(255,255,255,0.25);color:#fff}
+.tab:not(.active) .tab-count{background:#f1f5f9;color:var(--text-muted)}
+
+/* FILTERS */
+.filters{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;align-items:center}
+.filter-select{height:36px;padding:0 12px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fff;font-size:13px;color:var(--text-primary);font-family:inherit;cursor:pointer;transition:all 0.15s;appearance:none;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.filter-select:focus{outline:none;border-color:var(--blue-600)}
+.filter-search{height:36px;padding:0 12px 0 36px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fff;font-size:13px;color:var(--text-primary);font-family:inherit;width:220px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z' clip-rule='evenodd'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
+.filter-search:focus{outline:none;border-color:var(--blue-600)}
+.results-count{font-size:13px;color:var(--text-muted);margin-left:auto}
+
+/* JOB CARDS GRID */
+.jobs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+.job-card{background:var(--card-bg);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow 0.2s,transform 0.2s;display:flex;flex-direction:column}
+.job-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.job-card.applied{border-color:#bfdbfe;background:#fafcff}
+.job-card-top{padding:16px 18px 14px}
+.job-company-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.company-avatar{width:40px;height:40px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.company-info-name{font-size:13.5px;font-weight:700;color:var(--text-primary)}
+.company-info-area{font-size:11.5px;color:var(--text-muted);margin-top:1px}
+.job-title{font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:10px;line-height:1.3}
+.job-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.job-tag{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px}
+.tag-carrera{background:var(--blue-100);color:var(--blue-800)}
+.tag-campus{background:#f1f5f9;color:#475569}
+.tag-presencial{background:var(--green-100);color:var(--green-800)}
+.tag-hibrido{background:var(--blue-100);color:var(--blue-800)}
+.tag-remoto{background:var(--violet-100);color:var(--violet-800)}
+.job-meta{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--text-muted)}
+.job-meta-item{display:flex;align-items:center;gap:4px}
+.job-card-footer{padding:12px 18px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+.vacantes-info{font-size:12px;color:var(--text-muted)}
+.vacantes-info strong{color:var(--green-700);font-size:13px}
+.btn-postular{height:34px;padding:0 18px;border-radius:var(--radius-md);border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;box-shadow:0 2px 6px rgba(37,99,235,0.25)}
+.btn-postular:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af);box-shadow:0 4px 12px rgba(37,99,235,0.35)}
+.btn-postulado{height:34px;padding:0 18px;border-radius:var(--radius-md);border:none;background:var(--green-100);color:var(--green-800);font-size:13px;font-weight:600;cursor:default;font-family:inherit;display:flex;align-items:center;gap:6px}
+.status-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.status-open{background:var(--green-100);color:var(--green-800)}
+.status-closed{background:#fee2e2;color:#b91c1c}
+.status-hot{background:#fef3c7;color:#b45309}
+
+/* MIS POSTULACIONES */
+.my-apps-list{display:flex;flex-direction:column;gap:12px}
+.app-card{background:var(--card-bg);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:18px 22px}
+.app-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.app-company{display:flex;align-items:center;gap:12px}
+.app-info-title{font-size:15px;font-weight:700;color:var(--text-primary)}
+.app-info-company{font-size:13px;color:var(--text-secondary);margin-top:2px}
+.app-date{font-size:12px;color:var(--text-muted)}
+
+/* PIPELINE */
+.pipeline{display:flex;align-items:center;gap:0;margin-top:4px}
+.pipeline-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+.pipeline-step:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:2px;z-index:0}
+.pipeline-step.done::after{background:#22c55e}
+.pipeline-step.active::after{background:linear-gradient(90deg,#22c55e,#e2e8f0)}
+.pipeline-step.pending::after{background:#e2e8f0}
+.pipeline-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;z-index:1;position:relative;border:2px solid}
+.pipeline-step.done .pipeline-dot{background:#22c55e;border-color:#22c55e;color:#fff}
+.pipeline-step.active .pipeline-dot{background:#fff;border-color:#2563eb;color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.15)}
+.pipeline-step.pending .pipeline-dot{background:#f8fafc;border-color:#e2e8f0;color:var(--text-muted)}
+.pipeline-label{font-size:10px;font-weight:500;margin-top:6px;color:var(--text-muted);text-align:center;line-height:1.3}
+.pipeline-step.done .pipeline-label{color:var(--green-700)}
+.pipeline-step.active .pipeline-label{color:var(--blue-700);font-weight:600}
+.feedback-box{margin-top:14px;padding:12px 14px;border-radius:var(--radius-md);background:var(--blue-50);border:1px solid var(--blue-200);font-size:13px;color:var(--blue-800)}
+.feedback-box strong{font-weight:600}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:16px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.empty-sub{font-size:13.5px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:18px;box-shadow:var(--shadow-xl);width:100%;max-width:500px;margin:20px;animation:modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:22px 24px 0;display:flex;align-items:flex-start;justify-content:space-between}
+.modal-title{font-size:17px;font-weight:700}
+.modal-subtitle{font-size:13px;color:var(--text-muted);margin-top:3px}
+.modal-close{width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);flex-shrink:0;transition:all 0.15s}
+.modal-close:hover{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:0 24px 22px;display:flex;gap:10px;justify-content:flex-end}
+.btn{height:38px;padding:0 20px;border-radius:var(--radius-md);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all 0.15s;display:flex;align-items:center;gap:7px}
+.btn-secondary{background:#f1f5f9;color:var(--text-secondary)}
+.btn-secondary:hover{background:#e2e8f0}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.3)}
+.btn-primary:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af)}
+.job-detail-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.detail-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)}
+.detail-item strong{color:var(--text-primary);font-weight:600}
+textarea.app-msg{width:100%;min-height:100px;padding:12px 14px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);resize:vertical;line-height:1.6;transition:border-color 0.15s}
+textarea.app-msg:focus{outline:none;border-color:var(--blue-600)}
+textarea.app-msg::placeholder{color:var(--text-muted)}
+label.form-label{font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:7px}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;z-index:2000;background:#0f172a;color:#fff;padding:14px 20px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-xl);transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">IC</div>
+    <div><div class="logo-title">ICLAE</div><div class="logo-sub">Digital Hub · UDD</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item" href="iclae_dashboard_v2.html">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+      Dashboard
+    </a>
+    <div class="nav-section-label" style="margin-top:8px;">Navegación</div>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>Proyecto <span class="nav-badge">1</span></a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>Evaluaciones</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd"/></svg>Reportes</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>Analítico</a>
+    <div class="nav-section-label" style="margin-top:8px;">Gestión</div>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>Empresas</a>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>
+      Postulaciones <span class="nav-badge">12</span>
+    </a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>Administración</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">DG</div>
+    <div style="flex:1;min-width:0;"><div class="user-name">Diego González</div><div class="user-role">Alumno · Ing. Informática</div></div>
+    <div style="display:flex;gap:4px;"><div class="user-btn">↩</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="page-title">Postulaciones</span>
+      <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--green-100);color:var(--green-800);">12 vacantes disponibles</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="topbar-btn">
+        <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/></svg>
+        Filtros
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('vacantes',this)">
+        🔍 Vacantes disponibles
+        <span class="tab-count">12</span>
+      </button>
+      <button class="tab" onclick="switchTab('mis',this)">
+        📋 Mis postulaciones
+        <span class="tab-count">2</span>
+      </button>
+    </div>
+
+    <!-- TAB: VACANTES -->
+    <div id="tab-vacantes">
+      <div class="filters">
+        <input class="filter-search" type="text" placeholder="Buscar por empresa o cargo...">
+        <select class="filter-select">
+          <option>Todas las áreas</option>
+          <option>Banca</option>
+          <option>Fintech</option>
+          <option>Retail</option>
+          <option>Energía</option>
+          <option>HR Tech</option>
+          <option>InsurTech</option>
+        </select>
+        <select class="filter-select">
+          <option>Todas las carreras</option>
+          <option>Ing. Informática</option>
+          <option>Ing. Civil Industrial</option>
+          <option>Ing. Comercial</option>
+          <option>Diseño</option>
+        </select>
+        <select class="filter-select">
+          <option>Todos los campus</option>
+          <option>Santiago</option>
+          <option>Concepción</option>
+        </select>
+        <select class="filter-select">
+          <option>Toda modalidad</option>
+          <option>Presencial</option>
+          <option>Híbrido</option>
+          <option>Remoto</option>
+        </select>
+        <span class="results-count">12 vacantes encontradas</span>
+      </div>
+
+      <div class="jobs-grid" id="jobsGrid">
+
+        <!-- Card 1 - Hot -->
+        <div class="job-card">
+          <div class="job-card-top">
+            <div class="job-company-row">
+              <div class="company-avatar" style="background:#dbeafe;color:#1e40af;">BC</div>
+              <div><div class="company-info-name">Banco de Chile</div><div class="company-info-area">Banca · Santiago</div></div>
+              <span class="status-badge status-hot" style="margin-left:auto;">🔥 Alta demanda</span>
+            </div>
+            <div class="job-title">Desarrollador Full Stack</div>
+            <div class="job-tags">
+              <span class="job-tag tag-carrera">Ing. Informática</span>
+              <span class="job-tag tag-campus">Santiago</span>
+              <span class="job-tag tag-hibrido">Híbrido</span>
+            </div>
+            <div class="job-meta">
+              <span class="job-meta-item">📅 Inicio: 01 Mar 2025</span>
+              <span class="job-meta-item">⏱ 6 meses</span>
+            </div>
+          </div>
+          <div class="job-card-footer">
+            <div class="vacantes-info">Vacantes: <strong>3 disponibles</strong><br><span style="font-size:11px;">18 postulantes</span></div>
+            <button class="btn-postular" onclick="openApplyModal('Desarrollador Full Stack','Banco de Chile')">Postular →</button>
+          </div>
+        </div>
+
+        <!-- Card 2 - Open -->
+        <div class="job-card">
+          <div class="job-card-top">
+            <div class="job-company-row">
+              <div class="company-avatar" style="background:#dcfce7;color:#166534;">FK</div>
+              <div><div class="company-info-name">Fintual</div><div class="company-info-area">Fintech · Santiago</div></div>
+              <span class="status-badge status-open" style="margin-left:auto;">Abierto</span>
+            </div>
+            <div class="job-title">Analista de Datos Junior</div>
+            <div class="job-tags">
+              <span class="job-tag tag-carrera">Ing. Comercial</span>
+              <span class="job-tag tag-campus">Santiago</span>
+              <span class="job-tag tag-remoto">Remoto</span>
+            </div>
+            <div class="job-meta">
+              <span class="job-meta-item">📅 Inicio: 15 Mar 2025</span>
+              <span class="job-meta-item">⏱ 4 meses</span>
+            </div>
+          </div>
+          <div class="job-card-footer">
+            <div class="vacantes-info">Vacantes: <strong>2 disponibles</strong><br><span style="font-size:11px;">9 postulantes</span></div>
+            <button class="btn-postular" onclick="openApplyModal('Analista de Datos Junior','Fintual')">Postular →</button>
+          </div>
+        </div>
+
+        <!-- Card 3 - Applied -->
+        <div class="job-card applied">
+          <div class="job-card-top">
+            <div class="job-company-row">
+              <div class="company-avatar" style="background:#ede9fe;color:#5b21b6;">BT</div>
+              <div><div class="company-info-name">Betterfly</div><div class="company-info-area">InsurTech · Santiago</div></div>
+              <span class="status-badge" style="background:var(--blue-100);color:var(--blue-800);margin-left:auto;">✓ Postulado</span>
+            </div>
+            <div class="job-title">UX Designer Practicante</div>
+            <div class="job-tags">
+              <span class="job-tag tag-carrera">Diseño</span>
+              <span class="job-tag tag-campus">Santiago</span>
+              <span class="job-tag tag-hibrido">Híbrido</span>
+            </div>
+            <div class="job-meta">
+              <span class="job-meta-item">📅 Inicio: 01 Abr 2025</span>
+              <span class="job-meta-item">⏱ 6 meses</span>
+            </div>
+          </div>
+          <div class="job-card-footer">
+            <div class="vacantes-info">Vacantes: <strong>1 disponible</strong><br><span style="font-size:11px;">14 postulantes</span></div>
+            <button class="btn-postulado">✓ Ya postulaste</button>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="job-card">
+          <div class="job-card-top">
+            <div class="job-company-row">
+              <div class="company-avatar" style="background:#cffafe;color:#155e75;">BK</div>
+              <div><div class="company-info-name">Buk</div><div class="company-info-area">HR Tech · Santiago</div></div>
+              <span class="status-badge status-open" style="margin-left:auto;">Abierto</span>
+            </div>
+            <div class="job-title">Desarrollador Backend Python</div>
+            <div class="job-tags">
+              <span class="job-tag tag-carrera">Ing. Informática</span>
+              <span class="job-tag tag-campus">Santiago</span>
+              <span class="job-tag tag-presencial">Presencial</span>
+            </div>
+            <div class="job-meta">
+              <span class="job-meta-item">📅 Inicio: 01 Mar 2025</span>
+              <span class="job-meta-item">⏱ 6 meses</span>
+            </div>
+          </div>
+          <div class="job-card-footer">
+            <div class="vacantes-info">Vacantes: <strong>4 disponibles</strong><br><span style="font-size:11px;">11 postulantes</span></div>
+            <button class="btn-postular" onclick="openApplyModal('Desarrollador Backend Python','Buk')">Postular →</button>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="job-card">
+          <div class="job-card-top">
+            <div class="job-company-row">
+              <div class="company-avatar" style="background:#fef3c7;color:#92400e;">FL</div>
+              <div><div class="company-info-name">Falabella</div><div class="company-info-area">Retail · Santiago</div></div>
+              <span class="status-badge status-open" style="margin-left:auto;">Abierto</span>
+            </div>
+            <div class="job-title">Analista Business Intelligence</div>
+            <div class="job-tags">
+              <span class="job-tag tag-carrera">Ing. Comercial</span>
+              <span class="job-tag tag-campus">Santiago</span>
+              <span class="job-tag tag-hibrido">Híbrido</span>
+            </div>
+            <div class="job-meta">
+              <span class="job-meta-item">📅 Inicio: 15 Feb 2025</span>
+              <span class="job-meta-item">⏱ 5 meses</span>
+            </div>
+          </div>
+          <div class="job-card-footer">
+            <div class="vacantes-info">Vacantes: <strong>2 disponibles</strong><br><span style="font-size:11px;">7 postulantes</span></div>
+            <button class="btn-postular" onclick="openApplyModal('Analista Business Intelligence','Falabella')">Postular →</button>
+          </div>
+        </div>
+
+        <!-- Card 6 - Applied -->
+        <div class="job-card applied">
+          <div class="job-card-top">
+            <div class="job-company-row">
+              <div class="company-avatar" style="background:#dcfce7;color:#166534;">GL</div>
+              <div><div class="company-info-name">Global66</div><div class="company-info-area">Fintech · Santiago</div></div>
+              <span class="status-badge" style="background:var(--blue-100);color:var(--blue-800);margin-left:auto;">✓ Postulado</span>
+            </div>
+            <div class="job-title">Ingeniero de Software</div>
+            <div class="job-tags">
+              <span class="job-tag tag-carrera">Ing. Informática</span>
+              <span class="job-tag tag-campus">Santiago</span>
+              <span class="job-tag tag-remoto">Remoto</span>
+            </div>
+            <div class="job-meta">
+              <span class="job-meta-item">📅 Inicio: 01 Mar 2025</span>
+              <span class="job-meta-item">⏱ 6 meses</span>
+            </div>
+          </div>
+          <div class="job-card-footer">
+            <div class="vacantes-info">Vacantes: <strong>3 disponibles</strong><br><span style="font-size:11px;">22 postulantes</span></div>
+            <button class="btn-postulado">✓ Ya postulaste</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB: MIS POSTULACIONES -->
+    <div id="tab-mis" style="display:none;">
+      <div class="my-apps-list">
+
+        <div class="app-card">
+          <div class="app-card-top">
+            <div class="app-company">
+              <div class="company-avatar" style="background:#ede9fe;color:#5b21b6;width:44px;height:44px;">BT</div>
+              <div>
+                <div class="app-info-title">UX Designer Practicante</div>
+                <div class="app-info-company">Betterfly · InsurTech · Santiago · Híbrido</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="app-date">Postulado el 12 Feb 2025</div>
+              <span class="status-badge" style="background:var(--amber-100);color:var(--amber-800);margin-top:4px;display:inline-block;">En revisión</span>
+            </div>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline-step done">
+              <div class="pipeline-dot">✓</div>
+              <div class="pipeline-label">Postulación<br>enviada</div>
+            </div>
+            <div class="pipeline-step done">
+              <div class="pipeline-dot">✓</div>
+              <div class="pipeline-label">Revisión<br>UDD</div>
+            </div>
+            <div class="pipeline-step active">
+              <div class="pipeline-dot">3</div>
+              <div class="pipeline-label">Revisión<br>empresa</div>
+            </div>
+            <div class="pipeline-step pending">
+              <div class="pipeline-dot">4</div>
+              <div class="pipeline-label">Entrevista</div>
+            </div>
+            <div class="pipeline-step pending">
+              <div class="pipeline-dot">5</div>
+              <div class="pipeline-label">Resultado<br>final</div>
+            </div>
+          </div>
+          <div class="feedback-box">
+            <strong>Tutor UDD:</strong> Tu postulación fue aprobada y está siendo revisada por el equipo de Betterfly. Espera respuesta antes del viernes.
+          </div>
+        </div>
+
+        <div class="app-card">
+          <div class="app-card-top">
+            <div class="app-company">
+              <div class="company-avatar" style="background:#dcfce7;color:#166534;width:44px;height:44px;">GL</div>
+              <div>
+                <div class="app-info-title">Ingeniero de Software</div>
+                <div class="app-info-company">Global66 · Fintech · Santiago · Remoto</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="app-date">Postulado el 8 Feb 2025</div>
+              <span class="status-badge" style="background:var(--blue-100);color:var(--blue-800);margin-top:4px;display:inline-block;">En proceso</span>
+            </div>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline-step done">
+              <div class="pipeline-dot">✓</div>
+              <div class="pipeline-label">Postulación<br>enviada</div>
+            </div>
+            <div class="pipeline-step active">
+              <div class="pipeline-dot">2</div>
+              <div class="pipeline-label">Revisión<br>UDD</div>
+            </div>
+            <div class="pipeline-step pending">
+              <div class="pipeline-dot">3</div>
+              <div class="pipeline-label">Revisión<br>empresa</div>
+            </div>
+            <div class="pipeline-step pending">
+              <div class="pipeline-dot">4</div>
+              <div class="pipeline-label">Entrevista</div>
+            </div>
+            <div class="pipeline-step pending">
+              <div class="pipeline-dot">5</div>
+              <div class="pipeline-label">Resultado<br>final</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL POSTULAR -->
+<div class="modal-overlay" id="applyModal" onclick="closeApplyModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="applyTitle">Postular a cargo</div>
+        <div class="modal-subtitle" id="applySubtitle">Completa tu postulación</div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('applyModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="job-detail-row" id="applyDetails"></div>
+      <div style="padding:12px 14px;background:var(--blue-50);border:1px solid var(--blue-200);border-radius:var(--radius-md);margin-bottom:16px;font-size:13px;color:var(--blue-800);">
+        <strong>Tu CV y LinkedIn</strong> serán adjuntados automáticamente a tu postulación.
+        <span style="color:var(--green-700);font-weight:600;margin-left:6px;">✓ Perfil al 73%</span>
+      </div>
+      <label class="form-label">Carta de motivación (opcional)</label>
+      <textarea class="app-msg" placeholder="Cuéntale a la empresa por qué eres el candidato ideal para este cargo..."></textarea>
+      <div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">Esta carta será visible para el Tutor Empresa y el equipo de selección.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('applyModal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmApply()">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+        Confirmar postulación
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span>🎉</span><span id="toastText">¡Postulación enviada!</span></div>
+
+<script>
+function switchTab(tab, el) {
+  document.getElementById('tab-vacantes').style.display = tab==='vacantes'?'block':'none';
+  document.getElementById('tab-mis').style.display = tab==='mis'?'block':'none';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+let currentJob = '';
+function openApplyModal(title, company) {
+  currentJob = title + ' en ' + company;
+  document.getElementById('applyTitle').textContent = title;
+  document.getElementById('applySubtitle').textContent = company;
+  document.getElementById('applyDetails').innerHTML =
+    `<span class="detail-item">🏢 <strong>${company}</strong></span>
+     <span class="detail-item">💼 <strong>${title}</strong></span>`;
+  document.getElementById('applyModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeApplyModal(e) {
+  if(e.target===document.getElementById('applyModal')) {
+    document.getElementById('applyModal').classList.remove('open');
+    document.body.style.overflow='';
+  }
+}
+function confirmApply() {
+  document.getElementById('applyModal').classList.remove('open');
+  document.body.style.overflow='';
+  const toast = document.getElementById('toast');
+  document.getElementById('toastText').textContent = '¡Postulación enviada exitosamente! ✓';
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 4000);
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') { document.getElementById('applyModal').classList.remove('open'); document.body.style.overflow=''; } });
+</script>
+</body>
+</html>

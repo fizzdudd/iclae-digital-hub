@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICLAE — Expediente</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sidebar-bg:#0c2461;--sidebar-border:rgba(255,255,255,0.08);--sidebar-hover:rgba(255,255,255,0.08);--sidebar-active:rgba(255,255,255,0.15);--sidebar-text:rgba(255,255,255,0.65);--sidebar-accent:#60a5fa;
+  --page-bg:#eef2ff;--card-bg:#fff;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;--blue-200:#bfdbfe;--blue-600:#2563eb;--blue-700:#1d4ed8;--blue-800:#1e40af;--blue-900:#1e3a8a;
+  --green-50:#f0fdf4;--green-100:#dcfce7;--green-500:#22c55e;--green-600:#16a34a;--green-700:#15803d;--green-800:#166534;
+  --amber-50:#fffbeb;--amber-100:#fef3c7;--amber-600:#d97706;--amber-700:#b45309;--amber-800:#92400e;
+  --violet-50:#f5f3ff;--violet-100:#ede9fe;--violet-600:#7c3aed;--violet-700:#6d28d9;--violet-800:#5b21b6;
+  --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-600:#e11d48;--rose-700:#be123c;--rose-800:#9f1239;
+  --cyan-100:#cffafe;--cyan-700:#0e7490;--cyan-800:#155e75;
+  --orange-100:#ffedd5;--orange-700:#c2410c;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:18px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
+  --shadow-xl:0 20px 60px rgba(0,0,0,0.18),0 8px 24px rgba(0,0,0,0.1);
+  --sidebar-width:220px;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--page-bg);color:var(--text-primary);display:flex;min-height:100vh;font-size:14px}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-width);background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:34px;height:34px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.logo-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.3px}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-md);cursor:pointer;color:var(--sidebar-text);font-size:13.5px;font-weight:500;transition:background 0.15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-item.active .nav-icon{color:var(--sidebar-accent);opacity:1}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(96,165,250,0.2);color:#93c5fd}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:#fff}
+.user-role{font-size:10.5px;color:rgba(255,255,255,0.4)}
+.user-btn{width:26px;height:26px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.5);font-size:12px}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.topbar{background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0}
+.topbar-btn{height:34px;padding:0 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-family:inherit;transition:all 0.15s}
+.topbar-btn:hover{border-color:#93c5fd;color:var(--blue-700);background:var(--blue-50)}
+.role-sel{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:#fff;font-size:12px}
+.role-sel select,.student-sel select{border:none;outline:none;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-primary);background:transparent;cursor:pointer}
+.student-sel{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:var(--radius-md);border:1.5px solid var(--blue-200);background:var(--blue-50);font-size:12px}
+
+/* SCROLL CONTENT */
+.content{overflow-y:auto;flex:1;padding:22px 28px 32px}
+
+/* ── HERO CARD ── */
+.hero{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:18px}
+.hero-top{display:flex;align-items:center;gap:20px;padding:22px 24px;border-bottom:1px solid var(--border)}
+.hero-avatar{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:#fff;flex-shrink:0;letter-spacing:-1px}
+.hero-main{flex:1;min-width:0}
+.hero-name{font-size:22px;font-weight:700;letter-spacing:-0.5px;color:var(--text-primary)}
+.hero-sub{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap}
+.hero-pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+
+/* Rings de completitud */
+.rings-row{display:flex;gap:16px;padding:16px 24px;align-items:center;background:#fafbff}
+.ring-item{display:flex;align-items:center;gap:10px}
+.ring-wrap{position:relative;width:52px;height:52px;flex-shrink:0}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:700}
+.ring-info{min-width:0}
+.ring-label{font-size:12.5px;font-weight:600;color:var(--text-primary)}
+.ring-value{font-size:11.5px;color:var(--blue-600);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.ring-value:hover{text-decoration:underline}
+.ring-missing{font-size:11.5px;color:var(--text-muted);font-style:italic}
+.ring-edit-btn{font-size:11px;color:var(--blue-600);cursor:pointer;padding:2px 8px;border-radius:var(--radius-sm);border:1px solid var(--blue-200);background:var(--blue-50);margin-top:3px;transition:all 0.12s;display:inline-flex;align-items:center;gap:4px}
+.ring-edit-btn:hover{background:var(--blue-100)}
+.rings-divider{width:1px;height:40px;background:var(--border);flex-shrink:0}
+.rings-total{text-align:center;padding:0 12px}
+.rings-total-pct{font-size:26px;font-weight:700;letter-spacing:-1px}
+.rings-total-label{font-size:11px;color:var(--text-muted);font-weight:500;margin-top:2px}
+
+/* ── LAYOUT 2 COLS ── */
+.two-col{display:grid;grid-template-columns:280px 1fr;gap:16px}
+
+/* ── CARDS GENÉRICAS ── */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:7px}
+.card-body{padding:14px 18px}
+
+/* Info filas */
+.info-row{display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:13px;gap:10px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--text-muted);font-weight:500;flex-shrink:0;font-size:12.5px}
+.info-value{color:var(--text-primary);font-weight:600;text-align:right}
+
+/* Tutor link */
+.tutor-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fafbff;cursor:pointer;transition:all 0.12s;margin-top:6px}
+.tutor-link:hover{background:var(--blue-50);border-color:var(--blue-200)}
+.tutor-link:hover .tutor-link-name{color:var(--blue-700);text-decoration:underline;text-underline-offset:2px}
+.tutor-link-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0}
+.tutor-link-name{font-size:13px;font-weight:600;flex:1}
+.tutor-link-role{font-size:11px;color:var(--text-muted)}
+.tutor-link-arrow{font-size:14px;color:var(--text-muted)}
+
+/* Progreso semanas */
+.week-dots-grid{display:flex;flex-wrap:wrap;gap:5px;padding:4px 0}
+.wd-box{width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:default;position:relative;border:1.5px solid transparent}
+.wd-box:hover .wd-tooltip{display:block}
+.wd-aprobado{background:var(--green-100);color:var(--green-800);border-color:#86efac}
+.wd-corregido{background:var(--orange-100);color:var(--orange-700);border-color:#fed7aa}
+.wd-reprobado{background:var(--rose-100);color:var(--rose-700);border-color:#fecaca}
+.wd-activa{background:var(--blue-100);color:var(--blue-800);border-color:var(--blue-200);animation:pulse-border 2s infinite}
+@keyframes pulse-border{0%,100%{border-color:var(--blue-200)}50%{border-color:var(--blue-600)}}
+.wd-pendiente{background:#f1f5f9;color:#cbd5e1;border-color:#e2e8f0}
+.wd-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:10px;font-weight:500;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:10}
+
+/* Progreso bar */
+.prog-bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin:8px 0 4px}
+.prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#22c55e,#4ade80);transition:width 0.5s}
+.prog-stats{display:flex;gap:12px}
+.prog-stat{font-size:12px;font-weight:500}
+
+/* Competencias */
+.comp-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f8fafc}
+.comp-row:last-child{border-bottom:none}
+.comp-name{font-size:12.5px;color:var(--text-secondary);width:160px;flex-shrink:0;font-weight:500}
+.comp-bar-wrap{flex:1;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.comp-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease}
+.comp-score{font-size:13px;font-weight:700;width:28px;text-align:right;flex-shrink:0}
+.comp-badge-sm{font-size:10px;font-weight:600;padding:2px 6px;border-radius:20px;flex-shrink:0}
+
+/* Badges */
+.badges-grid{display:flex;flex-wrap:wrap;gap:8px}
+.badge-chip{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border);background:#fafbff;font-size:12px;font-weight:600}
+.badge-chip-icon{font-size:16px}
+
+/* Bitácora mini */
+.bita-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f8fafc;cursor:pointer;transition:background 0.1s;border-radius:var(--radius-sm);padding-left:4px}
+.bita-row:last-child{border-bottom:none}
+.bita-row:hover{background:#f8fbff}
+.bita-num{font-size:12px;font-weight:700;color:var(--text-muted);width:42px;flex-shrink:0}
+.bita-preview{font-size:12.5px;color:var(--text-secondary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bita-date{font-size:11px;color:var(--text-muted);flex-shrink:0}
+.bita-badges{display:flex;gap:4px;flex-shrink:0}
+.bita-dot{width:8px;height:8px;border-radius:50%}
+
+/* Notas del tutor */
+.notes-textarea{width:100%;min-height:90px;padding:10px 12px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13px;color:var(--text-primary);resize:vertical;line-height:1.6;transition:border-color 0.15s;background:#fafbff}
+.notes-textarea:focus{outline:none;border-color:var(--blue-600);background:#fff}
+.notes-textarea::placeholder{color:var(--text-muted)}
+
+/* Edit links modal */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:18px;box-shadow:var(--shadow-xl);width:100%;max-width:480px;margin:20px;animation:modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:20px 22px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-muted);transition:all 0.15s}
+.modal-close:hover{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+.modal-body{padding:18px 22px}
+.modal-footer{padding:0 22px 20px;display:flex;gap:10px;justify-content:flex-end}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);display:block;margin-bottom:6px}
+.form-input{width:100%;height:38px;padding:0 14px;border-radius:var(--radius-md);border:1.5px solid var(--border);font-family:inherit;font-size:13.5px;color:var(--text-primary);transition:border-color 0.15s}
+.form-input:focus{outline:none;border-color:var(--blue-600)}
+.form-input::placeholder{color:var(--text-muted)}
+
+.btn{height:38px;padding:0 20px;border-radius:var(--radius-md);font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.25)}
+.btn-primary:hover{background:linear-gradient(135deg,#1d4ed8,#1e40af)}
+.btn-ghost{background:#f1f5f9;color:var(--text-secondary);border:1px solid var(--border)}
+.btn-ghost:hover{background:#e2e8f0}
+.btn-sm{height:30px;padding:0 12px;font-size:12px;border-radius:var(--radius-sm)}
+
+.badge-generic{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+
+/* Toast */
+.toast{position:fixed;bottom:28px;right:28px;z-index:2000;background:#0f172a;color:#fff;padding:13px 18px;border-radius:var(--radius-md);font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-xl);transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">IC</div>
+    <div><div class="logo-title">ICLAE</div><div class="logo-sub">Digital Hub · UDD</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item" href="iclae_dashboard_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>Dashboard</a>
+    <div class="nav-section-label" style="margin-top:8px;">Navegación</div>
+    <a class="nav-item" href="iclae_proyectos_v3.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>Proyectos</a>
+    <a class="nav-item" href="iclae_bitacora_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"/></svg>Bitácora</a>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+      Expediente
+    </a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>Analítico</a>
+    <div class="nav-section-label" style="margin-top:8px;">Gestión</div>
+    <a class="nav-item" href="iclae_empresas_v2.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4z" clip-rule="evenodd"/></svg>Empresas</a>
+    <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>Administración</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sideAvatar">DG</div>
+    <div style="flex:1;min-width:0;"><div class="user-name" id="sideName">Diego González</div><div class="user-role" id="sideRole">Alumno · Ing. Informática</div></div>
+    <div style="display:flex;gap:4px;"><div class="user-btn">↩</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:16px;font-weight:700;">Expediente del alumno</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div id="studentSelWrap" style="display:none;">
+        <div class="student-sel">
+          <span style="color:var(--blue-700);font-weight:600;font-size:12px;">👤 Alumno:</span>
+          <select id="studentSel" onchange="cambiarAlumno(this.value)">
+            <option value="diego">Diego González</option>
+            <option value="valentina">Valentina Ríos</option>
+            <option value="mateo">Mateo Soto</option>
+            <option value="sofia">Sofía Mendez</option>
+          </select>
+        </div>
+      </div>
+      <div class="role-sel">
+        <span style="color:var(--text-muted);font-weight:500;">Demo rol:</span>
+        <select onchange="cambiarRol(this.value)">
+          <option value="alumno">🎓 Alumno</option>
+          <option value="tutor_udd">👩‍🏫 Tutor UDD</option>
+          <option value="tutor_empresa">👔 Tutor Empresa</option>
+          <option value="admin">🔑 Admin</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="content" id="mainContent"></div>
+</main>
+
+<!-- MODAL EDITAR LINKS -->
+<div class="modal-overlay" id="linksModal" onclick="closeLinksBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title">✏️ Editar perfil digital</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;">Estos links se envían automáticamente al postular</div></div>
+      <button class="modal-close" onclick="closeLinksModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">💼 LinkedIn</label>
+        <input class="form-input" id="inp-linkedin" placeholder="linkedin.com/in/tu-usuario">
+      </div>
+      <div class="form-group">
+        <label class="form-label">📄 URL del CV</label>
+        <input class="form-input" id="inp-cv" placeholder="drive.google.com/tu-cv.pdf">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">🎥 Video YouTube</label>
+        <input class="form-input" id="inp-youtube" placeholder="youtube.com/watch?v=...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeLinksModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLinks()">
+        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastText"></span></div>
+
+<script>
+// ── DATOS ──
+const ROLES_INFO = {
+  alumno:        { nombre:'Diego González',  cargo:'Alumno · Ing. Informática', avatar:'DG', bg:'linear-gradient(135deg,#3b82f6,#6366f1)' },
+  tutor_udd:     { nombre:'Paulina Gómez',   cargo:'Tutor UDD · ICLAE',         avatar:'PG', bg:'linear-gradient(135deg,#7c3aed,#6d28d9)' },
+  tutor_empresa: { nombre:'Carlos Méndez',   cargo:'Tutor Empresa · TechSol',   avatar:'CM', bg:'linear-gradient(135deg,#d97706,#b45309)' },
+  admin:         { nombre:'Administrador',   cargo:'Admin ICLAE',               avatar:'AA', bg:'linear-gradient(135deg,#0c2461,#1d4ed8)' },
+};
+
+const STUDENTS = {
+  diego: {
+    nombre:'Diego González', iniciales:'DG', carrera:'Ing. Informática', generacion:2021,
+    campus:'Santiago', empresa:'TechSol S.A.', rubro:'Tecnología',
+    linkedin:'linkedin.com/in/diegogonzalez', cv:'drive.google.com/cv-diego.pdf', youtube:null,
+    proyecto:'Desarrollo de módulo CRM', periodo:'2024-1', semActual:5,
+    tutorUDD:{nombre:'Paulina Gómez', initials:'PG', color:'#ede9fe|#5b21b6'},
+    tutorEmp:{nombre:'Carlos Méndez', initials:'CM', color:'#fef3c7|#92400e'},
+    semanas:[
+      {n:1,emp:'aprobado',udd:'aprobado',texto:'Inducción al proyecto y configuración del entorno.'},
+      {n:2,emp:'aprobado',udd:'aprobado',texto:'Resolución de bugs en validaciones de formularios.'},
+      {n:3,emp:'corregido',udd:'aprobado',texto:'Desarrollo de API endpoints.'},
+      {n:4,emp:'aprobado',udd:'aprobado',texto:'Desarrollo de API con DRF, autenticación JWT.'},
+      {n:5,emp:'pendiente',udd:'pendiente',texto:''},
+      ...Array.from({length:8},(_,i)=>({n:i+6,emp:'pendiente',udd:'pendiente',texto:''}))
+    ],
+    competencias:[
+      {nombre:'Trabajo en equipo', puntaje:6.4, max:7},
+      {nombre:'Habilidades técnicas', puntaje:5.8, max:7},
+      {nombre:'Adaptabilidad', puntaje:5.5, max:7},
+      {nombre:'Comunicación', puntaje:4.9, max:7},
+      {nombre:'Liderazgo', puntaje:4.0, max:7},
+    ],
+    badges:[
+      {icon:'🏆',nombre:'Alumno Destacado',color:'#fef3c7|#92400e'},
+      {icon:'💡',nombre:'Innovador',color:'#dbeafe|#1e40af'},
+      {icon:'⭐',nombre:'Puntualidad',color:'#ede9fe|#5b21b6'},
+    ],
+    notaActual: 5.8,
+    notasTutor: { udd:'Buen desempeño general. Debe mejorar su presentación oral.', emp:'' },
+  },
+  valentina: {
+    nombre:'Valentina Ríos', iniciales:'VR', carrera:'Ing. Informática', generacion:2021,
+    campus:'Santiago', empresa:'Google Chile', rubro:'Tecnología',
+    linkedin:'linkedin.com/in/valentinarios', cv:'drive.google.com/cv-valentina.pdf', youtube:'youtube.com/watch?v=abc123',
+    proyecto:'Software Engineer Intern', periodo:'2024-1', semActual:2,
+    tutorUDD:{nombre:'Carolina Muñoz', initials:'CA', color:'#dcfce7|#166534'},
+    tutorEmp:{nombre:'Felipe Torres', initials:'FT', color:'#cffafe|#155e75'},
+    semanas:[
+      {n:1,emp:'aprobado',udd:'aprobado',texto:'Onboarding en Google Chile.'},
+      {n:2,emp:'pendiente',udd:'pendiente',texto:''},
+      ...Array.from({length:11},(_,i)=>({n:i+3,emp:'pendiente',udd:'pendiente',texto:''}))
+    ],
+    competencias:[
+      {nombre:'Trabajo en equipo', puntaje:6.8, max:7},
+      {nombre:'Habilidades técnicas', puntaje:6.5, max:7},
+      {nombre:'Adaptabilidad', puntaje:6.0, max:7},
+      {nombre:'Comunicación', puntaje:5.8, max:7},
+      {nombre:'Liderazgo', puntaje:5.2, max:7},
+    ],
+    badges:[
+      {icon:'🏆',nombre:'Alumno Destacado',color:'#fef3c7|#92400e'},
+      {icon:'🚀',nombre:'Alto Desempeño',color:'#cffafe|#155e75'},
+      {icon:'🤝',nombre:'Colaborador',color:'#dcfce7|#166534'},
+      {icon:'💡',nombre:'Innovador',color:'#dbeafe|#1e40af'},
+    ],
+    notaActual: 6.5,
+    notasTutor: { udd:'Excelente perfil, muy proactiva.', emp:'Gran adaptación al equipo.' },
+  },
+  mateo: {
+    nombre:'Mateo Soto', iniciales:'MS', carrera:'Ing. Comercial', generacion:2020,
+    campus:'Santiago', empresa:'Betterfly', rubro:'InsurTech',
+    linkedin:null, cv:'drive.google.com/cv-mateo.pdf', youtube:null,
+    proyecto:'Analista Comercial', periodo:'2024-1', semActual:7,
+    tutorUDD:{nombre:'Paulina Gómez', initials:'PG', color:'#ede9fe|#5b21b6'},
+    tutorEmp:{nombre:'Sofía Reyes', initials:'SR', color:'#ffe4e6|#9f1239'},
+    semanas:[
+      {n:1,emp:'aprobado',udd:'aprobado',texto:'Onboarding.'},
+      {n:2,emp:'aprobado',udd:'aprobado',texto:'Análisis de mercado.'},
+      {n:3,emp:'aprobado',udd:'aprobado',texto:'Presentación a stakeholders.'},
+      {n:4,emp:'reprobado',udd:'corregido',texto:'Poco detalle.'},
+      {n:5,emp:'aprobado',udd:'aprobado',texto:'Corrección y reentrega.'},
+      {n:6,emp:'aprobado',udd:'aprobado',texto:'Propuesta de mejora de procesos.'},
+      {n:7,emp:'pendiente',udd:'pendiente',texto:''},
+      ...Array.from({length:6},(_,i)=>({n:i+8,emp:'pendiente',udd:'pendiente',texto:''}))
+    ],
+    competencias:[
+      {nombre:'Trabajo en equipo', puntaje:5.5, max:7},
+      {nombre:'Habilidades técnicas', puntaje:4.8, max:7},
+      {nombre:'Adaptabilidad', puntaje:5.2, max:7},
+      {nombre:'Comunicación', puntaje:6.1, max:7},
+      {nombre:'Liderazgo', puntaje:4.5, max:7},
+    ],
+    badges:[{icon:'🤝',nombre:'Colaborador',color:'#dcfce7|#166534'}],
+    notaActual: 5.2,
+    notasTutor: { udd:'Tuvo dificultades en sem 4 pero se recuperó bien.', emp:'' },
+  },
+  sofia: {
+    nombre:'Sofía Mendez', iniciales:'SM', carrera:'Ing. Comercial', generacion:2021,
+    campus:'Santiago', empresa:'Fintual', rubro:'Fintech',
+    linkedin:'linkedin.com/in/sofiamendez', cv:null, youtube:'youtube.com/watch?v=xyz789',
+    proyecto:'Analista de Datos Junior', periodo:'2024-1', semActual:3,
+    tutorUDD:{nombre:'Roberto Vera', initials:'RV', color:'#dbeafe|#1e40af'},
+    tutorEmp:{nombre:'Ana Pizarro', initials:'AP', color:'#dcfce7|#166534'},
+    semanas:[
+      {n:1,emp:'aprobado',udd:'aprobado',texto:'Introducción al equipo de datos.'},
+      {n:2,emp:'corregido',udd:'pendiente',texto:'Análisis básico en Python.'},
+      {n:3,emp:'pendiente',udd:'pendiente',texto:''},
+      ...Array.from({length:10},(_,i)=>({n:i+4,emp:'pendiente',udd:'pendiente',texto:''}))
+    ],
+    competencias:[
+      {nombre:'Trabajo en equipo', puntaje:6.0, max:7},
+      {nombre:'Habilidades técnicas', puntaje:5.3, max:7},
+      {nombre:'Adaptabilidad', puntaje:5.8, max:7},
+      {nombre:'Comunicación', puntaje:5.5, max:7},
+      {nombre:'Liderazgo', puntaje:3.8, max:7},
+    ],
+    badges:[{icon:'🤝',nombre:'Colaborador',color:'#dcfce7|#166534'},{icon:'⭐',nombre:'Puntualidad',color:'#ede9fe|#5b21b6'}],
+    notaActual: 5.5,
+    notasTutor: { udd:'', emp:'' },
+  },
+};
+
+let rolActual = 'alumno';
+let alumnoActual = 'diego';
+
+function cambiarRol(r) {
+  rolActual = r;
+  const rd = ROLES_INFO[r];
+  document.getElementById('sideAvatar').textContent = rd.avatar;
+  document.getElementById('sideAvatar').style.background = rd.bg;
+  document.getElementById('sideName').textContent = rd.nombre;
+  document.getElementById('sideRole').textContent = rd.cargo;
+  document.getElementById('studentSelWrap').style.display = (r==='admin'||r==='tutor_udd'||r==='tutor_empresa') ? 'block' : 'none';
+  if(r==='alumno') alumnoActual = 'diego';
+  render();
+}
+
+function cambiarAlumno(a) { alumnoActual = a; render(); }
+
+function render() {
+  const a = STUDENTS[alumnoActual];
+  const esAlumno = rolActual === 'alumno';
+  const puedeVerNotas = rolActual !== 'alumno';
+  const semAprobadas = a.semanas.filter(s=>s.emp==='aprobado'&&s.udd==='aprobado').length;
+  const semCorregidas = a.semanas.filter(s=>s.emp==='corregido'||s.emp==='reprobado').length;
+  const progPct = Math.round((a.semActual-1)/13*100);
+
+  const hasLinkedin = !!a.linkedin;
+  const hasCV = !!a.cv;
+  const hasYoutube = !!a.youtube;
+  const completitud = Math.round(([hasLinkedin,hasCV,hasYoutube].filter(Boolean).length/3)*100);
+
+  const [tUDDbg,tUDDtext] = a.tutorUDD.color.split('|');
+  const [tEmpbg,tEmptext] = a.tutorEmp.color.split('|');
+
+  // Colores por rubro
+  const rubroColors = {
+    'Tecnología':'#d1fae5|#065f46','Fintech':'#dcfce7|#166534','InsurTech':'#ede9fe|#5b21b6',
+    'Banca':'#dbeafe|#1e40af','HR Tech':'#fef3c7|#92400e','Retail':'#ffe4e6|#9f1239',
+    'Energía':'#cffafe|#155e75'
+  };
+  const [rubrobg,rubrotext] = (rubroColors[a.rubro]||'#f1f5f9|#475569').split('|');
+
+  // Avatar colors
+  const avatarColors = ['linear-gradient(135deg,#3b82f6,#6366f1)','linear-gradient(135deg,#16a34a,#059669)','linear-gradient(135deg,#d97706,#b45309)','linear-gradient(135deg,#7c3aed,#6d28d9)'];
+  const avatarBg = avatarColors[Object.keys(STUDENTS).indexOf(alumnoActual)%4];
+
+  document.getElementById('mainContent').innerHTML = `
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-avatar" style="background:${avatarBg};">${a.iniciales}</div>
+        <div class="hero-main">
+          <div class="hero-name">${a.nombre}</div>
+          <div class="hero-sub">
+            <span class="hero-pill" style="background:#f1f5f9;color:#475569;">🎓 ${a.carrera}</span>
+            <span class="hero-pill" style="background:#f1f5f9;color:#475569;">📅 Generación ${a.generacion}</span>
+            <span class="hero-pill" style="background:${rubrobg};color:${rubrotext};">🏢 ${a.empresa}</span>
+            <span class="hero-pill" style="background:var(--blue-100);color:var(--blue-800);">📍 ${a.campus}</span>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div style="text-align:right;">
+            <div style="font-size:24px;font-weight:700;letter-spacing:-1px;color:${a.notaActual>=6?'#15803d':a.notaActual>=5?'#d97706':'#dc2626'}">${a.notaActual.toFixed(1)}</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:500;">Nota promedio</div>
+          </div>
+          ${!esAlumno ? `<span class="badge-generic" style="background:var(--blue-100);color:var(--blue-800);">Período ${a.periodo}</span>` : ''}
+        </div>
+      </div>
+
+      <!-- RINGS COMPLETITUD -->
+      <div class="rings-row">
+        <div style="flex-shrink:0;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted);margin-bottom:10px;">Perfil digital</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="font-size:28px;font-weight:700;letter-spacing:-1px;color:${completitud===100?'#15803d':completitud>=60?'#d97706':'#dc2626'}">${completitud}%</div>
+            <div style="font-size:12px;color:var(--text-muted);">completo</div>
+            ${esAlumno ? `<button class="btn-sm btn btn-ghost" style="margin-left:8px;" onclick="openLinksModal()">✏️ Editar</button>` : ''}
+          </div>
+        </div>
+        <div class="rings-divider"></div>
+
+        <div class="ring-item">
+          <div class="ring-wrap">
+            <svg width="52" height="52" viewBox="0 0 52 52">
+              <circle cx="26" cy="26" r="20" fill="none" stroke="#e2e8f0" stroke-width="6"/>
+              <circle cx="26" cy="26" r="20" fill="none" stroke="${hasLinkedin?'#2563eb':'#e2e8f0'}" stroke-width="6"
+                stroke-dasharray="125.7" stroke-dashoffset="${hasLinkedin?'0':'125.7'}" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-center" style="color:${hasLinkedin?'#1d4ed8':'#cbd5e1'}">${hasLinkedin?'✓':'✕'}</div>
+          </div>
+          <div class="ring-info">
+            <div class="ring-label">💼 LinkedIn</div>
+            ${hasLinkedin
+              ? `<div class="ring-value" onclick="showToast('💼','Abriendo LinkedIn...')">${a.linkedin}</div>`
+              : `<div class="ring-missing">No configurado</div>`}
+          </div>
+        </div>
+
+        <div class="ring-item">
+          <div class="ring-wrap">
+            <svg width="52" height="52" viewBox="0 0 52 52">
+              <circle cx="26" cy="26" r="20" fill="none" stroke="#e2e8f0" stroke-width="6"/>
+              <circle cx="26" cy="26" r="20" fill="none" stroke="${hasCV?'#16a34a':'#e2e8f0'}" stroke-width="6"
+                stroke-dasharray="125.7" stroke-dashoffset="${hasCV?'0':'125.7'}" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-center" style="color:${hasCV?'#15803d':'#cbd5e1'}">${hasCV?'✓':'✕'}</div>
+          </div>
+          <div class="ring-info">
+            <div class="ring-label">📄 Currículum</div>
+            ${hasCV
+              ? `<div class="ring-value" onclick="showToast('📄','Abriendo CV...')">${a.cv}</div>`
+              : `<div class="ring-missing">No subido</div>`}
+          </div>
+        </div>
+
+        <div class="ring-item">
+          <div class="ring-wrap">
+            <svg width="52" height="52" viewBox="0 0 52 52">
+              <circle cx="26" cy="26" r="20" fill="none" stroke="#e2e8f0" stroke-width="6"/>
+              <circle cx="26" cy="26" r="20" fill="none" stroke="${hasYoutube?'#dc2626':'#e2e8f0'}" stroke-width="6"
+                stroke-dasharray="125.7" stroke-dashoffset="${hasYoutube?'0':'125.7'}" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-center" style="color:${hasYoutube?'#b91c1c':'#cbd5e1'}">${hasYoutube?'✓':'✕'}</div>
+          </div>
+          <div class="ring-info">
+            <div class="ring-label">🎥 Video YouTube</div>
+            ${hasYoutube
+              ? `<div class="ring-value" onclick="showToast('🎥','Abriendo video...')">${a.youtube}</div>`
+              : `<div class="ring-missing">No subido</div>`}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2 COLUMNAS -->
+    <div class="two-col">
+
+      <!-- COLUMNA IZQ -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Info proyecto -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 Proyecto asignado</div>
+          </div>
+          <div class="card-body">
+            <div class="info-row"><span class="info-label">Proyecto</span><span class="info-value">${a.proyecto}</span></div>
+            <div class="info-row"><span class="info-label">Empresa</span><span class="info-value">${a.empresa}</span></div>
+            <div class="info-row"><span class="info-label">Período</span><span class="info-value">${a.periodo}</span></div>
+            <div class="info-row"><span class="info-label">Campus</span><span class="info-value">${a.campus}</span></div>
+            <div class="info-row"><span class="info-label">Semana actual</span><span class="info-value">${a.semActual} / 13</span></div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Tutores</div>
+              <div class="tutor-link" onclick="showToast('👩‍🏫','Abriendo perfil de ${a.tutorUDD.nombre}...')">
+                <div class="tutor-link-avatar" style="background:${tUDDbg};color:${tUDDtext};">${a.tutorUDD.initials}</div>
+                <div><div class="tutor-link-name">${a.tutorUDD.nombre}</div><div class="tutor-link-role">Tutor UDD</div></div>
+                <div class="tutor-link-arrow">›</div>
+              </div>
+              <div class="tutor-link" onclick="showToast('👔','Abriendo perfil de ${a.tutorEmp.nombre}...')">
+                <div class="tutor-link-avatar" style="background:${tEmpbg};color:${tEmptext};">${a.tutorEmp.initials}</div>
+                <div><div class="tutor-link-name">${a.tutorEmp.nombre}</div><div class="tutor-link-role">Tutor Empresa</div></div>
+                <div class="tutor-link-arrow">›</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notas del tutor (solo tutores/admin) -->
+        ${puedeVerNotas ? `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🗒️ Notas internas</div>
+            <span style="font-size:11px;color:var(--text-muted);">Solo visible para tutores</span>
+          </div>
+          <div class="card-body">
+            <textarea class="notes-textarea" placeholder="Agrega observaciones internas sobre el alumno..." id="notasTA">${rolActual==='tutor_udd'?a.notasTutor.udd:a.notasTutor.emp}</textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+              <button class="btn btn-sm btn-ghost" onclick="showToast('💾','Nota guardada')">Guardar nota</button>
+            </div>
+          </div>
+        </div>` : ''}
+
+        <!-- Badges -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏅 Badges obtenidos</div>
+            <span style="font-size:11.5px;font-weight:700;color:var(--amber-700);">${a.badges.length} badges</span>
+          </div>
+          <div class="card-body">
+            ${a.badges.length > 0
+              ? `<div class="badges-grid">${a.badges.map(b=>{const[bg,tx]=b.color.split('|');return`<div class="badge-chip" style="background:${bg};border-color:${tx}20;color:${tx};"><span class="badge-chip-icon">${b.icon}</span>${b.nombre}</div>`}).join('')}</div>`
+              : `<div style="font-size:13px;color:var(--text-muted);font-style:italic;">Sin badges aún.</div>`}
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA DER -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Progreso semanas -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📅 Progreso de práctica</div>
+            <span style="font-size:13.5px;font-weight:700;color:${progPct>=70?'#15803d':progPct>=40?'#d97706':'#64748b'}">${progPct}%</span>
+          </div>
+          <div class="card-body">
+            <div class="prog-bar"><div class="prog-fill" style="width:${progPct}%"></div></div>
+            <div class="prog-stats" style="margin-bottom:14px;">
+              <span class="prog-stat" style="color:var(--green-700);">✓ ${semAprobadas} aprobadas</span>
+              <span class="prog-stat" style="color:var(--orange-700);">⚠ ${semCorregidas} a corregir</span>
+              <span class="prog-stat" style="color:var(--text-muted);">○ ${13-a.semActual+1} pendientes</span>
+            </div>
+            <div class="week-dots-grid">
+              ${a.semanas.map(s=>{
+                const estado = s.n === a.semActual ? 'activa'
+                  : s.n > a.semActual ? 'pendiente'
+                  : (s.emp==='aprobado'&&s.udd==='aprobado') ? 'aprobado'
+                  : (s.emp==='reprobado') ? 'reprobado'
+                  : (s.emp==='corregido'||s.udd==='corregido') ? 'corregido'
+                  : 'pendiente';
+                const icon = estado==='aprobado'?'✓':estado==='reprobado'?'✕':estado==='corregido'?'↺':estado==='activa'?'●':s.n;
+                return `<div class="wd-box wd-${estado}" title="Sem ${s.n}: ${estado}">${icon}<span class="wd-tooltip">Sem ${s.n} · ${estado}</span></div>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Competencias -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Evaluación por competencia</div>
+            <span style="font-size:11.5px;color:var(--text-muted);">Escala 1.0 – 7.0</span>
+          </div>
+          <div class="card-body">
+            ${a.competencias.map(c=>{
+              const pct = Math.round((c.puntaje/c.max)*100);
+              const color = c.puntaje>=6?'#22c55e':c.puntaje>=5?'#3b82f6':c.puntaje>=4?'#f59e0b':'#f43f5e';
+              const bgColor = c.puntaje>=6?'var(--green-100)':c.puntaje>=5?'var(--blue-100)':c.puntaje>=4?'var(--amber-100)':'var(--rose-100)';
+              const txtColor = c.puntaje>=6?'var(--green-800)':c.puntaje>=5?'var(--blue-800)':c.puntaje>=4?'var(--amber-800)':'var(--rose-800)';
+              const label = c.puntaje>=6?'Alto':c.puntaje>=5?'Medio':c.puntaje>=4?'Regular':'Bajo';
+              return `<div class="comp-row">
+                <div class="comp-name">${c.nombre}</div>
+                <div class="comp-bar-wrap"><div class="comp-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                <div class="comp-score">${c.puntaje.toFixed(1)}</div>
+                <span class="comp-badge-sm" style="background:${bgColor};color:${txtColor};">${label}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Bitácoras recientes -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📓 Últimas bitácoras</div>
+            <a href="iclae_bitacora_v2.html" style="font-size:12.5px;color:var(--blue-600);font-weight:500;cursor:pointer;">Ver todas →</a>
+          </div>
+          <div class="card-body">
+            ${a.semanas.filter(s=>s.texto).slice(0,5).reverse().map(s=>{
+              const empDot = s.emp==='aprobado'?'#22c55e':s.emp==='corregido'?'#f97316':s.emp==='reprobado'?'#f43f5e':'#cbd5e1';
+              const uddDot = s.udd==='aprobado'?'#22c55e':s.udd==='corregido'?'#f97316':'#cbd5e1';
+              return `<div class="bita-row" onclick="showToast('📓','Abriendo bitácora semana ${s.n}...')">
+                <div class="bita-num">Sem ${s.n}</div>
+                <div class="bita-preview">${s.texto}</div>
+                <div class="bita-badges">
+                  <div class="bita-dot" style="background:${empDot};" title="Tutor Empresa"></div>
+                  <div class="bita-dot" style="background:${uddDot};" title="Tutor UDD"></div>
+                </div>
+              </div>`;
+            }).join('') || `<div style="font-size:13px;color:var(--text-muted);font-style:italic;">Sin bitácoras enviadas aún.</div>`}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+// ── LINKS MODAL ──
+function openLinksModal() {
+  const a = STUDENTS[alumnoActual];
+  document.getElementById('inp-linkedin').value = a.linkedin || '';
+  document.getElementById('inp-cv').value = a.cv || '';
+  document.getElementById('inp-youtube').value = a.youtube || '';
+  document.getElementById('linksModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLinksModal() {
+  document.getElementById('linksModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeLinksBg(e) { if(e.target===document.getElementById('linksModal')) closeLinksModal(); }
+function saveLinks() {
+  const a = STUDENTS[alumnoActual];
+  const li = document.getElementById('inp-linkedin').value.trim();
+  const cv = document.getElementById('inp-cv').value.trim();
+  const yt = document.getElementById('inp-youtube').value.trim();
+  a.linkedin = li || null;
+  a.cv = cv || null;
+  a.youtube = yt || null;
+  closeLinksModal();
+  render();
+  showToast('✅', 'Perfil digital actualizado');
+}
+
+function showToast(icon, msg) {
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastText').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLinksModal(); });
+render();
+</script>
+</body>
+</html>

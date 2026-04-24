@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Bitácora{% endblock %}
+{% block page_title %}Bitácora ICLAE{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wrap { display:grid; gap:14px; }
+    .hero { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .hero-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .hero-title { font-size:16px; font-weight:800; color:var(--text-primary); }
+    .hero-pill { font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; background:var(--blue-100); color:var(--blue-800); }
+    .hero-sub { font-size:12px; color:var(--text-muted); }
+
+    .progress-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; display:flex; align-items:center; gap:16px; }
+    .progress-label { font-size:13px; font-weight:700; flex-shrink:0; }
+    .progress-bar { flex:1; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,#22c55e,#4ade80); border-radius:999px; width:0; }
+    .progress-pct { font-size:14px; font-weight:800; color:var(--green-700); min-width:40px; text-align:right; }
+    .progress-tags { display:flex; gap:8px; flex-wrap:wrap; }
+    .tag { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; }
+    .tag.green { background:#dcfce7; color:#166534; }
+    .tag.orange { background:#ffedd5; color:#9a3412; }
+    .tag.gray { background:#f1f5f9; color:#64748b; }
+
+    .layout { display:grid; grid-template-columns: 200px minmax(0, 1fr); gap:14px; align-items:start; }
+    .weeks { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; position:sticky; top:76px; }
+    .weeks-h { padding:12px 14px; background:#f8fafc; border-bottom:1px solid var(--border); font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; }
+    .week-list { max-height: calc(100vh - 170px); overflow:auto; }
+    .week-item { display:flex; align-items:center; gap:8px; padding:9px 14px; border-bottom:1px solid #f8fafc; text-decoration:none; color:inherit; }
+    .week-item:last-child { border-bottom:none; }
+    .week-item:hover { background:#f8fbff; }
+    .week-item.active { background:var(--blue-50); border-left:3px solid var(--blue-600); }
+    .week-n { font-size:13px; font-weight:700; color:var(--text-secondary); flex:1; }
+    .week-item.active .week-n { color:var(--blue-800); }
+    .week-badge { font-size:10px; font-weight:800; padding:2px 6px; border-radius:999px; background:#f1f5f9; color:#64748b; }
+    .week-badge.current { background:var(--blue-100); color:var(--blue-800); }
+    .week-badge.sent { background:#dcfce7; color:#166534; }
+    .week-badge.pending { background:#fef3c7; color:#92400e; }
+    .week-badge.future { background:#e2e8f0; color:#94a3b8; }
+
+    .panel { display:grid; gap:14px; }
+    .card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .card-h { padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .card-title { font-size:14px; font-weight:800; }
+    .card-sub { font-size:12px; color:var(--text-muted); }
+    .card-b { padding:14px 16px 16px; }
+
+    .status-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .status-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .status-chip { font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; }
+    .status-pendiente { background:#f1f5f9; color:#64748b; }
+    .status-aprobado { background:#dcfce7; color:#166534; }
+    .status-corregido { background:#ffedd5; color:#9a3412; }
+    .status-reprobado { background:#ffe4e6; color:#9f1239; }
+
+    .log-textarea { width:100%; min-height:160px; padding:12px 14px; border-radius:var(--radius-md); border:1.5px solid var(--border); font-family:inherit; font-size:14px; color:var(--text-primary); resize:vertical; line-height:1.65; background:#fafbff; }
+    .log-textarea:focus { outline:none; border-color:var(--blue-600); background:#fff; }
+    .log-textarea[readonly] { background:#f8fafc; color:var(--text-secondary); cursor:default; }
+    .hint { font-size:12px; color:var(--text-muted); margin-top:8px; }
+
+    .evidence-list { display:grid; gap:8px; }
+    .ev { display:flex; align-items:center; gap:10px; border:1px solid var(--border); background:#fafbff; border-radius:var(--radius-md); padding:10px 12px; }
+    .ev-ico { font-size:16px; }
+    .ev-name { font-size:13px; font-weight:700; color:var(--blue-700); }
+    .ev-meta { margin-left:auto; font-size:11px; color:var(--text-muted); }
+
+    .row-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .tutor-box { border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); padding:12px 14px; display:flex; align-items:center; gap:10px; }
+    .avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px; flex-shrink:0; }
+    .avatar.emp { background:linear-gradient(135deg,#d97706,#b45309); }
+    .avatar.udd { background:linear-gradient(135deg,#7c3aed,#6d28d9); }
+    .t-name { font-size:13px; font-weight:800; }
+    .t-role { font-size:11.5px; color:var(--text-muted); }
+    .t-status { margin-left:auto; font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; background:#f1f5f9; color:#64748b; }
+
+    .actions { display:flex; justify-content:flex-end; gap:10px; }
+    .btn { height:38px; padding:0 16px; border:none; border-radius:var(--radius-md); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+    .btn-secondary { background:#f1f5f9; color:var(--text-secondary); }
+    .btn-primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,0.25); }
+    .btn-primary:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); }
+
+    .empty { border:1px dashed var(--border); background:#fff; border-radius:var(--radius-lg); padding:28px; text-align:center; color:var(--text-muted); }
+    .empty h3 { margin:0 0 6px; color:var(--text-primary); }
+    .empty p { margin:0; }
+
+    @media (max-width: 960px) {
+        .layout { grid-template-columns:1fr; }
+        .weeks { position:static; }
+        .week-list { max-height:none; }
+        .row-grid { grid-template-columns:1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if bitacora_empty %}
+<div class="empty">
+    <h3>Bitácora no disponible</h3>
+    <p>{{ message }}</p>
+</div>
+{% else %}
+<div class="wrap">
+    <div class="hero">
+        <div class="hero-left">
+            <div class="hero-title">{{ student_name }}</div>
+            <div class="hero-pill">{{ student_company }} · {{ periodo_label }}</div>
+            <div class="hero-sub">{{ project_name }}</div>
+        </div>
+        <form method="get" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input type="hidden" name="sem" value="{{ selected_week }}" />
+            <label style="font-size:12px;font-weight:700;color:var(--text-muted);">Alumno</label>
+            <select name="alumno" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+                {% for option in student_options %}
+                <option value="{{ option.id }}" {% if option.id == selected_student_id %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="progress-card">
+        <span class="progress-label">Progreso práctica</span>
+        <div class="progress-bar"><div class="progress-fill" style="width: {{ progress_pct }}%"></div></div>
+        <span class="progress-pct">{{ progress_pct }}%</span>
+        <div class="progress-tags">
+            <span class="tag green">✓ {{ approved_count }} aprobadas</span>
+            <span class="tag orange">⚠ {{ corrected_count }} a corregir</span>
+            <span class="tag gray">○ {{ pending_count }} pendientes</span>
+        </div>
+    </div>
+
+    <div class="layout">
+        <aside class="weeks">
+            <div class="weeks-h">Semanas del período</div>
+            <div class="week-list">
+                {% for week in weeks %}
+                <a class="week-item {% if week.selected %}active{% endif %}" href="?alumno={{ selected_student_id }}&sem={{ week.n }}">
+                    <span class="week-n">Sem {{ week.n }}</span>
+                    {% if week.future %}
+                        <span class="week-badge future">—</span>
+                    {% elif week.current %}
+                        <span class="week-badge current">Actual</span>
+                    {% elif week.has_sent %}
+                        <span class="week-badge sent">✓</span>
+                    {% else %}
+                        <span class="week-badge pending">Pend</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <section class="panel">
+            <div class="card">
+                <div class="card-h">
+                    <div>
+                        <div class="card-title">Semana {{ selected_week }} / {{ weeks_total }}</div>
+                        <div class="card-sub">{{ selected_week_label }}{% if selected_week_future %} · Semana futura{% endif %}</div>
+                    </div>
+                    <div class="status-left">
+                        <span class="status-chip status-{{ selected_week_status }}">{{ selected_week_label }}</span>
+                        {% if selected_week_has_sent %}<span class="status-chip status-aprobado">Enviada</span>{% else %}<span class="status-chip status-pendiente">Pendiente</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="card">
+                {% csrf_token %}
+                <input type="hidden" name="semana" value="{{ selected_week }}" />
+                <div class="card-h">
+                    <div class="card-title">📝 Registro semanal</div>
+                    <div class="card-sub">{% if editable %}El alumno puede editar hasta enviar{% else %}Solo lectura para semanas enviadas o futuras{% endif %}</div>
+                </div>
+                <div class="card-b">
+                    <textarea class="log-textarea" name="texto" {% if not editable %}readonly{% endif %} placeholder="Describe brevemente las actividades que realizaste esta semana...">{{ selected_text }}</textarea>
+                    {% if editable %}<div class="hint">{{ bitacora_weekday_hint }}</div>{% endif %}
+                </div>
+            </form>
+
+            <div class="card">
+                <div class="card-h">
+                    <div class="card-title">📎 Evidencia <span style="font-weight:400;color:var(--text-muted);">{{ selected_evidences|length }} archivo{{ selected_evidences|length|pluralize }}</span></div>
+                    <div class="card-sub">Archivos adjuntos de la semana</div>
+                </div>
+                <div class="card-b">
+                    <div class="evidence-list">
+                        {% for ev in selected_evidences %}
+                        <div class="ev">
+                            <span class="ev-ico">{% if ev.tipo == 'pdf' %}📄{% else %}🖼️{% endif %}</span>
+                            <span class="ev-name">{{ ev.nombre }}</span>
+                            <span class="ev-meta">{{ ev.tamano }}</span>
+                        </div>
+                        {% empty %}
+                        <div style="color:var(--text-muted);font-style:italic;">Sin archivos adjuntos.</div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="margin-top:10px; width:100%;">Subir archivo</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-h"><div class="card-title">Estado tutores</div><div class="card-sub">Seguimiento y revisión de la semana</div></div>
+                <div class="card-b">
+                    <div class="row-grid">
+                        <div class="tutor-box">
+                            <div class="avatar emp">CM</div>
+                            <div>
+                                <div class="t-name">Tutor Empresa</div>
+                                <div class="t-role">Carlos Méndez</div>
+                            </div>
+                            <span class="t-status">Pendiente</span>
+                        </div>
+                        <div class="tutor-box">
+                            <div class="avatar udd">PG</div>
+                            <div>
+                                <div class="t-name">Tutor UDD</div>
+                                <div class="t-role">Paulina Gómez</div>
+                            </div>
+                            <span class="t-status">Pendiente</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="actions">
+                {% csrf_token %}
+                <input type="hidden" name="semana" value="{{ selected_week }}" />
+                <button class="btn btn-secondary" type="submit" name="action" value="draft">Guardar borrador</button>
+                <button class="btn btn-primary" type="submit" name="action" value="send">Enviar bitácora</button>
+            </form>
+        </section>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,523 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Ejecutivo{% endblock %}
+{% block page_title %}Resumen ejecutivo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
+    .section-divider-line { height:1px; background: var(--border); flex:1; }
+    .section-divider-text {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        font-weight: 700;
+    }
+
+    .kpi-grid {
+        display:grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .kpi-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .kpi-card::before { content:''; position:absolute; inset: 0 0 auto 0; height: 3px; }
+    .kpi-card.blue::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .kpi-card.green::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .kpi-card.amber::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .kpi-card.violet::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+
+    .kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px; }
+    .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+    .kpi-card.blue .kpi-label { color: #2563eb; }
+    .kpi-card.green .kpi-label { color: #16a34a; }
+    .kpi-card.amber .kpi-label { color: #d97706; }
+    .kpi-card.violet .kpi-label { color: #7c3aed; }
+    .kpi-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-md);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-weight: 700;
+        font-size: 14px;
+    }
+    .kpi-card.blue .kpi-icon { background: var(--blue-100); color: var(--blue-700); }
+    .kpi-card.green .kpi-icon { background: #dcfce7; color: #15803d; }
+    .kpi-card.amber .kpi-icon { background: #fef3c7; color: #b45309; }
+    .kpi-card.violet .kpi-icon { background: #ede9fe; color: #6d28d9; }
+    .kpi-value { font-size: 32px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+    .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+    .grid-main { display:grid; grid-template-columns: 1fr 340px; gap: 18px; margin-bottom: 20px; }
+
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 16px 20px 0;
+    }
+
+    .card-body {
+        padding: 16px 20px;
+    }
+
+    .section-title { font-size: 15px; font-weight: 700; }
+    .section-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .funnel-wrap { padding: 10px 20px 20px; display:flex; flex-direction:column; gap: 6px; }
+    .funnel-step { display:flex; align-items:center; gap: 14px; }
+    .funnel-shape { height: 48px; border-radius: var(--radius-md); color: #fff; font-size: 13px; font-weight: 700; display:flex; align-items:center; justify-content:center; }
+    .funnel-meta-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .funnel-meta-label { font-size: 11.5px; color: var(--text-muted); }
+    .funnel-pct { display:inline-block; margin-top: 3px; padding: 2px 8px; font-size: 11px; border-radius: 999px; font-weight: 700; }
+    .funnel-arrow { text-align:center; color: var(--text-muted); font-size: 13px; }
+
+    .nota-stats { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .nota-stat { border-radius: var(--radius-md); padding: 12px 8px; text-align:center; border:1px solid; }
+    .nota-stat.prom { background: var(--blue-50); border-color: var(--blue-200); color: var(--blue-700); }
+    .nota-stat.max { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+    .nota-stat.min { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+    .nota-stat-value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .nota-stat-label { font-size: 11px; margin-top: 3px; }
+
+    .comp-list { display:flex; flex-direction:column; gap: 10px; }
+    .comp-row { display:flex; align-items:center; gap: 10px; }
+    .comp-rank { width: 20px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-align:center; }
+    .comp-name { width: 160px; font-size: 13px; font-weight: 500; }
+    .comp-bar-wrap { flex:1; height: 10px; background: #f1f5f9; border-radius: 5px; overflow:hidden; }
+    .comp-bar-fill { height:100%; border-radius: 5px; background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+    .comp-score { width: 34px; text-align:right; font-size: 13px; font-weight: 700; }
+
+    .profile-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .profile-item { text-align:center; border-radius: var(--radius-md); border: 1px solid var(--border); background: #f8fafc; padding: 14px 10px; }
+    .ring-wrap { position:relative; width: 70px; height: 70px; margin: 0 auto 10px; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-center { position:absolute; inset: 0; display:flex; align-items:center; justify-content:center; font-size: 15px; font-weight: 700; }
+    .profile-label { font-size: 12.5px; font-weight: 600; margin-bottom: 2px; }
+    .profile-count { font-size: 11px; color: var(--text-muted); }
+
+    .badges-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .badge-item { display:flex; align-items:center; gap: 12px; border: 1px solid var(--border); background: #fafbff; border-radius: var(--radius-md); padding: 12px 14px; }
+    .badge-emoji {
+        width: 38px;
+        height: 38px;
+        border-radius: var(--radius-md);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size: 20px;
+    }
+    .badge-name { font-size: 13px; font-weight: 700; }
+    .badge-count { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .badge-pill { margin-left:auto; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
+
+    .table-wrap table { width:100%; border-collapse: collapse; }
+    .table-wrap th { padding: 10px 16px; text-align:left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); background: #f8fafc; border-bottom: 1px solid var(--border); }
+    .table-wrap td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .table-wrap tr:last-child td { border-bottom: none; }
+
+    .area-badge { font-size: 11px; border-radius: 999px; padding: 3px 9px; background: var(--blue-100); color: var(--blue-700); font-weight: 600; }
+
+    .dist-list { padding: 8px 20px 16px; }
+    .dist-row {
+        display:grid;
+        grid-template-columns: minmax(140px, 190px) minmax(0, 1fr) 34px;
+        align-items:center;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .dist-row:last-child { border-bottom: none; }
+    .dist-label {
+        min-width: 0;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .dist-bar-wrap { flex:1; height: 8px; border-radius: 4px; background: #e2e8f0; overflow: hidden; }
+    .dist-bar-fill { height:100%; border-radius:4px; }
+    .dist-value { width: 32px; text-align: right; font-size: 12px; font-weight: 700; }
+
+    .bar-blue { background: linear-gradient(90deg,#3b82f6,#93c5fd); }
+    .bar-green { background: linear-gradient(90deg,#22c55e,#86efac); }
+    .bar-violet { background: linear-gradient(90deg,#8b5cf6,#c4b5fd); }
+    .bar-amber { background: linear-gradient(90deg,#f59e0b,#fcd34d); }
+    .bar-rose { background: linear-gradient(90deg,#f43f5e,#fda4af); }
+    .bar-cyan { background: linear-gradient(90deg,#06b6d4,#67e8f9); }
+    .bar-orange { background: linear-gradient(90deg,#ea580c,#fb923c); }
+
+    .mod-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .mod-item { border:1px solid; border-radius: var(--radius-md); text-align:center; padding: 16px 12px; }
+    .mod-item.presencial { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+    .mod-item.hibrido { background: var(--blue-50); border-color: var(--blue-200); color: var(--blue-700); }
+    .mod-item.remoto { background: #f5f3ff; border-color: #ddd6fe; color: #6d28d9; }
+    .mod-pct { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+    .mod-label { font-size: 12px; font-weight: 700; margin-top: 3px; }
+    .mod-count { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    #sedeChartWrap {
+        height: 260px;
+        position: relative;
+        padding: 0 16px 16px;
+    }
+
+    @media (max-width: 1280px) {
+        .grid-main { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 1024px) {
+        .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-2 { grid-template-columns: 1fr; }
+        .badges-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+        .kpi-grid { grid-template-columns: 1fr; }
+        .profile-grid { grid-template-columns: 1fr; }
+        .mod-grid { grid-template-columns: 1fr; }
+        .dist-row { grid-template-columns: minmax(100px, 120px) minmax(0, 1fr) 34px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-text">📊 Indicadores globales</div>
+    <div class="section-divider-line"></div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card blue">
+        <div class="kpi-top"><span class="kpi-label">Estudiantes</span><span class="kpi-icon">🎓</span></div>
+        <div class="kpi-value">{{ alumnos_count }}</div>
+        <div class="kpi-sub">Participando en ICLAE</div>
+    </div>
+    <div class="kpi-card green">
+        <div class="kpi-top"><span class="kpi-label">Empresas</span><span class="kpi-icon">🏢</span></div>
+        <div class="kpi-value">{{ empresas_count }}</div>
+        <div class="kpi-sub">Con proyectos activos</div>
+    </div>
+    <div class="kpi-card amber">
+        <div class="kpi-top"><span class="kpi-label">Tutores empresa</span><span class="kpi-icon">👔</span></div>
+        <div class="kpi-value">{{ tutores_empresa_count }}</div>
+        <div class="kpi-sub">Registrados en la base</div>
+    </div>
+    <div class="kpi-card violet">
+        <div class="kpi-top"><span class="kpi-label">Tutores UDD</span><span class="kpi-icon">📚</span></div>
+        <div class="kpi-value">{{ tutores_udd_count }}</div>
+        <div class="kpi-sub">Registrados en la base</div>
+    </div>
+</div>
+
+<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-text">🎯 Pipeline y rendimiento</div>
+    <div class="section-divider-line"></div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <div class="section-title">Funnel de postulaciones</div>
+            <div class="section-sub">Tasa de conversion del proceso</div>
+        </div>
+        <div class="funnel-wrap">
+            <div class="funnel-step">
+                <div class="funnel-shape" style="width:100%; background:linear-gradient(135deg,#2563eb,#3b82f6);">Postulantes</div>
+                <div style="min-width:140px;">
+                    <div class="funnel-meta-value">{{ postulantes_count }}</div>
+                    <div class="funnel-meta-label">Alumnos postulantes</div>
+                    <span class="funnel-pct" style="background:var(--blue-100); color:var(--blue-800);">{{ postulantes_pct }}%</span>
+                </div>
+            </div>
+            <div class="funnel-arrow">v</div>
+            <div class="funnel-step">
+                <div class="funnel-shape" style="width:85%; background:linear-gradient(135deg,#7c3aed,#8b5cf6);">Seleccionados</div>
+                <div style="min-width:140px;">
+                    <div class="funnel-meta-value">{{ seleccionados_count }}</div>
+                    <div class="funnel-meta-label">Aceptados al programa</div>
+                    <span class="funnel-pct" style="background:var(--violet-100); color:var(--violet-700);">{{ seleccionados_pct }}%</span>
+                </div>
+            </div>
+            <div class="funnel-arrow">v</div>
+            <div class="funnel-step">
+                <div class="funnel-shape" style="width:60%; background:linear-gradient(135deg,#059669,#10b981);">En curso</div>
+                <div style="min-width:140px;">
+                    <div class="funnel-meta-value">{{ practicas_activas }}</div>
+                    <div class="funnel-meta-label">Practicantes activos</div>
+                    <span class="funnel-pct" style="background:#dcfce7; color:#15803d;">{{ en_curso_pct }}%</span>
+                </div>
+            </div>
+            <div class="funnel-arrow">v</div>
+            <div class="funnel-step">
+                <div class="funnel-shape" style="width:20%; background:linear-gradient(135deg,#d97706,#f59e0b);">Contratados</div>
+                <div style="min-width:140px;">
+                    <div class="funnel-meta-value">{{ contratados_count }}</div>
+                    <div class="funnel-meta-label">Post practica</div>
+                    <span class="funnel-pct" style="background:var(--amber-100); color:var(--amber-700);">{{ contratados_pct }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="section-title">Rendimiento academico</div>
+            <div class="section-sub">Notas y competencias del periodo</div>
+        </div>
+        <div class="card-body">
+            <div class="nota-stats">
+                <div class="nota-stat prom">
+                    <div class="nota-stat-value">{{ nota_promedio }}</div>
+                    <div class="nota-stat-label">Promedio</div>
+                </div>
+                <div class="nota-stat max">
+                    <div class="nota-stat-value">{{ nota_max }}</div>
+                    <div class="nota-stat-label">Nota maxima</div>
+                </div>
+                <div class="nota-stat min">
+                    <div class="nota-stat-value">{{ nota_min }}</div>
+                    <div class="nota-stat-label">Nota minima</div>
+                </div>
+            </div>
+
+            <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Ranking por competencia</div>
+            <div class="comp-list">
+                {% for comp in top_competencias %}
+                <div class="comp-row">
+                    <span class="comp-rank">{{ comp.rank }}</span>
+                    <span class="comp-name">{{ comp.nombre }}</span>
+                    <div class="comp-bar-wrap"><div class="comp-bar-fill {% cycle 'bar-green' 'bar-blue' 'bar-violet' 'bar-amber' 'bar-rose' %}" style="width: {{ comp.pct }}%;"></div></div>
+                    <span class="comp-score">{{ comp.score }}</span>
+                </div>
+                {% empty %}
+                <div style="font-size:13px; color:var(--text-muted);">No hay puntajes de competencias para mostrar.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-text">👤 Perfil digital y logros</div>
+    <div class="section-divider-line"></div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <div class="section-title">Completitud de perfil</div>
+            <div class="section-sub">Estado de recursos digitales por alumno</div>
+        </div>
+        <div class="card-body">
+            <div class="profile-grid">
+                {% for item in profile_data %}
+                <div class="profile-item">
+                    <div class="ring-wrap">
+                        <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true">
+                            <circle cx="35" cy="35" r="30" stroke="#e2e8f0" stroke-width="8" fill="none"></circle>
+                            <circle cx="35" cy="35" r="30" stroke="{{ item.stroke }}" stroke-width="8" fill="none" stroke-linecap="round"
+                                stroke-dasharray="188.5" stroke-dashoffset="{{ item.offset }}"></circle>
+                        </svg>
+                        <div class="ring-center">{{ item.pct }}%</div>
+                    </div>
+                    <div class="profile-label">{{ item.label }}</div>
+                    <div class="profile-count">{{ item.count }} alumnos</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="section-title">Badges destacados</div>
+            <div class="section-sub">Logros mas asignados en el periodo</div>
+        </div>
+        <div class="card-body">
+            <div class="badges-grid">
+                {% for badge in badge_data %}
+                <div class="badge-item">
+                    {% if forloop.counter0 == 0 %}
+                    <div class="badge-emoji" style="background:var(--amber-100);">🏆</div>
+                    {% elif forloop.counter0 == 1 %}
+                    <div class="badge-emoji" style="background:var(--blue-100);">💡</div>
+                    {% elif forloop.counter0 == 2 %}
+                    <div class="badge-emoji" style="background:var(--green-100);">🤝</div>
+                    {% else %}
+                    <div class="badge-emoji" style="background:var(--violet-100);">⭐</div>
+                    {% endif %}
+                    <div>
+                        <div class="badge-name">{{ badge.badge__nombre|default:'Badge' }}</div>
+                        <div class="badge-count">Otorgado en el periodo</div>
+                    </div>
+                    {% if forloop.counter0 == 0 %}
+                    <div class="badge-pill" style="background:var(--amber-100); color:var(--amber-700);">{{ badge.total }}</div>
+                    {% elif forloop.counter0 == 1 %}
+                    <div class="badge-pill" style="background:var(--blue-100); color:var(--blue-700);">{{ badge.total }}</div>
+                    {% elif forloop.counter0 == 2 %}
+                    <div class="badge-pill" style="background:var(--green-100); color:#15803d;">{{ badge.total }}</div>
+                    {% else %}
+                    <div class="badge-pill" style="background:var(--violet-100); color:var(--violet-700);">{{ badge.total }}</div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div style="font-size:13px; color:var(--text-muted);">No hay badges registrados.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-text">🏢 Empresas y distribuciones</div>
+    <div class="section-divider-line"></div>
+</div>
+
+<div class="grid-main">
+    <div class="card">
+        <div class="card-header">
+            <div class="section-title">Top organizaciones</div>
+            <div class="section-sub">Empresas con mayor recepcion de practicantes</div>
+        </div>
+        <div class="table-wrap" style="padding: 12px 0 0;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Sector</th>
+                        <th style="text-align:right;">Practicantes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in top_empresas %}
+                    <tr>
+                        <td style="font-weight:700;">{{ empresa.nombre }}</td>
+                        <td><span class="area-badge">{{ empresa.rubro|default:'Sin rubro' }}</span></td>
+                        <td style="text-align:right; font-weight:700; color:var(--blue-700);">{{ empresa.total_practicantes }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" style="color:var(--text-muted);">No hay datos disponibles.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="display:grid; gap:18px; align-content:start;">
+        <div class="card">
+            <div class="card-header">
+                <div class="section-title">Modalidad</div>
+                <div class="section-sub">Participacion por tipo de practica</div>
+            </div>
+            <div class="card-body">
+                <div class="mod-grid">
+                    {% for mod in modalidad_data %}
+                    <div class="mod-item {{ mod.class }}">
+                        <div class="mod-pct">{{ mod.pct }}%</div>
+                        <div class="mod-label">{{ mod.label }}</div>
+                        <div class="mod-count">{{ mod.count }} proyectos</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="section-title">Distribucion por rubro</div>
+                <div class="section-sub">Empresas por industria</div>
+            </div>
+            <div class="dist-list">
+                {% for rubro in rubros %}
+                <div class="dist-row">
+                    <div class="dist-label">{{ rubro.nombre }}</div>
+                    <div class="dist-bar-wrap"><div class="dist-bar-fill {% cycle 'bar-blue' 'bar-green' 'bar-violet' 'bar-amber' 'bar-rose' 'bar-cyan' 'bar-orange' %}" style="width: {{ rubro.pct }}%;"></div></div>
+                    <div class="dist-value">{{ rubro.total }}</div>
+                </div>
+                {% empty %}
+                <div style="font-size:13px; color:var(--text-muted);">No hay rubros registrados.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="section-title">Distribucion por sede</div>
+                <div class="section-sub">Practicas activas por sede</div>
+            </div>
+            <div id="sedeChartWrap">
+                <canvas id="sedeChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const sedesLabels = [{% for item in sedes_labels %}'{{ item|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const sedesValues = [{% for item in sedes_values %}{{ item }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    const chartNode = document.getElementById('sedeChart');
+    if (chartNode) {
+        new Chart(chartNode.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: sedesLabels.length ? sedesLabels : ['Sin datos'],
+                datasets: [{
+                    data: sedesValues.length ? sedesValues : [1],
+                    backgroundColor: ['#1d4ed8','#8b5cf6','#06b6d4','#22c55e','#f59e0b','#f43f5e','#0ea5a4'],
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    spacing: 2,
+                    hoverOffset: 3,
+                    cutout: '72%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 16,
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            font: { family: 'Plus Jakarta Sans', size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

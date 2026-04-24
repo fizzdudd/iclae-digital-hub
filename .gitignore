@@ -1,0 +1,19 @@
+#Datos que por seguridad no se subirán a git 
+#Ya sea que son muy pesados o que tienen información comprometedora
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Archivos de sistema y entorno
+.env
+.DS_Store

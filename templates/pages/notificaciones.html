@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Notificaciones{% endblock %}
+{% block page_title %}Centro de Notificaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
+    .section-divider-line { height:1px; background: var(--border); flex:1; }
+    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
+
+    .kpis { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+    .kpi { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
+    .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
+    .kpis .kpi:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
+    .kpis .kpi:nth-child(2)::before { background:linear-gradient(90deg,#e11d48,#fb7185); }
+    .kpis .kpi:nth-child(3)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .kpi-l { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+    .kpi-v { font-size:28px; font-weight:700; margin-top:6px; }
+
+    .split { display:grid; grid-template-columns: 1.4fr 1fr; gap:12px; }
+    .card { border:1px solid var(--border); border-radius:var(--radius-lg); background:#fff; box-shadow:var(--shadow-sm); }
+    .card-h { padding:13px 15px 0; }
+    .card-b { padding:12px 15px 15px; }
+
+    .notice { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:9px; }
+    .notice:last-child { margin-bottom:0; }
+    .n-top { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+    .n-title { font-size:13px; font-weight:700; }
+    .n-msg { font-size:12px; color:var(--text-secondary); margin-top:5px; }
+    .n-meta { margin-top:8px; font-size:11px; color:var(--text-muted); }
+    .pill { font-size:10px; border-radius:999px; padding:3px 8px; font-weight:800; }
+    .pill.read { background:#dcfce7; color:#166534; }
+    .pill.unread { background:#ffe4e6; color:#9f1239; }
+
+    .rem { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:9px; }
+    .rem:last-child { margin-bottom:0; }
+    .rem-h { font-size:12.5px; font-weight:700; }
+    .rem-m { font-size:11.5px; color:var(--text-secondary); margin-top:4px; }
+    .rem-f { font-size:11px; color:var(--text-muted); margin-top:6px; }
+    @media (max-width: 960px){ .kpis{grid-template-columns:1fr;} .split{grid-template-columns:1fr;} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-text">🔔 Comunicaciones, alertas y recordatorios</div>
+    <div class="section-divider-line"></div>
+</div>
+
+<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
+    <input name="q" value="{{ filters.q }}" placeholder="Buscar notificacion" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
+    <select name="tipo" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+        <option value="">Tipo: todos</option>
+        {% for option in filter_options.tipo %}
+        <option value="{{ option.value }}" {% if filters.tipo == option.value %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+    <select name="estado" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
+        <option value="">Estado: todos</option>
+        <option value="leida" {% if filters.estado == 'leida' %}selected{% endif %}>Leidas</option>
+        <option value="no_leida" {% if filters.estado == 'no_leida' %}selected{% endif %}>No leidas</option>
+    </select>
+    <a href="?" class="pill unread" style="text-decoration:none;border:1px solid #fecaca;">Limpiar filtros</a>
+</form>
+
+<div class="kpis">
+    <div class="kpi"><div class="kpi-l">Notificaciones</div><div class="kpi-v">{{ notificaciones_count }}</div></div>
+    <div class="kpi"><div class="kpi-l">No leidas</div><div class="kpi-v" style="color:#9f1239;">{{ no_leidas_count }}</div></div>
+    <div class="kpi"><div class="kpi-l">Periodo</div><div class="kpi-v" style="font-size:22px;">{{ periodo_label }}</div></div>
+</div>
+
+<div class="split">
+    <div class="card">
+        <div class="card-h"><div style="font-size:15px;font-weight:700;">Notificaciones del sistema</div><div style="font-size:12px;color:var(--text-muted);">Correo, alertas y avisos internos</div></div>
+        <div class="card-b">
+            {% for n in notificaciones %}
+            <div class="notice">
+                <div class="n-top">
+                    <div>
+                        <div class="n-title">{{ n.titulo }}</div>
+                        <div class="n-msg">{{ n.mensaje|truncatechars:160 }}</div>
+                    </div>
+                    <span class="pill {% if n.leida %}read{% else %}unread{% endif %}">{% if n.leida %}Leida{% else %}No leida{% endif %}</span>
+                </div>
+                <div class="n-meta">{{ n.tipo }} · {{ n.destinatario }} · {{ n.fecha|date:'d/m/Y H:i' }}</div>
+            </div>
+            {% empty %}
+            <div style="color:var(--text-muted);">No hay notificaciones registradas.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-h"><div style="font-size:15px;font-weight:700;">Recordatorios masivos</div><div style="font-size:12px;color:var(--text-muted);">Envios recientes</div></div>
+        <div class="card-b">
+            {% for r in recordatorios %}
+            <div class="rem">
+                <div class="rem-h">{{ r.segmento|default:'Segmento general' }}</div>
+                <div class="rem-m">{{ r.mensaje|truncatechars:120 }}</div>
+                <div class="rem-f">{{ r.cantidad_envios|default:0 }} envios · {{ r.fecha_envio|date:'d/m/Y H:i' }}</div>
+            </div>
+            {% empty %}
+            <div style="color:var(--text-muted);">No hay recordatorios masivos enviados.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
