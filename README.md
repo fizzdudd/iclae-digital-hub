@@ -1,10 +1,10 @@
 # Digital Hub ICLAE
 
-Proyecto DIGITAL HUB ICLAE
--Desarrolladores: Fabián Salinas, Sebastián Peña, José Otue
--Facultad de Ingeniería - Ing. Civil Informática
--Desafío Empresa II
--Abril, 2026
+Proyecto DIGITAL HUB ICLAE  
+-Desarrolladores: Fabián Salinas, Sebastián Peña, José Otue  
+-Facultad de Ingeniería - Ing. Civil Informática  
+-Desafío Empresa II  
+-Abril, 2026  
 
 ## 🚀 Alcance Implementado
 
