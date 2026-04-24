@@ -1,28 +1,70 @@
 # Digital Hub ICLAE
 
-# Proyecto DIGITAL HUB ICLAE
-# Desarrolladores: Fabián Salinas, Sebastián Peña, José Otue
-# Facultad de Ingeniería - Ing. Civil Informática
-# Desafío Empresa II
-# Abril, 2026
+Proyecto DIGITAL HUB ICLAE
+Desarrolladores: Fabián Salinas, Sebastián Peña, José Otue
+Facultad de Ingeniería - Ing. Civil Informática
+Desafío Empresa II
+Abril, 2026
 
-Alcance implementado
-  Login centralizado interno (correo + contrasena)
-  Logout
-  Cambio de contrasena
-  Gestion administrativa de usuarios con multiroles
-  Mantencion administrativa de empresas (alta, edicion, activacion/desactivacion)
-  Mantencion administrativa de estudiantes (alta, edicion, activacion/desactivacion)
-  Mantencion administrativa de tutores (alta, edicion, activacion/desactivacion)
-  Parametros del sistema desde Administracion (catalogos de campus/carreras/periodos y reglas operativas)
-  Modulo Empresas: registro validado por carrera/campus, perfil, historico, vacantes y usuarios vinculados
-  Modulo Estudiantes: panel personal, documentos, bitacora, evaluaciones, progreso en competencias, badges y entrevistas
-  Modulo Tutores: asignacion automatica por empresa, recordatorios e informes por cohorte/carrera
-  Modulo Analitico: KPIs dinamicos, eNPS editable, participacion por rubro/region y seguimiento longitudinal
-  Dashboard por modulo: Administracion, Empresas, Estudiantes, Tutores, Analitico
-  Control de acceso por rol
+## 🚀 Alcance Implementado
 
-Para instalar correctamente este sistema en tu equipo, debes seguir los siguientes pasos: 
+- 🔐 **Autenticación y Seguridad**
+  - Login centralizado interno (correo + contraseña)
+  - Logout
+  - Cambio de contraseña
+
+- 👥 **Gestión de Usuarios**
+  - Gestión administrativa de usuarios con multiroles
+  - Control de acceso basado en roles
+
+- 🏢 **Administración de Entidades**
+  - Mantención administrativa de empresas (alta, edición, activación/desactivación)
+  - Mantención administrativa de estudiantes (alta, edición, activación/desactivación)
+  - Mantención administrativa de tutores (alta, edición, activación/desactivación)
+
+- ⚙️ **Configuración del Sistema**
+  - Parámetros del sistema desde Administración
+    - Catálogos de campus
+    - Carreras
+    - Períodos
+    - Reglas operativas
+
+- 🏭 **Módulo Empresas**
+  - Registro validado por carrera/campus
+  - Gestión de perfil
+  - Histórico
+  - Vacantes
+  - Usuarios vinculados
+
+- 🎓 **Módulo Estudiantes**
+  - Panel personal
+  - Gestión de documentos
+  - Bitácora
+  - Evaluaciones
+  - Progreso en competencias
+  - Badges
+  - Entrevistas
+
+- 🧑‍🏫 **Módulo Tutores**
+  - Asignación automática por empresa
+  - Recordatorios
+  - Informes por cohorte/carrera
+
+- 📊 **Módulo Analítico**
+  - KPIs dinámicos
+  - eNPS editable
+  - Participación por rubro/región
+  - Seguimiento longitudinal
+
+- 📈 **Dashboards**
+  - Dashboard por módulo:
+    - Administración
+    - Empresas
+    - Estudiantes
+    - Tutores
+    - Analítico
+
+## **Para instalar correctamente este sistema en tu equipo, debes seguir los siguientes pasos**: 
 
 1. Clonar el Repositorio:
 Abrir la terminal en la carpeta donde quieras el proyecto y ejecutar reemplazando con TU nombre de usuario
