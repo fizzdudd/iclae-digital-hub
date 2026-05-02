@@ -196,6 +196,10 @@
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 00-4 4v2.38c0 .55-.22 1.08-.61 1.47L4.3 10.94A1 1 0 005 12.65h10a1 1 0 00.7-1.71l-1.1-1.09A2.08 2.08 0 0114 8.38V6a4 4 0 00-4-4z"/><path d="M8 14a2 2 0 104 0H8z"/></svg>
             <span>Notificaciones</span>
         </a>
+        <a href="{% url 'excel_import' %}" class="nav-item {% if request.resolver_match.url_name == 'excel_import' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            <span>Importar Usuarios</span>
+        </a>
     </nav>
 
     <div class="sidebar-user">

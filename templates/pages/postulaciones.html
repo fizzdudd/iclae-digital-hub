@@ -5,130 +5,208 @@
 
 {% block extra_css %}
 <style>
-    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
-    .section-divider-line { height:1px; background: var(--border); flex:1; }
-    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
+    .wrap { display:grid; gap:16px; }
 
-    .tabs { display:flex; gap:6px; background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:5px; margin-bottom:16px; width:max-content; }
-    .tab { padding:8px 16px; border-radius:var(--radius-md); font-size:13px; font-weight:700; }
-    .tab.active { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; }
-    .tab.muted { color:var(--text-secondary); }
+    .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .kpi { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
+    .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
+    .kpis .kpi:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
+    .kpis .kpi:nth-child(2)::before { background:linear-gradient(90deg,#16a34a,#4ade80); }
+    .kpis .kpi:nth-child(3)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .kpis .kpi:nth-child(4)::before { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .kpi-l { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+    .kpi-v { font-size:26px; font-weight:800; margin-top:6px; }
 
-    .split { display:grid; grid-template-columns: 1.4fr 1fr; gap:14px; }
-    .card {
-        border:1px solid var(--border);
-        border-radius:var(--radius-lg);
-        background:#fff;
-        box-shadow:var(--shadow-sm);
-        position:relative;
-        overflow:hidden;
-    }
-    .card::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
-    .split .card:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
-    .split .card:nth-child(2)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
-    .card-h { padding:14px 16px 0; }
-    .card-b { padding:12px 16px 16px; }
+    .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .filter-bar input, .filter-bar select { height:34px; border:1px solid var(--border); border-radius:var(--radius-md); padding:0 10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fff; }
+    .filter-bar a.clear { font-size:12px; font-weight:700; padding:0 12px; height:34px; display:flex; align-items:center; border-radius:var(--radius-md); background:#f1f5f9; color:var(--text-secondary); text-decoration:none; }
+    .filter-bar a.clear:hover { background:#e2e8f0; }
 
-    .job { border:1px solid var(--border); border-radius:var(--radius-md); padding:12px; margin-bottom:10px; transition: box-shadow .16s ease, transform .16s ease; }
-    .job:hover { box-shadow:var(--shadow-md); transform: translateY(-1px); }
-    .job:last-child { margin-bottom:0; }
-    .job-title { font-size:14px; font-weight:700; }
-    .job-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
-    .chips { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
-    .chip { font-size:11px; border-radius:999px; padding:3px 9px; font-weight:700; }
-    .chip.moda { background:var(--blue-100); color:var(--blue-800); }
-    .chip.area { background:#dcfce7; color:#166534; }
-    .meta { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-secondary); }
-    .btn { border:none; border-radius:var(--radius-md); height:31px; padding:0 12px; font-size:12px; font-weight:700; }
-    .btn.postular { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; }
-    .btn.postulado { background:#dcfce7; color:#166534; }
-    .btn.cerrado { background:#f1f5f9; color:#64748b; }
+    .tabs { display:flex; gap:0; background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:4px; width:max-content; box-shadow:var(--shadow-sm); }
+    .tab { padding:8px 18px; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; color:var(--text-secondary); transition:all .15s; border:none; background:none; font-family:inherit; }
+    .tab.active { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.25); }
+    .tab:not(.active):hover { background:#f1f5f9; color:var(--text-primary); }
 
-    .pipeline { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:10px; }
-    .pipeline:last-child { margin-bottom:0; }
-    .p-title { font-size:13px; font-weight:700; }
-    .p-sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
-    .state { margin-top:8px; font-size:11px; border-radius:999px; padding:3px 9px; font-weight:700; display:inline-block; }
-    .state.en_revision { background:#dbeafe; color:#1e40af; }
-    .state.aceptado { background:#dcfce7; color:#166534; }
-    .state.rechazado { background:#ffe4e6; color:#9f1239; }
-    .state.default { background:#f1f5f9; color:#475569; }
+    .section { display:none; }
+    .section.visible { display:block; }
 
-    @media (max-width: 1024px) { .split { grid-template-columns: 1fr; } }
+    .cards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    @media (max-width:1200px) { .cards-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:700px) { .cards-grid { grid-template-columns:1fr; } }
+
+    .job-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; display:flex; flex-direction:column; transition:box-shadow .15s, transform .15s; }
+    .job-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
+    .job-card-top { padding:14px 16px 10px; flex:1; }
+    .job-logo-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .job-logo { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; }
+    .job-company { font-size:12px; color:var(--text-muted); font-weight:600; }
+    .job-title { font-size:14px; font-weight:800; color:var(--text-primary); margin-bottom:8px; line-height:1.35; }
+    .job-chips { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
+    .chip { font-size:10.5px; border-radius:999px; padding:2px 8px; font-weight:700; }
+    .chip-blue { background:var(--blue-100); color:var(--blue-800); }
+    .chip-green { background:#dcfce7; color:#166534; }
+    .chip-gray { background:#f1f5f9; color:#475569; }
+    .chip-violet { background:var(--violet-100); color:var(--violet-700); }
+    .job-desc { font-size:12px; color:var(--text-secondary); line-height:1.55; margin-bottom:8px; }
+    .job-card-bottom { padding:10px 16px 14px; border-top:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .job-meta { font-size:11px; color:var(--text-muted); }
+    .btn { height:32px; padding:0 14px; border:none; border-radius:var(--radius-md); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; }
+    .btn-postular { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; }
+    .btn-postular:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); }
+    .btn-postulado { background:#dcfce7; color:#166534; }
+    .btn-cerrado { background:#f1f5f9; color:#94a3b8; cursor:default; }
+
+    .pipeline-list { display:grid; gap:10px; }
+    .pipe-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; display:flex; align-items:center; gap:14px; }
+    .pipe-logo { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; }
+    .pipe-info { flex:1; min-width:0; }
+    .pipe-title { font-size:13px; font-weight:800; }
+    .pipe-sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .pipe-status { font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; flex-shrink:0; }
+    .ps-revision { background:#dbeafe; color:#1e40af; }
+    .ps-aceptado { background:#dcfce7; color:#166534; }
+    .ps-rechazado { background:#ffe4e6; color:#9f1239; }
+    .ps-default { background:#f1f5f9; color:#475569; }
+
+    .empty-state { text-align:center; padding:40px 20px; color:var(--text-muted); border:1px dashed var(--border); border-radius:var(--radius-lg); background:#fff; }
+    .empty-state h3 { margin:0 0 6px; color:var(--text-primary); }
+
+    .pagination { display:flex; align-items:center; gap:6px; justify-content:center; margin-top:16px; }
+    .page-btn { height:34px; min-width:34px; padding:0 10px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--text-secondary); }
+    .page-btn.active { background:var(--blue-600); color:#fff; border-color:var(--blue-600); }
+    .page-btn:hover:not(.active) { background:#f1f5f9; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="section-divider">
-    <div class="section-divider-line"></div>
-    <div class="section-divider-text">🧭 Vacantes, pipeline y avance de postulaciones</div>
-    <div class="section-divider-line"></div>
-</div>
+<div class="wrap">
 
-<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
-    <input name="q" value="{{ filters.q }}" placeholder="Buscar vacante" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
-    <select name="modalidad" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Modalidad: todas</option>
-        {% for option in filter_options.modalidad %}
-        <option value="{{ option.value }}" {% if filters.modalidad == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    <select name="estado" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Vacante: todas</option>
-        <option value="abierto" {% if filters.estado == 'abierto' %}selected{% endif %}>Abierta</option>
-        <option value="cerrado" {% if filters.estado == 'cerrado' %}selected{% endif %}>Cerrada</option>
-    </select>
-    <select name="mis_estado" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Mis estados: todos</option>
-        {% for option in filter_options.mis_estado %}
-        <option value="{{ option.value }}" {% if filters.mis_estado == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    <a href="?" class="chip" style="text-decoration:none;border:1px solid var(--border);">Limpiar filtros</a>
-</form>
+    <div class="kpis">
+        <div class="kpi"><div class="kpi-l">Vacantes totales</div><div class="kpi-v">{{ vacantes_count }}</div></div>
+        <div class="kpi"><div class="kpi-l">Vacantes abiertas</div><div class="kpi-v" style="color:var(--green-700);">{{ vacantes_abiertas }}</div></div>
+        <div class="kpi"><div class="kpi-l">Mis postulaciones</div><div class="kpi-v" style="color:var(--violet-700);">{{ mis_postulaciones_count }}</div></div>
+        <div class="kpi"><div class="kpi-l">Período</div><div class="kpi-v" style="font-size:18px;">{{ periodo_label }}</div></div>
+    </div>
 
-<div class="tabs">
-    <div class="tab active">🔍 Vacantes disponibles ({{ vacantes_count }})</div>
-    <div class="tab muted">📋 Mis postulaciones ({{ mis_postulaciones_count }})</div>
-</div>
+    <form id="filterForm" method="get" class="filter-bar" data-auto-submit="true" data-auto-submit-text="true">
+        <input name="q" value="{{ filters.q }}" placeholder="Buscar vacante o empresa..." style="width:220px;" />
+        <select name="modalidad" onchange="this.form.submit()">
+            <option value="">Modalidad: todas</option>
+            {% for opt in filter_options.modalidad %}
+            <option value="{{ opt.value }}" {% if filters.modalidad == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+            {% endfor %}
+        </select>
+        <select name="estado" onchange="this.form.submit()">
+            <option value="">Estado: todas</option>
+            <option value="abierto" {% if filters.estado == 'abierto' %}selected{% endif %}>Abierta</option>
+            <option value="cerrado" {% if filters.estado == 'cerrado' %}selected{% endif %}>Cerrada</option>
+        </select>
+        <a href="?" class="clear">Limpiar</a>
+    </form>
 
-<div class="split">
-    <div class="card">
-        <div class="card-h"><div style="font-size:15px;font-weight:700;">Vacantes abiertas</div><div style="font-size:12px;color:var(--text-muted);">Datos reales desde proyectos y postulaciones</div></div>
-        <div class="card-b">
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('vacantes', this)">🔍 Vacantes disponibles ({{ vacantes_count }})</button>
+        <button class="tab" onclick="switchTab('mis', this)">📋 Mis postulaciones ({{ mis_postulaciones_count }})</button>
+    </div>
+
+    <div id="sec-vacantes" class="section visible">
+        {% if vacantes %}
+        <div class="cards-grid">
             {% for v in vacantes %}
-            <div class="job">
-                <div class="job-title">{{ v.titulo }}</div>
-                <div class="job-sub">{{ v.empresa }}</div>
-                <div class="chips">
-                    <span class="chip area">{{ v.rubro }}</span>
-                    <span class="chip moda">{{ v.modalidad }}</span>
-                    <span class="chip" style="background:#f1f5f9;color:#475569;">{{ v.carrera }}</span>
+            <div class="job-card">
+                <div class="job-card-top">
+                    <div class="job-logo-row">
+                        <div class="job-logo" style="{{ v.logo_style }}">{{ v.empresa_initials }}</div>
+                        <span class="job-company">{{ v.empresa }}</span>
+                    </div>
+                    <div class="job-title">{{ v.titulo }}</div>
+                    <div class="job-chips">
+                        <span class="chip chip-green">{{ v.rubro }}</span>
+                        <span class="chip chip-blue">{{ v.modalidad }}</span>
+                        <span class="chip chip-gray">{{ v.carrera }}</span>
+                    </div>
                 </div>
-                <div class="meta">
-                    <span>Vacantes {{ v.vacantes }} · Postulaciones {{ v.postulaciones }}</span>
-                    {% if v.is_active %}<button class="btn postular">Postular</button>{% else %}<button class="btn cerrado">Cerrado</button>{% endif %}
+                <div class="job-card-bottom">
+                    <div class="job-meta">{{ v.vacantes }} vacante{{ v.vacantes|pluralize }} · {{ v.postulaciones }} postulación{{ v.postulaciones|pluralize:"es" }}</div>
+                    {% if v.is_active %}
+                    <form method="post" action="{% url 'postular' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="proyecto_id" value="{{ v.id }}">
+                        <button type="submit" class="btn btn-postular">Postular</button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn-cerrado" disabled>Cerrado</button>
+                    {% endif %}
                 </div>
             </div>
-            {% empty %}
-            <div style="color:var(--text-muted);">No hay vacantes disponibles.</div>
             {% endfor %}
         </div>
+        {% if page_obj_vacantes %}
+        <div class="pagination">
+            {% if page_obj_vacantes.has_previous %}
+            <a href="?{{ query_str }}&pv={{ page_obj_vacantes.previous_page_number }}" class="page-btn">‹</a>
+            {% endif %}
+            {% for num in page_obj_vacantes.paginator.page_range %}
+            {% if num == page_obj_vacantes.number %}
+            <span class="page-btn active">{{ num }}</span>
+            {% elif num >= page_obj_vacantes.number|add:"-3" and num <= page_obj_vacantes.number|add:"3" %}
+            <a href="?{{ query_str }}&pv={{ num }}" class="page-btn">{{ num }}</a>
+            {% endif %}
+            {% endfor %}
+            {% if page_obj_vacantes.has_next %}
+            <a href="?{{ query_str }}&pv={{ page_obj_vacantes.next_page_number }}" class="page-btn">›</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state"><h3>Sin vacantes</h3><p>No hay vacantes que coincidan con los filtros actuales.</p></div>
+        {% endif %}
     </div>
 
-    <div class="card">
-        <div class="card-h"><div style="font-size:15px;font-weight:700;">Mis postulaciones</div><div style="font-size:12px;color:var(--text-muted);">Seguimiento por estado</div></div>
-        <div class="card-b">
+    <div id="sec-mis" class="section">
+        {% if mis_postulaciones %}
+        <div class="pipeline-list">
             {% for p in mis_postulaciones %}
-            <div class="pipeline">
-                <div class="p-title">{{ p.proyecto }}</div>
-                <div class="p-sub">{{ p.empresa }} · {{ p.fecha|date:'d/m/Y H:i' }}</div>
-                <span class="state {% if p.estado == 'en_revision' %}en_revision{% elif p.estado == 'aceptado' %}aceptado{% elif p.estado == 'rechazado' %}rechazado{% else %}default{% endif %}">{{ p.estado|title }}</span>
+            <div class="pipe-card">
+                <div class="pipe-logo" style="{{ p.logo_style }}">{{ p.empresa_initials }}</div>
+                <div class="pipe-info">
+                    <div class="pipe-title">{{ p.proyecto }}</div>
+                    <div class="pipe-sub">{{ p.empresa }} · {{ p.fecha|date:'d/m/Y' }}</div>
+                </div>
+                <span class="pipe-status
+                    {% if 'revision' in p.estado|lower %}ps-revision
+                    {% elif 'acept' in p.estado|lower or 'selec' in p.estado|lower %}ps-aceptado
+                    {% elif 'rechaz' in p.estado|lower %}ps-rechazado
+                    {% else %}ps-default{% endif %}">
+                    {{ p.estado|title }}
+                </span>
             </div>
-            {% empty %}
-            <div style="color:var(--text-muted);">No hay postulaciones del alumno de referencia.</div>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state"><h3>Sin postulaciones</h3><p>Aún no hay postulaciones registradas.</p></div>
+        {% endif %}
     </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(id, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('visible');
+    btn.classList.add('active');
+}
+
+// Auto-switch tab from URL param
+(function() {
+    const tab = '{{ initial_tab }}';
+    if (tab === 'mis') {
+        const btn = document.querySelector('.tab:nth-child(2)');
+        if (btn) switchTab('mis', btn);
+    }
+})();
+</script>
 {% endblock %}

@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 from django.db.models import Avg, Count, Max, Min, Q
 from django.utils import timezone
@@ -6,6 +7,7 @@ from .models import (
     AlumnoBadge,
     Bitacora,
     BitacoraEvidencia,
+    Carrera,
     ConfigEvaluacionPeriodo,
     Empresa,
     EvaluacionHito,
@@ -17,9 +19,26 @@ from .models import (
     ProyectoPeriodo,
     PuntajeCompetencia,
     RecordatorioMasivo,
+    Sede,
     TutorEmpresa,
     TutorUdd,
+    Usuario,
 )
+
+_LOGO_COLORS = [
+    'background:linear-gradient(135deg,#bfdbfe,#93c5fd);color:#1e3a8a',
+    'background:linear-gradient(135deg,#c4b5fd,#a78bfa);color:#4c1d95',
+    'background:linear-gradient(135deg,#a7f3d0,#6ee7b7);color:#064e3b',
+    'background:linear-gradient(135deg,#fca5a5,#f87171);color:#7f1d1d',
+    'background:linear-gradient(135deg,#fed7aa,#fdba74);color:#7c2d12',
+    'background:linear-gradient(135deg,#bae6fd,#7dd3fc);color:#0c4a6e',
+    'background:linear-gradient(135deg,#d9f99d,#bef264);color:#365314',
+]
+
+
+def _empresa_logo_style(nombre):
+    idx = sum(ord(c) for c in (nombre or 'E')) % len(_LOGO_COLORS)
+    return _LOGO_COLORS[idx]
 
 
 def _periodo_activo():
@@ -180,7 +199,6 @@ def bitacora_view(request):
                     for ev in bitacora.bitacoraevidencia_set.all()
                 ]
             else:
-                state_pending = week_number < (current_pp.semana_actual or 1)
                 progress_state = 'aprobado' if week_number < (current_pp.semana_actual or 1) and week_number in bitacoras_by_week else 'pendiente'
                 if week_number >= (current_pp.semana_actual or 1):
                     pending += 1
@@ -201,6 +219,8 @@ def bitacora_view(request):
                     'texto': texto_bitacora,
                     'fecha_envio': fecha_envio,
                     'evidencias': evidencias,
+                    'estado_emp': _bitacora_estado_class(bitacora.estado_emp) if bitacora else 'pendiente',
+                    'estado_udd': _bitacora_estado_class(bitacora.estado_udd) if bitacora else 'pendiente',
                 }
             )
 
@@ -211,6 +231,25 @@ def bitacora_view(request):
         editable = selected_week == (current_pp.semana_actual or 1) and not selected_week_data['future']
         progress_total = max(total_weeks, 1)
         progress_pct = int((approved / progress_total) * 100)
+
+        # Tutor info for selected week
+        tutor_empresa_nombre = 'Sin tutor empresa'
+        tutor_empresa_initials = 'TE'
+        tutor_udd_nombre = 'Sin tutor UDD'
+        tutor_udd_initials = 'TU'
+        if current_pp.tutor_empresa and current_pp.tutor_empresa.id:
+            te = current_pp.tutor_empresa.id
+            tutor_empresa_nombre = f"{te.nombre} {te.apellido}".strip()
+            tutor_empresa_initials = ''.join(p[0] for p in tutor_empresa_nombre.split()[:2]).upper() or 'TE'
+        if current_pp.tutor_udd and current_pp.tutor_udd.id:
+            tu = current_pp.tutor_udd.id
+            tutor_udd_nombre = f"{tu.nombre} {tu.apellido}".strip()
+            tutor_udd_initials = ''.join(p[0] for p in tutor_udd_nombre.split()[:2]).upper() or 'TU'
+
+        selected_estado_emp = _bitacora_estado_label(selected_bitacora.estado_emp if selected_bitacora else None)
+        selected_estado_udd = _bitacora_estado_label(selected_bitacora.estado_udd if selected_bitacora else None)
+        selected_feedback_emp = (selected_bitacora.feedback_emp or '') if selected_bitacora else ''
+        selected_feedback_udd = (selected_bitacora.feedback_udd or '') if selected_bitacora else ''
 
         context = {
             'periodo_label': periodo_label,
@@ -245,6 +284,14 @@ def bitacora_view(request):
             ],
             'selected_student_id': str(current_pp.alumno.id_id),
             'bitacora_weekday_hint': 'Sé concreto: qué hiciste, con quién y qué resultado tuvo.',
+            'tutor_empresa_nombre': tutor_empresa_nombre,
+            'tutor_empresa_initials': tutor_empresa_initials,
+            'tutor_udd_nombre': tutor_udd_nombre,
+            'tutor_udd_initials': tutor_udd_initials,
+            'selected_estado_emp': selected_estado_emp,
+            'selected_estado_udd': selected_estado_udd,
+            'selected_feedback_emp': selected_feedback_emp,
+            'selected_feedback_udd': selected_feedback_udd,
         }
         return render(request, 'pages/bitacora.html', context)
 
@@ -258,28 +305,75 @@ def bitacora_view(request):
         },
     )
 
+
 def dashboard_view(request):
+    # Handle POST for sending reminder
+    if request.method == 'POST' and request.POST.get('action') == 'send_reminder':
+        segmento = (request.POST.get('segmento') or 'todos').strip()[:50]
+        mensaje = (request.POST.get('mensaje') or '').strip()
+        try:
+            cantidad = int(request.POST.get('cantidad') or 0)
+        except (TypeError, ValueError):
+            cantidad = 0
+        if mensaje:
+            admin_user = Usuario.objects.filter(is_active=True).order_by('created_at').first()
+            if admin_user:
+                try:
+                    RecordatorioMasivo.objects.create(
+                        enviado_por=admin_user,
+                        segmento=segmento or 'todos',
+                        mensaje=mensaje,
+                        cantidad_envios=cantidad,
+                        fecha_envio=timezone.now(),
+                    )
+                except Exception:
+                    pass
+        return redirect('dashboard')
+
     # KPIs base
     alumnos_count = Alumno.objects.count()
+    total_alumnos = alumnos_count or 1
     empresas_count = Empresa.objects.count()
-
     practicas_activas = ProyectoPeriodo.objects.filter(estado='en_curso').count()
     tutores_empresa_count = TutorEmpresa.objects.count()
     tutores_udd_count = TutorUdd.objects.count()
-
     periodo_activo, periodo_label = _periodo_activo()
 
-    # Funnel
-    postulantes_count = Postulacion.objects.count()
-    seleccionados_count = Postulacion.objects.filter(
-        Q(estado__icontains='seleccion') | Q(estado__icontains='acept')
-    ).count()
+    # Funnel (unique alumnos to avoid counting multiple applications per student)
+    postulantes_count = Postulacion.objects.values('alumno').distinct().count()
+    seleccionados_count = (
+        Postulacion.objects.filter(
+            Q(estado__icontains='seleccion') | Q(estado__icontains='acept')
+        )
+        .values('alumno')
+        .distinct()
+        .count()
+    )
     contratados_count = ProyectoPeriodo.objects.filter(estado__icontains='contrat').count()
 
-    # Ranking de empresas receptoras
-    top_empresas = Empresa.objects.annotate(
-        total_practicantes=Count('proyecto__proyectoperiodo')
-    ).order_by('-total_practicantes')[:5]
+    # Top empresas por practicantes
+    top_empresas_qs = list(
+        Empresa.objects.annotate(
+            total_practicantes=Count(
+                'proyecto__proyectoperiodo',
+                filter=Q(proyecto__proyectoperiodo__alumno__isnull=False),
+            ),
+            total_proyectos=Count('proyecto', distinct=True),
+        ).order_by('-total_practicantes')[:6]
+    )
+    max_practicantes = max((e.total_practicantes for e in top_empresas_qs), default=1) or 1
+    top_empresas = [
+        {
+            'rank': idx,
+            'nombre': e.nombre,
+            'rubro': e.rubro or 'Sin rubro',
+            'rubro_class': _rubro_class(e.rubro),
+            'total_practicantes': e.total_practicantes,
+            'total_proyectos': e.total_proyectos,
+            'pct': int((e.total_practicantes / max_practicantes) * 100),
+        }
+        for idx, e in enumerate(top_empresas_qs, start=1)
+    ]
 
     # Rendimiento académico
     notas = ProyectoPeriodo.objects.exclude(nota_final__isnull=True)
@@ -298,17 +392,20 @@ def dashboard_view(request):
     for idx, comp in enumerate(top_competencias_qs, start=1):
         promedio = float(comp['promedio'] or 0)
         pct = max(0, min(100, int((promedio / 7.0) * 100)))
+        nivel = 'Alto' if promedio >= 6 else 'Bajo' if promedio < 5 else 'Medio'
         top_competencias.append(
             {
                 'rank': idx,
                 'nombre': comp['competencia__nombre'] or 'Competencia',
                 'score': round(promedio, 1),
                 'pct': pct,
-                'nivel': 'Alto' if promedio >= 6 else 'Medio' if promedio >= 5 else 'Bajo',
+                'nivel': nivel,
+                'nivel_class': 'green' if nivel == 'Alto' else 'rose' if nivel == 'Bajo' else 'blue',
+                'nivel_arrow': '↑ ' if nivel == 'Alto' else '↓ ' if nivel == 'Bajo' else '',
             }
         )
 
-    # Distribuciones
+    # Distribuciones por sede (para gráfico doughnut)
     sedes_qs = (
         ProyectoPeriodo.objects.values('sede__nombre')
         .annotate(total=Count('pk'))
@@ -317,37 +414,31 @@ def dashboard_view(request):
     sedes_labels = [row['sede__nombre'] or 'Sin sede' for row in sedes_qs]
     sedes_values = [row['total'] for row in sedes_qs]
 
-    rubros_qs = (
+    # Distribución por rubro (all rubros, no limit, so totals match empresas_count KPI)
+    rubros_qs = list(
         Empresa.objects.values('rubro')
         .annotate(total=Count('pk'))
-        .order_by('-total')[:7]
+        .order_by('-total')
     )
-    rubro_max = max([row['total'] for row in rubros_qs], default=1)
+    rubro_max = max([row['total'] for row in rubros_qs], default=1) or 1
+    bar_colors_rubro = ['bar-blue', 'bar-green', 'bar-violet', 'bar-amber', 'bar-rose', 'bar-cyan', 'bar-orange', 'bar-blue']
     rubros = [
         {
             'nombre': row['rubro'] or 'Sin rubro',
             'total': row['total'],
             'pct': int((row['total'] / rubro_max) * 100),
+            'bar_class': bar_colors_rubro[i % len(bar_colors_rubro)],
         }
-        for row in rubros_qs
+        for i, row in enumerate(rubros_qs)
     ]
 
-    modalidad_qs = (
-        Proyecto.objects.values('modalidad')
-        .annotate(total=Count('pk'))
-        .order_by('-total')
-    )
-    modalidad_map = {
-        'presencial': 0,
-        'hibrido': 0,
-        'híbrido': 0,
-        'remoto': 0,
-    }
+    # Modalidad
+    modalidad_qs = Proyecto.objects.values('modalidad').annotate(total=Count('pk')).order_by('-total')
+    modalidad_map = {'presencial': 0, 'hibrido': 0, 'híbrido': 0, 'remoto': 0}
     for row in modalidad_qs:
         key = (row['modalidad'] or '').strip().lower()
         if key in modalidad_map:
             modalidad_map[key] += row['total']
-
     modalidad_total = sum(modalidad_map.values()) or 1
     modalidad_data = [
         {
@@ -357,7 +448,7 @@ def dashboard_view(request):
             'class': 'presencial',
         },
         {
-            'label': 'Hibrido',
+            'label': 'Híbrido',
             'count': modalidad_map['hibrido'] + modalidad_map['híbrido'],
             'pct': int(((modalidad_map['hibrido'] + modalidad_map['híbrido']) / modalidad_total) * 100),
             'class': 'hibrido',
@@ -370,40 +461,106 @@ def dashboard_view(request):
         },
     ]
 
-    # Perfil digital aproximado
-    total_alumnos = alumnos_count or 1
+    # Distribución por carrera
+    carreras_qs = (
+        Alumno.objects.values('carrera__nombre')
+        .annotate(total=Count('pk'))
+        .order_by('-total')[:6]
+    )
+    carrera_max = max([row['total'] for row in carreras_qs], default=1) or 1
+    bar_colors_carrera = ['bar-blue', 'bar-green', 'bar-violet', 'bar-rose', 'bar-amber', 'bar-cyan']
+    carreras_dist = [
+        {
+            'nombre': row['carrera__nombre'] or 'Sin carrera',
+            'total': row['total'],
+            'pct': int((row['total'] / carrera_max) * 100),
+            'bar_class': bar_colors_carrera[i % len(bar_colors_carrera)],
+        }
+        for i, row in enumerate(carreras_qs)
+    ]
+
+    # Distribución por sede/región
+    region_qs = (
+        ProyectoPeriodo.objects.values('sede__nombre')
+        .annotate(total=Count('pk'))
+        .order_by('-total')[:5]
+    )
+    region_total = sum(row['total'] for row in region_qs) or 1
+    region_colors = ['#3b82f6', '#8b5cf6', '#06b6d4', '#22c55e', '#f59e0b']
+    region_bar_classes = ['bar-blue', 'bar-violet', 'bar-cyan', 'bar-green', 'bar-amber']
+    region_dist = [
+        {
+            'nombre': row['sede__nombre'] or 'Sin sede',
+            'total': row['total'],
+            'pct': int((row['total'] / region_total) * 100),
+            'dot_color': region_colors[i % len(region_colors)],
+            'bar_class': region_bar_classes[i % len(region_bar_classes)],
+        }
+        for i, row in enumerate(region_qs)
+    ]
+
+    # eNPS promedio empresa (único campo disponible en la BD)
+    enps_empresa_avg = round(
+        float(
+            Empresa.objects.exclude(enps_score__isnull=True)
+            .aggregate(avg=Avg('enps_score'))['avg'] or 0
+        ),
+        1,
+    )
+
+    # Perfil digital
     linkedin_completo = Alumno.objects.exclude(url_linkedin__isnull=True).exclude(url_linkedin='').count()
     cv_completo = Alumno.objects.exclude(url_cv__isnull=True).exclude(url_cv='').count()
     video_completo = Alumno.objects.exclude(url_youtube__isnull=True).exclude(url_youtube='').count()
+    profile_completo_count = (
+        Alumno.objects.exclude(url_linkedin__isnull=True)
+        .exclude(url_linkedin='')
+        .exclude(url_cv__isnull=True)
+        .exclude(url_cv='')
+        .exclude(url_youtube__isnull=True)
+        .exclude(url_youtube='')
+        .count()
+    )
+    profile_completo_pct = int((profile_completo_count / total_alumnos) * 100)
+    sin_perfil_completo = alumnos_count - profile_completo_count
+
     profile_data = [
         {
             'label': 'LinkedIn',
             'count': linkedin_completo,
+            'total': alumnos_count,
             'pct': int((linkedin_completo / total_alumnos) * 100),
             'stroke': '#2563eb',
             'offset': round(188.5 - (188.5 * int((linkedin_completo / total_alumnos) * 100) / 100), 1),
         },
         {
-            'label': 'CV',
+            'label': 'CV subido',
             'count': cv_completo,
+            'total': alumnos_count,
             'pct': int((cv_completo / total_alumnos) * 100),
             'stroke': '#16a34a',
             'offset': round(188.5 - (188.5 * int((cv_completo / total_alumnos) * 100) / 100), 1),
         },
         {
-            'label': 'Video',
+            'label': 'Video YouTube',
             'count': video_completo,
+            'total': alumnos_count,
             'pct': int((video_completo / total_alumnos) * 100),
-            'stroke': '#7c3aed',
+            'stroke': '#dc2626',
             'offset': round(188.5 - (188.5 * int((video_completo / total_alumnos) * 100) / 100), 1),
         },
     ]
 
-    badge_data = (
-        AlumnoBadge.objects.values('badge__nombre')
+    # Badges
+    badge_data = list(
+        AlumnoBadge.objects.values('badge__nombre', 'badge__descripcion', 'badge__icono')
         .annotate(total=Count('pk'))
         .order_by('-total')[:4]
     )
+    badge_total = AlumnoBadge.objects.count()
+    badge_tipos = AlumnoBadge.objects.values('badge').distinct().count()
+    alumnos_con_badge = AlumnoBadge.objects.values('alumno').distinct().count()
+    alumnos_sin_badge = alumnos_count - alumnos_con_badge
 
     def funnel_pct(value):
         base = postulantes_count or 1
@@ -433,9 +590,17 @@ def dashboard_view(request):
         'rubros': rubros,
         'modalidad_data': modalidad_data,
         'profile_data': profile_data,
+        'profile_completo_count': profile_completo_count,
+        'profile_completo_pct': profile_completo_pct,
+        'sin_perfil_completo': sin_perfil_completo,
         'badge_data': badge_data,
+        'badge_total': badge_total,
+        'badge_tipos': badge_tipos,
+        'alumnos_sin_badge': alumnos_sin_badge,
+        'carreras_dist': carreras_dist,
+        'region_dist': region_dist,
+        'enps_empresa_avg': enps_empresa_avg,
     }
-    
     return render(request, 'pages/dashboard.html', context)
 
 
@@ -446,23 +611,33 @@ def proyectos_view(request):
     estado_filter = (request.GET.get('estado') or '').strip().lower()
     modalidad_filter = (request.GET.get('modalidad') or '').strip().lower()
     rubro_filter = (request.GET.get('rubro') or '').strip().lower()
+    empresa_filter = (request.GET.get('empresa') or '').strip().lower()
+    carrera_filter = (request.GET.get('carrera') or '').strip().lower()
     sort_filter = (request.GET.get('sort') or 'reciente').strip().lower()
 
     base_qs = (
         Proyecto.objects.select_related('empresa', 'carrera')
         .annotate(
             postulaciones_count=Count('postulacion', distinct=True),
-            asignados_count=Count('proyectoperiodo', filter=Q(proyectoperiodo__alumno__isnull=False), distinct=True),
+            asignados_count=Count(
+                'proyectoperiodo',
+                filter=Q(proyectoperiodo__alumno__isnull=False),
+                distinct=True,
+            ),
         )
         .order_by('-created_at', 'titulo')
     )
 
     modalidad_options = _build_filter_options(base_qs.values_list('modalidad', flat=True).distinct())
     rubro_options = _build_filter_options(base_qs.values_list('empresa__rubro', flat=True).distinct())
+    empresa_options = _build_filter_options(base_qs.values_list('empresa__nombre', flat=True).distinct())
+    carrera_options = _build_filter_options(base_qs.values_list('carrera__nombre', flat=True).distinct())
     proyectos = base_qs
 
     if q:
-        proyectos = proyectos.filter(Q(titulo__icontains=q) | Q(empresa__nombre__icontains=q) | Q(carrera__nombre__icontains=q))
+        proyectos = proyectos.filter(
+            Q(titulo__icontains=q) | Q(empresa__nombre__icontains=q) | Q(carrera__nombre__icontains=q)
+        )
     if estado_filter == 'abierto':
         proyectos = proyectos.filter(is_active=True)
     elif estado_filter == 'cerrado':
@@ -471,6 +646,10 @@ def proyectos_view(request):
         proyectos = proyectos.filter(modalidad__icontains=modalidad_filter)
     if rubro_filter:
         proyectos = proyectos.filter(empresa__rubro__icontains=rubro_filter)
+    if empresa_filter:
+        proyectos = proyectos.filter(empresa__nombre__icontains=empresa_filter)
+    if carrera_filter:
+        proyectos = proyectos.filter(carrera__nombre__icontains=carrera_filter)
 
     if sort_filter == 'empresa':
         proyectos = proyectos.order_by('empresa__nombre', 'titulo')
@@ -485,15 +664,21 @@ def proyectos_view(request):
         rubro_label = p.empresa.rubro or 'Sin rubro'
         vacantes = p.vacantes or 0
         disponibles = max(vacantes - p.asignados_count, 0)
+        empresa_nombre = p.empresa.nombre or ''
+        empresa_initials = ''.join([w[0] for w in empresa_nombre.split()[:2]]).upper() or 'EM'
         rows.append(
             {
                 'id': p.id,
                 'titulo': p.titulo,
-                'empresa': p.empresa.nombre,
+                'empresa': empresa_nombre,
+                'empresa_initials': empresa_initials,
+                'empresa_logo_style': _empresa_logo_style(empresa_nombre),
+                'descripcion': (p.descripcion or '')[:200],
                 'rubro': rubro_label,
                 'rubro_class': _rubro_class(rubro_label),
                 'carrera': p.carrera.nombre if p.carrera else 'Multicarrera',
                 'modalidad': modalidad_label,
+                'modalidad_class': 'presencial' if 'presencial' in modalidad_label.lower() else 'hibrido' if 'hibrid' in modalidad_label.lower() or 'híbrid' in modalidad_label.lower() else 'remoto' if 'remoto' in modalidad_label.lower() else '',
                 'vacantes': vacantes,
                 'asignados': p.asignados_count,
                 'disponibles': disponibles,
@@ -503,9 +688,12 @@ def proyectos_view(request):
             }
         )
 
+    paginator = Paginator(rows, 25)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
     context = {
         'periodo_label': periodo_label,
-        'proyectos': rows,
+        'proyectos': page_obj.object_list,
+        'page_obj': page_obj,
         'proyectos_count': len(rows),
         'proyectos_activos': sum(1 for x in rows if x['is_active']),
         'filters': {
@@ -513,11 +701,15 @@ def proyectos_view(request):
             'estado': estado_filter,
             'modalidad': modalidad_filter,
             'rubro': rubro_filter,
+            'empresa': empresa_filter,
+            'carrera': carrera_filter,
             'sort': sort_filter,
         },
         'filter_options': {
             'modalidad': modalidad_options,
             'rubro': rubro_options,
+            'empresa': empresa_options,
+            'carrera': carrera_options,
         },
     }
     return render(request, 'pages/proyectos.html', context)
@@ -529,12 +721,18 @@ def empresas_view(request):
     q = (request.GET.get('q') or '').strip()
     rubro_filter = (request.GET.get('rubro') or '').strip().lower()
     presencia_filter = (request.GET.get('presencia') or '').strip().lower()
+    tamano_filter = (request.GET.get('tamano') or '').strip().lower()
+    campus_filter = (request.GET.get('campus') or '').strip().lower()
     sort_filter = (request.GET.get('sort') or 'practicantes').strip().lower()
 
     base_qs = (
         Empresa.objects.annotate(
             proyectos_count=Count('proyecto', distinct=True),
-            practicantes_count=Count('proyecto__proyectoperiodo', filter=Q(proyecto__proyectoperiodo__alumno__isnull=False), distinct=True),
+            practicantes_count=Count(
+                'proyecto__proyectoperiodo',
+                filter=Q(proyecto__proyectoperiodo__alumno__isnull=False),
+                distinct=True,
+            ),
             tutores_count=Count('tutorempresa', distinct=True),
         )
         .order_by('-practicantes_count', 'nombre')
@@ -542,14 +740,21 @@ def empresas_view(request):
 
     rubro_options = _build_filter_options(base_qs.values_list('rubro', flat=True).distinct())
     presencia_options = _build_filter_options(base_qs.values_list('presencia', flat=True).distinct())
+    tamano_options = _build_filter_options(base_qs.values_list('tamano', flat=True).distinct())
     empresas_qs = base_qs
 
     if q:
-        empresas_qs = empresas_qs.filter(Q(nombre__icontains=q) | Q(rubro__icontains=q) | Q(ubicacion__icontains=q))
+        empresas_qs = empresas_qs.filter(
+            Q(nombre__icontains=q) | Q(rubro__icontains=q) | Q(ubicacion__icontains=q)
+        )
     if rubro_filter:
         empresas_qs = empresas_qs.filter(rubro__icontains=rubro_filter)
     if presencia_filter:
         empresas_qs = empresas_qs.filter(presencia__icontains=presencia_filter)
+    if tamano_filter:
+        empresas_qs = empresas_qs.filter(tamano__icontains=tamano_filter)
+    if campus_filter:
+        empresas_qs = empresas_qs.filter(campus__nombre__icontains=campus_filter)
 
     if sort_filter == 'nombre':
         empresas_qs = empresas_qs.order_by('nombre')
@@ -561,13 +766,14 @@ def empresas_view(request):
     empresas = []
     for e in empresas_qs:
         rubro = e.rubro or 'Sin rubro'
-        nombre = (e.nombre or '')
+        nombre = e.nombre or ''
         initials = ''.join([p[0] for p in nombre.split()[:2]]).upper() or 'EM'
         empresas.append(
             {
                 'id': e.id,
                 'nombre': e.nombre,
                 'initials': initials,
+                'logo_style': _empresa_logo_style(nombre),
                 'rubro': rubro,
                 'rubro_class': _rubro_class(rubro),
                 'presencia': (e.presencia or 'Sin definir').title(),
@@ -577,25 +783,36 @@ def empresas_view(request):
                 'proyectos': e.proyectos_count,
                 'practicantes': e.practicantes_count,
                 'tutores': e.tutores_count,
+                'descripcion': e.descripcion or '',
+                'contacto_nombre': e.contacto_nombre or '',
+                'contacto_email': e.contacto_email or '',
+                'ubicacion': e.ubicacion or '',
+                'empleados': e.empleados_aprox or '',
             }
         )
 
     enps_avg = round(sum(item['enps'] for item in empresas) / len(empresas), 1) if empresas else 0
 
+    paginator = Paginator(empresas, 25)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
     context = {
         'periodo_label': periodo_label,
-        'empresas': empresas,
+        'empresas': page_obj.object_list,
+        'page_obj': page_obj,
         'empresas_count': len(empresas),
         'enps_avg': enps_avg,
         'filters': {
             'q': q,
             'rubro': rubro_filter,
             'presencia': presencia_filter,
+            'tamano': tamano_filter,
+            'campus': campus_filter,
             'sort': sort_filter,
         },
         'filter_options': {
             'rubro': rubro_options,
             'presencia': presencia_options,
+            'tamano': tamano_options,
         },
     }
     return render(request, 'pages/empresas.html', context)
@@ -619,7 +836,9 @@ def postulaciones_view(request):
     vacantes = base_vacantes
 
     if q:
-        vacantes = vacantes.filter(Q(titulo__icontains=q) | Q(empresa__nombre__icontains=q) | Q(carrera__nombre__icontains=q))
+        vacantes = vacantes.filter(
+            Q(titulo__icontains=q) | Q(empresa__nombre__icontains=q) | Q(carrera__nombre__icontains=q)
+        )
     if modalidad_filter:
         vacantes = vacantes.filter(modalidad__icontains=modalidad_filter)
     if estado_filter == 'abierto':
@@ -630,11 +849,15 @@ def postulaciones_view(request):
     vacantes_rows = []
     for p in vacantes:
         modalidad = (p.modalidad or 'Sin modalidad').strip().title()
+        empresa_nombre = p.empresa.nombre or ''
+        empresa_initials = ''.join([w[0] for w in empresa_nombre.split()[:2]]).upper() or 'EM'
         vacantes_rows.append(
             {
                 'id': p.id,
                 'titulo': p.titulo,
-                'empresa': p.empresa.nombre,
+                'empresa': empresa_nombre,
+                'empresa_initials': empresa_initials,
+                'logo_style': _empresa_logo_style(empresa_nombre),
                 'rubro': p.empresa.rubro or 'Sin rubro',
                 'rubro_class': _rubro_class(p.empresa.rubro),
                 'carrera': p.carrera.nombre if p.carrera else 'Multicarrera',
@@ -655,10 +878,14 @@ def postulaciones_view(request):
         )
         for p in mis_qs:
             estado_item = (p.estado or 'en_revision').strip()
+            empresa_nombre = p.proyecto.empresa.nombre or ''
+            empresa_initials = ''.join([w[0] for w in empresa_nombre.split()[:2]]).upper() or 'EM'
             mis_postulaciones.append(
                 {
                     'proyecto': p.proyecto.titulo,
-                    'empresa': p.proyecto.empresa.nombre,
+                    'empresa': empresa_nombre,
+                    'empresa_initials': empresa_initials,
+                    'logo_style': _empresa_logo_style(empresa_nombre),
                     'fecha': p.fecha_postulacion,
                     'estado': estado_item,
                 }
@@ -668,10 +895,17 @@ def postulaciones_view(request):
     if mis_estado_filter:
         mis_postulaciones = [x for x in mis_postulaciones if (x['estado'] or '').lower() == mis_estado_filter]
 
+    vacantes_abiertas = sum(1 for v in vacantes_rows if v['is_active'])
+
+    pag_vac = Paginator(vacantes_rows, 25)
+    page_obj_vacantes = pag_vac.get_page(request.GET.get('pv', 1))
+
     context = {
         'periodo_label': periodo_label,
-        'vacantes': vacantes_rows,
+        'vacantes': page_obj_vacantes.object_list,
+        'page_obj_vacantes': page_obj_vacantes,
         'vacantes_count': len(vacantes_rows),
+        'vacantes_abiertas': vacantes_abiertas,
         'mis_postulaciones': mis_postulaciones,
         'mis_postulaciones_count': len(mis_postulaciones),
         'filters': {
@@ -684,8 +918,33 @@ def postulaciones_view(request):
             'modalidad': modalidad_options,
             'mis_estado': mis_estado_options,
         },
+        'initial_tab': request.GET.get('tab', 'vacantes'),
     }
     return render(request, 'pages/postulaciones.html', context)
+
+
+def postular_view(request):
+    if request.method != 'POST':
+        return redirect('postulaciones')
+    proyecto_id = request.POST.get('proyecto_id')
+    periodo, _ = _periodo_activo()
+    alumno_ref = Alumno.objects.order_by('pk').first()
+    if proyecto_id and periodo and alumno_ref:
+        try:
+            proyecto = Proyecto.objects.get(id=proyecto_id, is_active=True)
+            Postulacion.objects.get_or_create(
+                proyecto=proyecto,
+                alumno=alumno_ref,
+                periodo=periodo,
+                defaults={
+                    'estado': 'en_revision',
+                    'fecha_postulacion': timezone.now(),
+                    'fecha_actualizacion': timezone.now(),
+                },
+            )
+        except Exception:
+            pass
+    return redirect('/postulaciones/?tab=mis')
 
 
 def alumnos_view(request):
@@ -729,10 +988,12 @@ def alumnos_view(request):
         video_ok = bool(a.url_youtube)
         profile_pct = int(((int(linkedin_ok) + int(cv_ok) + int(video_ok)) / 3) * 100)
         full_name = f"{a.id.nombre} {a.id.apellido}".strip()
+        initials = ''.join([p[0] for p in full_name.split()[:2]]).upper() or 'AL'
         alumnos.append(
             {
                 'id': str(a.id_id),
                 'nombre': full_name,
+                'initials': initials,
                 'email': a.id.email,
                 'carrera': a.carrera.nombre if a.carrera else 'Sin carrera',
                 'sede': a.sede.nombre if a.sede else 'Sin sede',
@@ -757,9 +1018,12 @@ def alumnos_view(request):
     profile_avg = round(sum(item['profile_pct'] for item in alumnos) / len(alumnos)) if alumnos else 0
     perfil_min_options = [str(pct) for pct in sorted({item['profile_pct'] for item in alumnos})]
 
+    paginator = Paginator(alumnos, 25)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
     context = {
         'periodo_label': periodo_label,
-        'alumnos': alumnos,
+        'alumnos': page_obj.object_list,
+        'page_obj': page_obj,
         'alumnos_count': len(alumnos),
         'profile_avg': profile_avg,
         'filters': {
@@ -785,7 +1049,9 @@ def bitacoras_view(request):
     estado_udd_filter = (request.GET.get('estado_udd') or '').strip().lower()
 
     base_qs = (
-        Bitacora.objects.select_related('proyecto_periodo__proyecto__empresa', 'proyecto_periodo__alumno__id')
+        Bitacora.objects.select_related(
+            'proyecto_periodo__proyecto__empresa', 'proyecto_periodo__alumno__id'
+        )
         .order_by('-created_at', '-semana')
     )
 
@@ -850,7 +1116,12 @@ def evaluaciones_view(request):
     min_nota = request.GET.get('min_nota')
 
     evaluaciones = (
-        EvaluacionHito.objects.select_related('hito', 'proyecto_periodo__proyecto', 'proyecto_periodo__alumno__id', 'evaluado_por')
+        EvaluacionHito.objects.select_related(
+            'hito',
+            'proyecto_periodo__proyecto',
+            'proyecto_periodo__alumno__id',
+            'evaluado_por',
+        )
         .order_by('-fecha_evaluacion')
     )
 
@@ -896,7 +1167,9 @@ def evaluaciones_view(request):
         acumulado = {}
         for row in rows:
             key = (row['hito'], row['semana'])
-            bucket = acumulado.setdefault(key, {'hito': row['hito'], 'semana': row['semana'], 'cantidad': 0, 'suma': 0.0})
+            bucket = acumulado.setdefault(
+                key, {'hito': row['hito'], 'semana': row['semana'], 'cantidad': 0, 'suma': 0.0}
+            )
             bucket['cantidad'] += 1
             bucket['suma'] += row['nota']
 
@@ -939,13 +1212,108 @@ def evaluaciones_view(request):
 
 def hitos_config_view(request):
     periodo, periodo_label = _periodo_activo()
+    saved_ok = False
+
+    if request.method == 'POST' and periodo:
+        action = request.POST.get('action', '')
+        if action == 'save_periodo':
+            tipo_ciclo = request.POST.get('tipo_ciclo', 'semestral').strip()
+            if tipo_ciclo in ('semestral', 'trimestral'):
+                periodo.tipo_ciclo = tipo_ciclo
+                try:
+                    periodo.save(update_fields=['tipo_ciclo'])
+                    saved_ok = True
+                except Exception:
+                    pass
+        elif action == 'save_bitacoras':
+            config, _ = ConfigEvaluacionPeriodo.objects.get_or_create(
+                periodo=periodo,
+                defaults={'peso_bitacoras_pct': 0, 'created_at': timezone.now()},
+            )
+            try:
+                peso = int(request.POST.get('peso_bitacoras', config.peso_bitacoras_pct) or 0)
+                config.peso_bitacoras_pct = max(0, min(100, peso))
+                config.metodo_calculo_bitacoras = request.POST.get('metodo_bitacoras', config.metodo_calculo_bitacoras or 'aprobadas')
+                umbral = int(request.POST.get('umbral_bitacoras', config.umbral_bitacoras_pct or 80) or 80)
+                config.umbral_bitacoras_pct = max(0, min(100, umbral))
+                config.updated_at = timezone.now()
+                config.save()
+                saved_ok = True
+            except Exception:
+                pass
+        elif action == 'save_fechas':
+            from datetime import datetime as _dt
+            fi_str = request.POST.get('fecha_inicio', '').strip()
+            ff_str = request.POST.get('fecha_fin', '').strip()
+            try:
+                fi = _dt.strptime(fi_str, '%Y-%m-%d').date()
+                ff = _dt.strptime(ff_str, '%Y-%m-%d').date()
+                if fi <= ff:
+                    periodo.fecha_inicio = fi
+                    periodo.fecha_fin = ff
+                    periodo.total_semanas = max(1, round((ff - fi).days / 7))
+                    periodo.save(update_fields=['fecha_inicio', 'fecha_fin', 'total_semanas'])
+                    saved_ok = True
+            except Exception:
+                pass
+        elif action == 'delete_hito':
+            hito_id = request.POST.get('hito_id')
+            try:
+                HitoEvaluacion.objects.filter(id=hito_id, periodo=periodo).delete()
+                saved_ok = True
+            except Exception:
+                pass
+        elif action == 'add_hito':
+            nombre = request.POST.get('nombre', '').strip()
+            try:
+                semana = int(request.POST.get('semana') or 1)
+                peso = int(request.POST.get('peso') or 0)
+                evaluador = request.POST.get('evaluador', 'tutor_udd').strip()
+                if nombre:
+                    max_ord = HitoEvaluacion.objects.filter(periodo=periodo).aggregate(Max('orden'))['orden__max'] or 0
+                    HitoEvaluacion.objects.create(
+                        periodo=periodo,
+                        nombre=nombre,
+                        semana=semana,
+                        peso_pct=max(0, min(100, peso)),
+                        evaluador=evaluador,
+                        estado='activo',
+                        orden=max_ord + 1,
+                        created_at=timezone.now(),
+                        updated_at=timezone.now(),
+                    )
+                    saved_ok = True
+            except Exception:
+                pass
+        elif action == 'edit_hito':
+            hito_id = request.POST.get('hito_id')
+            nombre = request.POST.get('nombre', '').strip()
+            try:
+                semana = int(request.POST.get('semana') or 1)
+                peso = int(request.POST.get('peso') or 0)
+                evaluador = request.POST.get('evaluador', 'tutor_udd').strip()
+                h = HitoEvaluacion.objects.get(id=hito_id, periodo=periodo)
+                if nombre:
+                    h.nombre = nombre
+                h.semana = semana
+                h.peso_pct = max(0, min(100, peso))
+                h.evaluador = evaluador
+                h.updated_at = timezone.now()
+                h.save(update_fields=['nombre', 'semana', 'peso_pct', 'evaluador', 'updated_at'])
+                saved_ok = True
+            except Exception:
+                pass
 
     estado_filter = (request.GET.get('estado') or '').strip().lower()
     evaluador_filter = (request.GET.get('evaluador') or '').strip().lower()
     q = (request.GET.get('q') or '').strip()
 
     config = ConfigEvaluacionPeriodo.objects.filter(periodo=periodo).first() if periodo else None
-    base_qs = HitoEvaluacion.objects.filter(periodo=periodo).order_by('orden', 'semana') if periodo else HitoEvaluacion.objects.none()
+    base_qs = (
+        HitoEvaluacion.objects.filter(periodo=periodo).order_by('orden', 'semana')
+        if periodo
+        else HitoEvaluacion.objects.none()
+    )
     estado_options = _build_filter_options(base_qs.values_list('estado', flat=True).distinct())
     evaluador_options = _build_filter_options(base_qs.values_list('evaluador', flat=True).distinct())
     hitos_qs = base_qs
@@ -969,10 +1337,7 @@ def hitos_config_view(request):
                 'evaluador': (h.evaluador or 'Sin definir').title(),
                 'estado': (h.estado or 'activo').title(),
                 'competencias': [
-                    {
-                        'nombre': c.nombre,
-                        'peso': c.peso_pct,
-                    }
+                    {'nombre': c.nombre, 'peso': c.peso_pct}
                     for c in competencias
                 ],
             }
@@ -981,14 +1346,23 @@ def hitos_config_view(request):
     total_peso_hitos = sum(h['peso'] for h in hitos)
     peso_bitacoras = config.peso_bitacoras_pct if config else 0
 
+    tipo_ciclo = getattr(periodo, 'tipo_ciclo', 'semestral') or 'semestral'
+    total_peso = total_peso_hitos + peso_bitacoras
+    avg_comps = round(sum(len(h['competencias']) for h in hitos) / len(hitos), 1) if hitos else 0
+
     context = {
         'periodo_label': periodo_label,
+        'periodo': periodo,
+        'tipo_ciclo': tipo_ciclo,
         'hitos': hitos,
         'hitos_count': len(hitos),
         'peso_hitos': total_peso_hitos,
         'peso_bitacoras': peso_bitacoras,
-        'metodo_bitacoras': (config.metodo_calculo_bitacoras if config else 'No configurado'),
-        'umbral_bitacoras': (config.umbral_bitacoras_pct if config else 0),
+        'total_peso': total_peso,
+        'avg_comps': avg_comps,
+        'metodo_bitacoras': (config.metodo_calculo_bitacoras if config else 'aprobadas'),
+        'umbral_bitacoras': (config.umbral_bitacoras_pct if config else 80),
+        'saved_ok': saved_ok,
         'filters': {
             'estado': estado_filter,
             'evaluador': evaluador_filter,
@@ -1004,6 +1378,51 @@ def hitos_config_view(request):
 
 def notificaciones_view(request):
     _, periodo_label = _periodo_activo()
+    sent_ok = False
+    sent_count = 0
+
+    if request.method == 'POST' and request.POST.get('action') == 'send_announcement':
+        segmento = (request.POST.get('segmento') or 'todos').strip()[:50]
+        titulo = (request.POST.get('titulo') or '').strip()[:255]
+        mensaje = (request.POST.get('mensaje') or '').strip()
+        if titulo and mensaje:
+            seg_map = {
+                'alumnos': Alumno.objects.select_related('id').all(),
+                'tutores_empresa': TutorEmpresa.objects.select_related('id').all(),
+                'tutores_udd': TutorUdd.objects.select_related('id').all(),
+            }
+            if segmento in seg_map:
+                destinatarios = [obj.id for obj in seg_map[segmento]]
+            else:
+                destinatarios = list(Usuario.objects.filter(is_active=True))
+            sent_count = len(destinatarios)
+            for dest in destinatarios:
+                try:
+                    Notificacion.objects.create(
+                        destinatario=dest,
+                        tipo='anuncio',
+                        titulo=titulo,
+                        mensaje=mensaje,
+                        leida=False,
+                        enviada=True,
+                        fecha_envio=timezone.now(),
+                        created_at=timezone.now(),
+                    )
+                except Exception:
+                    pass
+            admin_user = Usuario.objects.filter(is_active=True).order_by('created_at').first()
+            if admin_user:
+                try:
+                    RecordatorioMasivo.objects.create(
+                        enviado_por=admin_user,
+                        segmento=segmento,
+                        mensaje=f'{titulo}: {mensaje}',
+                        cantidad_envios=sent_count,
+                        fecha_envio=timezone.now(),
+                    )
+                except Exception:
+                    pass
+            sent_ok = True
 
     q = (request.GET.get('q') or '').strip()
     tipo_filter = (request.GET.get('tipo') or '').strip().lower()
@@ -1014,7 +1433,12 @@ def notificaciones_view(request):
     notis_qs = base_qs
 
     if q:
-        notis_qs = notis_qs.filter(Q(titulo__icontains=q) | Q(mensaje__icontains=q) | Q(destinatario__nombre__icontains=q) | Q(destinatario__apellido__icontains=q))
+        notis_qs = notis_qs.filter(
+            Q(titulo__icontains=q)
+            | Q(mensaje__icontains=q)
+            | Q(destinatario__nombre__icontains=q)
+            | Q(destinatario__apellido__icontains=q)
+        )
     if tipo_filter:
         notis_qs = notis_qs.filter(tipo__icontains=tipo_filter)
     if estado_filter == 'leida':
@@ -1031,7 +1455,9 @@ def notificaciones_view(request):
                 'tipo': n.tipo,
                 'titulo': n.titulo,
                 'mensaje': n.mensaje or '',
-                'destinatario': f"{n.destinatario.nombre} {n.destinatario.apellido}".strip() if n.destinatario else 'Sin destinatario',
+                'destinatario': f"{n.destinatario.nombre} {n.destinatario.apellido}".strip()
+                if n.destinatario
+                else 'Sin destinatario',
                 'leida': bool(n.leida),
                 'enviada': bool(n.enviada),
                 'fecha': n.fecha_envio or n.created_at,
@@ -1045,6 +1471,8 @@ def notificaciones_view(request):
         'notificaciones_count': len(rows),
         'no_leidas_count': sum(1 for x in rows if not x['leida']),
         'recordatorios': recordatorios,
+        'sent_ok': sent_ok,
+        'sent_count': sent_count,
         'filters': {
             'q': q,
             'tipo': tipo_filter,
@@ -1055,3 +1483,154 @@ def notificaciones_view(request):
         },
     }
     return render(request, 'pages/notificaciones.html', context)
+
+
+# ─── EXCEL IMPORT ────────────────────────��────────────────────────��─────────
+
+def excel_import_view(request):
+    import uuid
+    import openpyxl
+    from django.db import transaction
+
+    _, periodo_label = _periodo_activo()
+    results = None
+    error = None
+
+    EXPECTED_COLS = ['nombre', 'apellido', 'email', 'carrera', 'sede', 'generacion', 'numero_alumno']
+
+    if request.method == 'POST' and request.FILES.get('archivo'):
+        archivo = request.FILES['archivo']
+        try:
+            wb = openpyxl.load_workbook(archivo, data_only=True)
+            ws = wb.active
+            headers = [str(c.value or '').strip().lower() for c in ws[1]]
+
+            missing = [col for col in EXPECTED_COLS[:5] if col not in headers]
+            if missing:
+                error = f'Columnas requeridas faltantes: {", ".join(missing)}'
+            else:
+                col_idx = {h: i for i, h in enumerate(headers)}
+                created = skipped = errors_list = 0
+                detail = []
+                with transaction.atomic():
+                    for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                        def cell(name):
+                            idx = col_idx.get(name)
+                            return str(row[idx] or '').strip() if idx is not None and idx < len(row) else ''
+
+                        nombre = cell('nombre')
+                        apellido = cell('apellido')
+                        email = cell('email')
+                        carrera_nombre = cell('carrera')
+                        sede_nombre = cell('sede')
+                        generacion = cell('generacion')
+                        numero_alumno = cell('numero_alumno')
+
+                        if not nombre or not email:
+                            skipped += 1
+                            detail.append({'row': row_num, 'status': 'skip', 'msg': f'Fila {row_num}: nombre/email vacíos'})
+                            continue
+
+                        carrera_obj = None
+                        if carrera_nombre:
+                            carrera_obj = Carrera.objects.filter(nombre__icontains=carrera_nombre).first()
+
+                        sede_obj = None
+                        if sede_nombre:
+                            sede_obj = Sede.objects.filter(nombre__icontains=sede_nombre).first()
+
+                        if Usuario.objects.filter(email=email).exists():
+                            skipped += 1
+                            detail.append({'row': row_num, 'status': 'skip', 'msg': f'Fila {row_num}: email ya existe ({email})'})
+                            continue
+
+                        try:
+                            usuario = Usuario.objects.create(
+                                id=uuid.uuid4(),
+                                email=email,
+                                password_hash='',
+                                rol='alumno',
+                                nombre=nombre,
+                                apellido=apellido,
+                                is_active=True,
+                                created_at=timezone.now(),
+                                updated_at=timezone.now(),
+                            )
+                            Alumno.objects.create(
+                                id=usuario,
+                                carrera=carrera_obj,
+                                sede=sede_obj,
+                                generacion=int(generacion) if generacion.isdigit() else None,
+                                numero_alumno=numero_alumno or None,
+                                created_at=timezone.now(),
+                                updated_at=timezone.now(),
+                            )
+                            created += 1
+                            detail.append({'row': row_num, 'status': 'ok', 'msg': f'Fila {row_num}: {nombre} {apellido} ({email}) creado'})
+                        except Exception as exc:
+                            errors_list += 1
+                            detail.append({'row': row_num, 'status': 'error', 'msg': f'Fila {row_num}: error — {exc}'})
+
+                results = {
+                    'created': created,
+                    'skipped': skipped,
+                    'errors': errors_list,
+                    'total': created + skipped + errors_list,
+                    'detail': detail[:50],
+                }
+        except Exception as exc:
+            error = f'No se pudo leer el archivo: {exc}'
+
+    carreras = list(Carrera.objects.values_list('nombre', flat=True).order_by('nombre'))
+    sedes_list = list(Sede.objects.values_list('nombre', flat=True).order_by('nombre'))
+    context = {
+        'periodo_label': periodo_label,
+        'results': results,
+        'error': error,
+        'expected_cols': EXPECTED_COLS,
+        'carreras': carreras,
+        'sedes': sedes_list,
+    }
+    return render(request, 'pages/excel_import.html', context)
+
+
+# ─── BITÁCORA FILE UPLOAD ────────────────────────────────────────────────────
+
+def bitacora_upload_view(request):
+    if request.method != 'POST':
+        return redirect('bitacora')
+
+    pp_id = request.POST.get('proyecto_periodo_id')
+    semana = request.POST.get('semana')
+    archivo = request.FILES.get('archivo')
+
+    if not (pp_id and semana and archivo):
+        return redirect('bitacora')
+
+    try:
+        pp = ProyectoPeriodo.objects.get(pk=pp_id)
+        semana_int = int(semana)
+        bitacora, _ = Bitacora.objects.get_or_create(
+            proyecto_periodo=pp,
+            semana=semana_int,
+            defaults={'created_at': timezone.now()},
+        )
+        uploader = Usuario.objects.filter(is_active=True).first()
+        import mimetypes
+        mime = mimetypes.guess_type(archivo.name)[0] or 'application/octet-stream'
+        tipo = 'pdf' if 'pdf' in mime else 'imagen' if mime.startswith('image') else 'archivo'
+
+        BitacoraEvidencia.objects.create(
+            bitacora=bitacora,
+            nombre_archivo=archivo.name,
+            url=f'/media/bitacora/{pp_id}/{semana}/{archivo.name}',
+            tipo_archivo=tipo,
+            tamaño_bytes=archivo.size,
+            uploaded_by=uploader,
+            created_at=timezone.now(),
+        )
+    except Exception:
+        pass
+
+    alumno_id = request.POST.get('alumno_id', '')
+    return redirect(f'/bitacora/?alumno={alumno_id}&sem={semana}')

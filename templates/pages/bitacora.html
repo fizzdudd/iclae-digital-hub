@@ -33,10 +33,17 @@
     .week-item.active { background:var(--blue-50); border-left:3px solid var(--blue-600); }
     .week-n { font-size:13px; font-weight:700; color:var(--text-secondary); flex:1; }
     .week-item.active .week-n { color:var(--blue-800); }
+    .week-icons { display:flex; gap:3px; align-items:center; margin-left:auto; }
+    .wi { width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; flex-shrink:0; }
+    .wi-emp { background:#fee2e2; color:#991b1b; }
+    .wi-udd { background:#ede9fe; color:#5b21b6; }
+    .wi-sent { background:#f1f5f9; color:#64748b; }
+    .wi-emp.ok, .wi-udd.ok { background:#dcfce7; color:#166534; }
+    .wi-emp.warn, .wi-udd.warn { background:#fef3c7; color:#92400e; }
+    .wi-emp.bad, .wi-udd.bad { background:#ffe4e6; color:#9f1239; }
+    .wi-sent.ok { background:#dcfce7; color:#166534; }
     .week-badge { font-size:10px; font-weight:800; padding:2px 6px; border-radius:999px; background:#f1f5f9; color:#64748b; }
     .week-badge.current { background:var(--blue-100); color:var(--blue-800); }
-    .week-badge.sent { background:#dcfce7; color:#166534; }
-    .week-badge.pending { background:#fef3c7; color:#92400e; }
     .week-badge.future { background:#e2e8f0; color:#94a3b8; }
 
     .panel { display:grid; gap:14px; }
@@ -140,10 +147,12 @@
                         <span class="week-badge future">—</span>
                     {% elif week.current %}
                         <span class="week-badge current">Actual</span>
-                    {% elif week.has_sent %}
-                        <span class="week-badge sent">✓</span>
                     {% else %}
-                        <span class="week-badge pending">Pend</span>
+                        <div class="week-icons">
+                            <div class="wi wi-emp {% if week.estado_emp == 'aprobado' %}ok{% elif week.estado_emp == 'corregido' %}warn{% elif week.estado_emp == 'reprobado' %}bad{% endif %}" title="Tutor empresa: {{ week.estado_emp }}">E</div>
+                            <div class="wi wi-udd {% if week.estado_udd == 'aprobado' %}ok{% elif week.estado_udd == 'corregido' %}warn{% elif week.estado_udd == 'reprobado' %}bad{% endif %}" title="Tutor UDD: {{ week.estado_udd }}">U</div>
+                            <div class="wi wi-sent {% if week.has_sent %}ok{% endif %}" title="{% if week.has_sent %}Enviada{% else %}Pendiente{% endif %}">✓</div>
+                        </div>
                     {% endif %}
                 </a>
                 {% endfor %}
@@ -164,16 +173,26 @@
                 </div>
             </div>
 
-            <form method="post" class="card">
+            <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="semana" value="{{ selected_week }}" />
-                <div class="card-h">
-                    <div class="card-title">📝 Registro semanal</div>
-                    <div class="card-sub">{% if editable %}El alumno puede editar hasta enviar{% else %}Solo lectura para semanas enviadas o futuras{% endif %}</div>
+
+                <div class="card" style="margin-bottom:14px;">
+                    <div class="card-h">
+                        <div class="card-title">📝 Registro semanal</div>
+                        <div class="card-sub">{% if editable %}El alumno puede editar hasta enviar{% else %}Solo lectura para semanas enviadas o futuras{% endif %}</div>
+                    </div>
+                    <div class="card-b">
+                        <textarea class="log-textarea" name="texto" {% if not editable %}readonly{% endif %} placeholder="Describe brevemente las actividades que realizaste esta semana...">{{ selected_text }}</textarea>
+                        {% if editable %}<div class="hint">{{ bitacora_weekday_hint }}</div>{% endif %}
+                    </div>
                 </div>
-                <div class="card-b">
-                    <textarea class="log-textarea" name="texto" {% if not editable %}readonly{% endif %} placeholder="Describe brevemente las actividades que realizaste esta semana...">{{ selected_text }}</textarea>
-                    {% if editable %}<div class="hint">{{ bitacora_weekday_hint }}</div>{% endif %}
+
+                <div class="actions">
+                    <button class="btn btn-secondary" type="submit" name="action" value="draft">Guardar borrador</button>
+                    {% if not selected_week_has_sent and editable %}
+                    <button class="btn btn-primary" type="submit" name="action" value="send">Enviar bitácora</button>
+                    {% endif %}
                 </div>
             </form>
 
@@ -194,7 +213,20 @@
                         <div style="color:var(--text-muted);font-style:italic;">Sin archivos adjuntos.</div>
                         {% endfor %}
                     </div>
-                    <button type="button" class="btn btn-secondary" style="margin-top:10px; width:100%;">Subir archivo</button>
+                    {% if editable and project_period %}
+                    <form method="post" action="{% url 'bitacora_upload' %}" enctype="multipart/form-data" style="margin-top:10px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="proyecto_periodo_id" value="{{ project_period.pk }}">
+                        <input type="hidden" name="semana" value="{{ selected_week }}">
+                        <input type="hidden" name="alumno_id" value="{{ selected_student_id }}">
+                        <label style="display:flex;align-items:center;gap:8px;border:1px dashed var(--border);border-radius:var(--radius-md);padding:8px 12px;cursor:pointer;background:#fafbff;">
+                            <input type="file" name="archivo" id="evFile" style="display:none;" onchange="document.getElementById('evLabel').textContent=this.files[0]?.name||'Seleccionar archivo'; document.getElementById('evSubmit').disabled=!this.files.length;" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx">
+                            <span style="font-size:13px;">📎</span>
+                            <span id="evLabel" style="font-size:12.5px;color:var(--text-muted);">Seleccionar archivo...</span>
+                        </label>
+                        <button id="evSubmit" type="submit" class="btn btn-secondary" style="margin-top:8px;width:100%;" disabled>Subir archivo</button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
 
@@ -203,31 +235,40 @@
                 <div class="card-b">
                     <div class="row-grid">
                         <div class="tutor-box">
-                            <div class="avatar emp">CM</div>
+                            <div class="avatar emp">{{ tutor_empresa_initials }}</div>
                             <div>
                                 <div class="t-name">Tutor Empresa</div>
-                                <div class="t-role">Carlos Méndez</div>
+                                <div class="t-role">{{ tutor_empresa_nombre }}</div>
                             </div>
-                            <span class="t-status">Pendiente</span>
+                            <span class="t-status status-chip status-{{ selected_week_status }}">{{ selected_estado_emp }}</span>
                         </div>
                         <div class="tutor-box">
-                            <div class="avatar udd">PG</div>
+                            <div class="avatar udd">{{ tutor_udd_initials }}</div>
                             <div>
                                 <div class="t-name">Tutor UDD</div>
-                                <div class="t-role">Paulina Gómez</div>
+                                <div class="t-role">{{ tutor_udd_nombre }}</div>
                             </div>
-                            <span class="t-status">Pendiente</span>
+                            <span class="t-status status-chip status-{{ selected_week_status }}">{{ selected_estado_udd }}</span>
                         </div>
                     </div>
+                    {% if selected_feedback_emp or selected_feedback_udd %}
+                    <div style="margin-top:12px;display:grid;gap:8px;">
+                        {% if selected_feedback_emp %}
+                        <div style="background:#fff8f0;border:1px solid #fde8c8;border-radius:var(--radius-md);padding:10px 12px;">
+                            <div style="font-size:11px;font-weight:700;color:#c2621f;margin-bottom:4px;">Feedback Tutor Empresa</div>
+                            <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">{{ selected_feedback_emp }}</div>
+                        </div>
+                        {% endif %}
+                        {% if selected_feedback_udd %}
+                        <div style="background:#f5f3ff;border:1px solid #e8dff7;border-radius:var(--radius-md);padding:10px 12px;">
+                            <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:4px;">Feedback Tutor UDD</div>
+                            <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">{{ selected_feedback_udd }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
-
-            <form method="post" class="actions">
-                {% csrf_token %}
-                <input type="hidden" name="semana" value="{{ selected_week }}" />
-                <button class="btn btn-secondary" type="submit" name="action" value="draft">Guardar borrador</button>
-                <button class="btn btn-primary" type="submit" name="action" value="send">Enviar bitácora</button>
-            </form>
         </section>
     </div>
 </div>

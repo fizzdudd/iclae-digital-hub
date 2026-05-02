@@ -44,27 +44,26 @@
     <div class="section-divider-line"></div>
 </div>
 
-<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
-    <input name="q" value="{{ filters.q }}" placeholder="Buscar alumno" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
-    <select name="carrera" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Carrera: todas</option>
+<form method="get" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;" data-auto-submit="true" data-auto-submit-text="true">
+    <input name="q" value="{{ filters.q }}" placeholder="Buscar alumno..." style="height:36px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 12px;font-family:inherit;font-size:13px;min-width:200px;" />
+    <select name="carrera" onchange="this.form.submit()" style="height:36px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;font-size:13px;">
+        <option value="">Carrera</option>
         {% for option in filter_options.carrera %}
         <option value="{{ option.value }}" {% if filters.carrera == option.value %}selected{% endif %}>{{ option.label }}</option>
         {% endfor %}
     </select>
-    <select name="sede" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Sede: todas</option>
+    <select name="sede" onchange="this.form.submit()" style="height:36px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;font-size:13px;">
+        <option value="">Sede</option>
         {% for option in filter_options.sede %}
         <option value="{{ option.value }}" {% if filters.sede == option.value %}selected{% endif %}>{{ option.label }}</option>
         {% endfor %}
     </select>
-    <select name="perfil_min" onchange="this.form.submit()" style="width:140px;height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Perfil min: cualquiera</option>
-        {% for pct in filter_options.perfil_min %}
-        <option value="{{ pct }}" {% if filters.perfil_min == pct %}selected{% endif %}>Desde {{ pct }}%</option>
-        {% endfor %}
-    </select>
-    <a href="?" class="ok no" style="text-decoration:none;border:1px solid #fecaca;">Limpiar filtros</a>
+    {% if filters.q or filters.carrera or filters.sede %}
+    <a href="?" style="height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;border-radius:var(--radius-md);border:1.5px solid #fca5a5;background:#fff1f2;color:#dc2626;font-size:12.5px;font-weight:700;text-decoration:none;transition:background .15s;">
+        <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        Limpiar
+    </a>
+    {% endif %}
 </form>
 
 <div class="head">
@@ -109,4 +108,12 @@
         </tbody>
     </table>
 </div>
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:16px;">
+    {% if page_obj.has_previous %}<a href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.previous_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">‹</a>{% endif %}
+    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--blue-600);background:var(--blue-600);border-radius:var(--radius-md);font-size:13px;font-weight:700;display:inline-flex;align-items:center;color:#fff;">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ num }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">{{ num }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.next_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">›</a>{% endif %}
+    <span style="font-size:12px;color:var(--text-muted);margin-left:6px;">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ alumnos_count }}</span>
+</div>
+{% endif %}
 {% endblock %}

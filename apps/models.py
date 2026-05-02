@@ -127,6 +127,9 @@ class Empresa(models.Model):
     campus = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     is_active = models.BooleanField(blank=True, null=True)
     enps_score = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
+    descripcion = models.TextField(blank=True, null=True)
+    contacto_nombre = models.CharField(max_length=150, blank=True, null=True)
+    contacto_email = models.CharField(max_length=254, blank=True, null=True)
     created_at = models.DateTimeField(blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
 
@@ -188,6 +191,7 @@ class PeriodoAcademico(models.Model):
     fecha_fin = models.DateField()
     total_semanas = models.IntegerField()
     is_active = models.BooleanField(blank=True, null=True)
+    tipo_ciclo = models.CharField(max_length=20, blank=True, null=True, default='semestral')
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:

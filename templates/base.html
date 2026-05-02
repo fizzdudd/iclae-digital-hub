@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; }
+        input, select, textarea, button { outline: none; }
+        input:focus, select:focus, textarea:focus { outline: none; box-shadow: none; }
 
         :root {
             --sidebar-width: 220px;
@@ -225,12 +227,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         (function () {
+            // Restore scroll position after auto-submit filter reload
+            const scrollKey = '_asl_' + location.pathname;
+            const savedY = sessionStorage.getItem(scrollKey);
+            if (savedY !== null) {
+                window.scrollTo(0, parseInt(savedY, 10));
+                sessionStorage.removeItem(scrollKey);
+            }
+
             const forms = document.querySelectorAll('form[data-auto-submit="true"]');
             forms.forEach((form) => {
-                const submitForm = () => form.requestSubmit();
+                const submitForm = () => {
+                    sessionStorage.setItem('_asl_' + location.pathname, window.scrollY);
+                    form.requestSubmit();
+                };
 
                 form.querySelectorAll('select,input[type="checkbox"],input[type="radio"],input[type="date"],input[type="number"]').forEach((control) => {
-                    control.addEventListener('change', submitForm);
+                    // Skip controls that already have an inline onchange to avoid double-submit
+                    if (!control.getAttribute('onchange')) {
+                        control.addEventListener('change', submitForm);
+                    } else {
+                        // Override inline handler so scroll is preserved
+                        control.setAttribute('onchange', '');
+                        control.addEventListener('change', submitForm);
+                    }
                 });
 
                 if (form.dataset.autoSubmitText === 'true') {

@@ -42,11 +42,66 @@
 </style>
 {% endblock %}
 
+{% block extra_css %}{{ block.super }}
+<style>
+    .compose-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:16px; }
+    .compose-h { padding:13px 16px; border-bottom:1px solid var(--border); background:#f8fafc; display:flex; align-items:center; justify-content:space-between; }
+    .compose-title { font-size:14px; font-weight:800; }
+    .compose-b { padding:14px 16px 16px; display:grid; gap:10px; }
+    .field-row { display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; }
+    .field-label { font-size:12px; font-weight:700; color:var(--text-muted); }
+    .field-input { height:36px; border:1px solid var(--border); border-radius:var(--radius-md); padding:0 10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; }
+    .field-textarea { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; min-height:80px; resize:vertical; }
+    .compose-actions { display:flex; justify-content:flex-end; gap:8px; }
+    .btn-send { height:38px; padding:0 20px; border:none; border-radius:var(--radius-md); background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+    .success-banner { padding:10px 14px; background:#dcfce7; border:1px solid #bbf7d0; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:#166534; margin-bottom:12px; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="section-divider">
     <div class="section-divider-line"></div>
     <div class="section-divider-text">🔔 Comunicaciones, alertas y recordatorios</div>
     <div class="section-divider-line"></div>
+</div>
+
+{% if sent_ok %}
+<div class="success-banner">✅ Anuncio enviado correctamente a {{ sent_count }} destinatario{{ sent_count|pluralize }}.</div>
+{% endif %}
+
+<div class="compose-card">
+    <div class="compose-h">
+        <div class="compose-title">📣 Enviar anuncio</div>
+        <span style="font-size:12px;color:var(--text-muted);">Se registra en recordatorios masivos</span>
+    </div>
+    <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="send_announcement">
+        <div class="compose-b">
+            <div class="field-row">
+                <label class="field-label">Segmento destino</label>
+                <select name="segmento" class="field-input">
+                    <option value="todos">Todos los usuarios</option>
+                    <option value="alumnos">Solo alumnos</option>
+                    <option value="tutores_empresa">Tutores empresa</option>
+                    <option value="tutores_udd">Tutores UDD</option>
+                </select>
+            </div>
+            <div class="field-row">
+                <label class="field-label">Asunto</label>
+                <input type="text" name="titulo" class="field-input" placeholder="Ej: Recordatorio entrega bitácora" required maxlength="255">
+            </div>
+            <div class="field-row" style="align-items:flex-start;">
+                <label class="field-label" style="padding-top:8px;">Mensaje</label>
+                <textarea name="mensaje" class="field-textarea" placeholder="Escribe el mensaje del anuncio..." required></textarea>
+            </div>
+        </div>
+        <div style="padding:0 16px 14px;">
+            <div class="compose-actions">
+                <button type="submit" class="btn-send">📤 Enviar anuncio</button>
+            </div>
+        </div>
+    </form>
 </div>
 
 <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">

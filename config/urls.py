@@ -23,7 +23,7 @@ urlpatterns = [
     # Dashboard
     path('', views.dashboard_view, name='dashboard'),
 
-    # Vistas principales conectadas a datos reales
+    # Vistas principales
     path('proyectos/', views.proyectos_view, name='proyectos'),
     path('alumnos/', views.alumnos_view, name='alumnos'),
     path('empresas/', views.empresas_view, name='empresas'),
@@ -33,4 +33,9 @@ urlpatterns = [
     path('evaluaciones/', views.evaluaciones_view, name='evaluaciones'),
     path('hitos-config/', views.hitos_config_view, name='hitos_config'),
     path('notificaciones/', views.notificaciones_view, name='notificaciones'),
+
+    # Nuevas vistas
+    path('importar-usuarios/', views.excel_import_view, name='excel_import'),
+    path('postular/', views.postular_view, name='postular'),
+    path('bitacora/upload/', views.bitacora_upload_view, name='bitacora_upload'),
 ]

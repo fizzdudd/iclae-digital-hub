@@ -5,34 +5,70 @@
 
 {% block extra_css %}
 <style>
-    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
-    .section-divider-line { height:1px; background: var(--border); flex:1; }
-    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
+    .section-divider { display:flex; align-items:center; gap:12px; margin:8px 0 16px; }
+    .section-divider-line { height:1px; background:var(--border); flex:1; }
+    .section-divider-text { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.7px; font-weight:700; }
 
-    .filters { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
-    .filters input[type="text"] {
-        width: 320px;
-        max-width: 100%;
-    }
-    .filter-chip {
-        border:1px solid var(--border);
-        background:#fff;
-        border-radius:999px;
-        padding:6px 12px;
-        font-size:12px;
-        color:var(--text-secondary);
-        box-shadow:var(--shadow-sm);
-    }
-    .kpi-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:12px; margin-bottom:16px; }
-    .kpi {
-        border:1px solid var(--border);
-        background:var(--card-bg);
-        border-radius:var(--radius-lg);
-        padding:14px 16px;
-        box-shadow:var(--shadow-sm);
-        position:relative;
-        overflow:hidden;
-    }
+    /* ── FILTER TOP ROW ── */
+    .filters-top-row { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+    .search-wrap { position:relative; max-width:260px; flex-shrink:0; }
+    .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; font-size:14px; }
+    .search-input { width:260px; height:38px; padding:0 12px 0 36px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:13px; font-family:inherit; color:var(--text-primary); transition:border-color 0.15s; }
+    .search-input:focus { outline:none; border-color:var(--blue-600); }
+    .results-meta { font-size:12.5px; color:var(--text-muted); margin-left:auto; white-space:nowrap; }
+    .sort-select { height:38px; padding:0 30px 0 12px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:12.5px; font-family:inherit; color:var(--text-secondary); cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; }
+    .clear-btn { height:38px; padding:0 14px; border-radius:var(--radius-md); border:1.5px solid #fca5a5; background:#fff1f2; font-size:12.5px; font-weight:600; color:#dc2626; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px; text-decoration:none; transition:background 0.15s; }
+    .clear-btn:hover { background:#fee2e2; }
+
+    /* ── FILTER PANEL ── */
+    .filters-panel { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:16px; box-shadow:var(--shadow-sm); }
+    .frow { display:flex; align-items:center; gap:12px; padding:11px 18px; border-bottom:1px solid var(--border); }
+    .frow:last-child { border-bottom:none; }
+    .frow.row-rubro { background:#ddeaff; }
+    .frow.row-bottom { padding:0; display:grid; grid-template-columns:1fr 1fr 1fr 1fr; border-bottom:none; }
+    .fsub { display:flex; flex-direction:column; gap:8px; padding:11px 16px; }
+    .fsub.sub-empresa { background:#fff8f0; border-right:1px solid #fde8c8; }
+    .fsub.sub-carrera { background:#f0fff8; border-right:1px solid #c8fde0; }
+    .fsub.sub-modalidad { background:#fff; border-right:1px solid var(--border); }
+    .fsub.sub-estado { background:#fff; }
+    .fsub-header { display:flex; align-items:center; gap:6px; }
+    .fsub-icon { font-size:13px; }
+    .fsub-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; }
+    .frow.row-rubro .fsub-label { color:#3b5fc0; }
+    .fsub.sub-empresa .fsub-label { color:#c2621f; }
+    .fsub.sub-carrera .fsub-label { color:#15803d; }
+    .fsub.sub-modalidad .fsub-label { color:#7c3aed; }
+    .fsub.sub-estado .fsub-label { color:#be185d; }
+    .fchips { display:flex; gap:6px; flex-wrap:wrap; }
+    .fchip { padding:5px 12px; border-radius:20px; border:1.5px solid rgba(0,0,0,0.1); background:rgba(255,255,255,0.75); font-size:12px; font-weight:500; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+    .fchip:hover { background:#fff; border-color:rgba(0,0,0,0.2); color:var(--text-primary); }
+    /* Active rubro */
+    .fchip.active[data-rubro="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
+    .fchip.active[data-rubro="banca"] { background:var(--blue-100); border-color:#93c5fd; color:var(--blue-800); font-weight:600; }
+    .fchip.active[data-rubro="fintech"] { background:var(--green-100); border-color:#86efac; color:var(--green-800); font-weight:600; }
+    .fchip.active[data-rubro="retail"] { background:#ffe4e6; border-color:#fda4af; color:#9f1239; font-weight:600; }
+    .fchip.active[data-rubro="energia"] { background:#cffafe; border-color:#67e8f9; color:#155e75; font-weight:600; }
+    .fchip.active[data-rubro="hrtech"] { background:#fef3c7; border-color:#fcd34d; color:#92400e; font-weight:600; }
+    .fchip.active[data-rubro="tecnologia"] { background:#d1fae5; border-color:#6ee7b7; color:#065f46; font-weight:600; }
+    .fchip.active[data-rubro="insurtech"] { background:#ede9fe; border-color:#c4b5fd; color:#5b21b6; font-weight:600; }
+    /* Active empresa / carrera */
+    .fchip.active[data-empresa] { background:#fff3e0; border-color:#ffcc80; color:#e65100; font-weight:600; }
+    .fchip.active[data-empresa="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
+    .fchip.active[data-carrera] { background:#e8f5e9; border-color:#a5d6a7; color:#2e7d32; font-weight:600; }
+    .fchip.active[data-carrera="todas"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
+    /* Active modalidad */
+    .fchip.active[data-modalidad="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
+    .fchip.active[data-modalidad="presencial"] { background:var(--green-100); border-color:#86efac; color:var(--green-800); font-weight:600; }
+    .fchip.active[data-modalidad="hibrido"] { background:var(--blue-100); border-color:#93c5fd; color:var(--blue-800); font-weight:600; }
+    .fchip.active[data-modalidad="remoto"] { background:#ede9fe; border-color:#c4b5fd; color:#5b21b6; font-weight:600; }
+    /* Active estado */
+    .fchip.active[data-estado="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
+    .fchip.active[data-estado="abierto"] { background:var(--green-100); border-color:#86efac; color:var(--green-800); font-weight:600; }
+    .fchip.active[data-estado="cerrado"] { background:#f1f5f9; border-color:#94a3b8; color:#475569; font-weight:600; }
+
+    /* ── KPI GRID ── */
+    .kpi-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+    .kpi { border:1px solid var(--border); background:var(--card-bg); border-radius:var(--radius-lg); padding:14px 16px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
     .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
     .kpi-grid .kpi:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
     .kpi-grid .kpi:nth-child(2)::before { background:linear-gradient(90deg,#16a34a,#4ade80); }
@@ -41,52 +77,61 @@
     .kpi-value { font-size:30px; font-weight:700; line-height:1; margin-top:8px; }
     .kpi-sub { font-size:12px; color:var(--text-secondary); margin-top:4px; }
 
-    .table-wrap { border:1px solid var(--border); border-radius:var(--radius-lg); background:#fff; box-shadow:var(--shadow-sm); overflow:hidden; }
-    table { width:100%; border-collapse: collapse; }
-    th { padding:11px 14px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); background:#f8fafc; border-bottom:1px solid var(--border); }
-    td { padding:13px 14px; border-bottom:1px solid #f1f5f9; font-size:13px; }
-    tr:last-child td { border-bottom:none; }
-    tr:hover td { background:#f8fbff; }
+    /* ── PROJECTS TABLE ── */
+    .projects-table { background:var(--card-bg); border-radius:var(--radius-lg); border:1px solid var(--border); box-shadow:var(--shadow-sm); overflow:hidden; }
+    .table-header { display:grid; grid-template-columns:44px 1fr 110px 140px 95px 90px 85px 100px; align-items:center; gap:10px; padding:10px 20px; background:#f8fafc; border-bottom:1.5px solid var(--border); }
+    .th { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+    .project-row { display:grid; grid-template-columns:44px 1fr 110px 140px 95px 90px 85px 100px; align-items:center; gap:10px; padding:13px 20px; transition:background 0.12s; border-bottom:1px solid #f8fafc; position:relative; }
+    .project-row:last-child { border-bottom:none; }
+    .project-row:hover { background:#f8fbff; }
+    .project-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:var(--blue-600); transition:width 0.15s; }
+    .project-row:hover::before { width:3px; }
+    .project-row.hidden { display:none; }
 
-    .title-main { font-size:14px; font-weight:700; color:var(--text-primary); }
-    .title-sub { font-size:11.5px; color:var(--text-muted); margin-top:3px; }
-    .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; border-radius:999px; padding:3px 9px; font-weight:600; }
-    .dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
-    .pill.banca { background:var(--blue-100); color:var(--blue-800); }
-    .pill.banca .dot { background:#2563eb; }
-    .pill.fintech { background:#dcfce7; color:#166534; }
-    .pill.fintech .dot { background:#16a34a; }
-    .pill.tecnologia { background:#d1fae5; color:#065f46; }
-    .pill.tecnologia .dot { background:#10b981; }
-    .pill.retail { background:#ffe4e6; color:#9f1239; }
-    .pill.retail .dot { background:#e11d48; }
-    .pill.energia { background:#cffafe; color:#155e75; }
-    .pill.energia .dot { background:#0891b2; }
-    .pill.insurtech { background:#ede9fe; color:#5b21b6; }
-    .pill.insurtech .dot { background:#7c3aed; }
-    .pill.hrtech { background:#fef3c7; color:#92400e; }
-    .pill.hrtech .dot { background:#d97706; }
-    .pill.default { background:#f1f5f9; color:#475569; }
-    .pill.default .dot { background:#94a3b8; }
+    .empresa-logo { width:38px; height:38px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; letter-spacing:-0.5px; }
+    .col-title { min-width:0; }
+    .project-title { font-size:14px; font-weight:700; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px; }
+    .project-empresa { font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:5px; }
 
-    .tag { font-size:11px; border-radius:999px; padding:3px 9px; font-weight:700; }
-    .tag.abierto { background:#dcfce7; color:#166534; }
-    .tag.cerrado { background:#fee2e2; color:#991b1b; }
+    .badge { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px; }
+    .badge-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .dot-banca { background:#3b82f6; }
+    .dot-fintech { background:#22c55e; }
+    .dot-tecnologia { background:#10b981; }
+    .dot-retail { background:#f43f5e; }
+    .dot-energia { background:#06b6d4; }
+    .dot-insurtech { background:#8b5cf6; }
+    .dot-hrtech { background:#f59e0b; }
+    .dot-default { background:#94a3b8; }
+    .rubro-banca { background:var(--blue-100); color:var(--blue-800); }
+    .rubro-fintech { background:var(--green-100); color:var(--green-800); }
+    .rubro-tecnologia { background:#d1fae5; color:#065f46; }
+    .rubro-retail { background:#ffe4e6; color:#9f1239; }
+    .rubro-energia { background:#cffafe; color:#155e75; }
+    .rubro-insurtech { background:#ede9fe; color:#5b21b6; }
+    .rubro-hrtech { background:#fef3c7; color:#92400e; }
+    .rubro-default { background:#f1f5f9; color:#475569; }
 
-    .btn-postular {
-        border:none;
-        border-radius:var(--radius-md);
-        height:30px;
-        padding:0 12px;
-        color:#fff;
-        font-size:12px;
-        font-weight:700;
-        background:linear-gradient(135deg,#2563eb,#1d4ed8);
-        box-shadow:0 2px 8px rgba(37,99,235,0.25);
+    .badge-presencial { background:var(--green-100); color:var(--green-800); }
+    .badge-hibrido { background:var(--blue-100); color:var(--blue-800); }
+    .badge-remoto { background:#ede9fe; color:#5b21b6; }
+    .badge-modalidad { background:#f1f5f9; color:#64748b; }
+    .badge-abierto { background:var(--green-100); color:var(--green-800); }
+    .badge-cerrado { background:#f1f5f9; color:#64748b; }
+
+    .btn-postular { height:32px; padding:0 14px; border-radius:var(--radius-md); border:none; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; box-shadow:0 2px 6px rgba(37,99,235,0.25); transition:all 0.15s; }
+    .btn-postular:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); box-shadow:0 4px 12px rgba(37,99,235,0.35); }
+    .btn-cerrado { height:32px; padding:0 14px; border-radius:var(--radius-md); border:none; background:#f1f5f9; color:#64748b; font-size:12px; font-weight:600; cursor:default; font-family:inherit; }
+
+    .empty-row { padding:32px 20px; text-align:center; color:var(--text-muted); font-size:13px; }
+
+    @media (max-width:960px) {
+        .kpi-grid { grid-template-columns:1fr; }
+        .table-header { display:none; }
+        .project-row { grid-template-columns:44px 1fr; }
+        .project-row > *:not(:nth-child(1)):not(:nth-child(2)) { grid-column:2; }
+        .frow.row-bottom { grid-template-columns:1fr 1fr; }
     }
-    .btn-cerrado { border:none; border-radius:var(--radius-md); height:30px; padding:0 12px; color:#64748b; font-size:12px; font-weight:700; background:#f1f5f9; }
-
-    @media (max-width: 900px) { .kpi-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
@@ -97,32 +142,83 @@
     <div class="section-divider-line"></div>
 </div>
 
-<form method="get" class="filters" style="margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
-    <input name="q" value="{{ filters.q }}" placeholder="Buscar proyecto o empresa" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
-    <select name="estado" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Estado: todos</option>
-        <option value="abierto" {% if filters.estado == 'abierto' %}selected{% endif %}>Abierto</option>
-        <option value="cerrado" {% if filters.estado == 'cerrado' %}selected{% endif %}>Cerrado</option>
-    </select>
-    <select name="modalidad" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Modalidad: todas</option>
-        {% for option in filter_options.modalidad %}
-        <option value="{{ option.value }}" {% if filters.modalidad == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    <select name="rubro" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Rubro: todos</option>
-        {% for option in filter_options.rubro %}
-        <option value="{{ option.value }}" {% if filters.rubro == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    <select name="sort" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="reciente" {% if filters.sort == 'reciente' %}selected{% endif %}>Mas recientes</option>
-        <option value="empresa" {% if filters.sort == 'empresa' %}selected{% endif %}>Empresa</option>
-        <option value="postulaciones" {% if filters.sort == 'postulaciones' %}selected{% endif %}>Postulaciones</option>
-        <option value="vacantes" {% if filters.sort == 'vacantes' %}selected{% endif %}>Vacantes</option>
-    </select>
-    <a href="?" class="filter-chip" style="text-decoration:none;">Limpiar filtros</a>
+<form id="filterForm" method="get">
+    <input type="hidden" id="hRubro" name="rubro" value="{{ filters.rubro }}">
+    <input type="hidden" id="hEstado" name="estado" value="{{ filters.estado }}">
+    <input type="hidden" id="hModalidad" name="modalidad" value="{{ filters.modalidad }}">
+    <input type="hidden" id="hEmpresa" name="empresa" value="{{ filters.empresa }}">
+    <input type="hidden" id="hCarrera" name="carrera" value="{{ filters.carrera }}">
+    <input type="hidden" id="hSort" name="sort" value="{{ filters.sort }}">
+
+    <div class="filters-top-row">
+        <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" type="text" name="q" value="{{ filters.q }}" placeholder="Buscar proyecto o empresa..." oninput="scheduleSearch()">
+        </div>
+        <span class="results-meta">{{ proyectos_count }} proyecto{{ proyectos_count|pluralize }}</span>
+        {% if filters.q or filters.rubro or filters.estado or filters.modalidad or filters.empresa or filters.carrera %}
+        <a href="?" class="clear-btn">✕ Limpiar filtros</a>
+        {% endif %}
+        <select class="sort-select" onchange="setSort(this.value)">
+            <option value="reciente" {% if filters.sort == 'reciente' or not filters.sort %}selected{% endif %}>Más recientes</option>
+            <option value="empresa" {% if filters.sort == 'empresa' %}selected{% endif %}>Por empresa</option>
+            <option value="postulaciones" {% if filters.sort == 'postulaciones' %}selected{% endif %}>Mayor postulaciones</option>
+            <option value="vacantes" {% if filters.sort == 'vacantes' %}selected{% endif %}>Mayor vacantes</option>
+        </select>
+    </div>
+
+    <div class="filters-panel">
+        <!-- Rubro -->
+        <div class="frow row-rubro">
+            <div class="fsub-header"><span class="fsub-icon">🏭</span><span class="fsub-label" style="color:#3b5fc0;">Rubro</span></div>
+            <div style="width:1px;height:20px;background:rgba(59,95,192,0.2);flex-shrink:0;"></div>
+            <div class="fchips">
+                <button type="button" class="fchip {% if not filters.rubro %}active{% endif %}" data-rubro="todos" onclick="setF('rubro','todos',this)">Todos</button>
+                <button type="button" class="fchip {% if filters.rubro == 'banca' %}active{% endif %}" data-rubro="banca" onclick="setF('rubro','banca',this)"><span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;flex-shrink:0;"></span>Banca</button>
+                <button type="button" class="fchip {% if filters.rubro == 'fintech' %}active{% endif %}" data-rubro="fintech" onclick="setF('rubro','fintech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;"></span>Fintech</button>
+                <button type="button" class="fchip {% if filters.rubro == 'retail' %}active{% endif %}" data-rubro="retail" onclick="setF('rubro','retail',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f43f5e;display:inline-block;flex-shrink:0;"></span>Retail</button>
+                <button type="button" class="fchip {% if filters.rubro == 'energia' %}active{% endif %}" data-rubro="energia" onclick="setF('rubro','energia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;display:inline-block;flex-shrink:0;"></span>Energía</button>
+                <button type="button" class="fchip {% if filters.rubro == 'hrtech' %}active{% endif %}" data-rubro="hrtech" onclick="setF('rubro','hrtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;flex-shrink:0;"></span>HR Tech</button>
+                <button type="button" class="fchip {% if filters.rubro == 'tecnologia' %}active{% endif %}" data-rubro="tecnologia" onclick="setF('rubro','tecnologia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;flex-shrink:0;"></span>Tecnología</button>
+                <button type="button" class="fchip {% if filters.rubro == 'insurtech' %}active{% endif %}" data-rubro="insurtech" onclick="setF('rubro','insurtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#8b5cf6;display:inline-block;flex-shrink:0;"></span>InsurTech</button>
+            </div>
+        </div>
+
+        <!-- Modalidad / Estado / Empresa / Carrera como selects compactos -->
+        <div class="frow" style="gap:10px;flex-wrap:wrap;">
+            <div class="fsub sub-modalidad" style="flex:none;">
+                <div class="fsub-header"><span class="fsub-icon">💼</span><span class="fsub-label">Modalidad</span></div>
+                <div class="fchips">
+                    <button type="button" class="fchip {% if not filters.modalidad %}active{% endif %}" onclick="setF('modalidad','todos',this)">Todas</button>
+                    <button type="button" class="fchip {% if filters.modalidad == 'presencial' %}active{% endif %}" onclick="setF('modalidad','presencial',this)">Presencial</button>
+                    <button type="button" class="fchip {% if filters.modalidad == 'hibrido' or filters.modalidad == 'híbrido' %}active{% endif %}" onclick="setF('modalidad','hibrido',this)">Híbrido</button>
+                    <button type="button" class="fchip {% if filters.modalidad == 'remoto' %}active{% endif %}" onclick="setF('modalidad','remoto',this)">Remoto</button>
+                </div>
+            </div>
+            <div class="fsub sub-estado" style="flex:none;">
+                <div class="fsub-header"><span class="fsub-icon">📌</span><span class="fsub-label">Estado</span></div>
+                <div class="fchips">
+                    <button type="button" class="fchip {% if not filters.estado %}active{% endif %}" onclick="setF('estado','todos',this)">Todos</button>
+                    <button type="button" class="fchip {% if filters.estado == 'abierto' %}active{% endif %}" onclick="setF('estado','abierto',this)">Abierto</button>
+                    <button type="button" class="fchip {% if filters.estado == 'cerrado' %}active{% endif %}" onclick="setF('estado','cerrado',this)">Cerrado</button>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
+                <select onchange="setF('empresa',this.value,this)" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;font-size:12.5px;max-width:200px;">
+                    <option value="todos">Empresa</option>
+                    {% for opt in filter_options.empresa %}
+                    <option value="{{ opt.value }}" {% if filters.empresa == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+                <select onchange="setF('carrera',this.value,this)" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;font-size:12.5px;max-width:200px;">
+                    <option value="todas">Carrera</option>
+                    {% for opt in filter_options.carrera %}
+                    <option value="{{ opt.value }}" {% if filters.carrera == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
 </form>
 
 <div class="kpi-grid">
@@ -137,51 +233,96 @@
         <div class="kpi-sub">Recibiendo postulaciones</div>
     </div>
     <div class="kpi">
-        <div class="kpi-label">Periodo</div>
+        <div class="kpi-label">Período</div>
         <div class="kpi-value" style="font-size:24px;">{{ periodo_label }}</div>
-        <div class="kpi-sub">Configuracion vigente</div>
+        <div class="kpi-sub">Configuración vigente</div>
     </div>
 </div>
 
-<div class="table-wrap">
-    <table>
-        <thead>
-            <tr>
-                <th>Proyecto</th>
-                <th>Rubro</th>
-                <th>Carrera</th>
-                <th>Modalidad</th>
-                <th>Vacantes</th>
-                <th>Postulaciones</th>
-                <th>Estado</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in proyectos %}
-            <tr>
-                <td>
-                    <div class="title-main">{{ p.titulo }}</div>
-                    <div class="title-sub">{{ p.empresa }}</div>
-                </td>
-                <td><span class="pill {{ p.rubro_class }}"><span class="dot"></span>{{ p.rubro }}</span></td>
-                <td>{{ p.carrera }}</td>
-                <td>{{ p.modalidad }}</td>
-                <td>{{ p.asignados }}/{{ p.vacantes }} · disp. {{ p.disponibles }}</td>
-                <td>{{ p.postulaciones }}</td>
-                <td><span class="tag {% if p.is_active %}abierto{% else %}cerrado{% endif %}">{{ p.estado }}</span></td>
-                <td>
-                    {% if p.is_active %}
-                    <button class="btn-postular">Postular</button>
-                    {% else %}
-                    <button class="btn-cerrado">Cerrado</button>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="8" style="color:var(--text-muted);">No hay proyectos para mostrar.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="projects-table" id="projectsTable">
+    <div class="table-header">
+        <div></div>
+        <div class="th">Proyecto</div>
+        <div class="th">Rubro</div>
+        <div class="th">Modalidad</div>
+        <div class="th">Vacantes</div>
+        <div class="th">Postulac.</div>
+        <div class="th">Estado</div>
+        <div class="th"></div>
+    </div>
+
+    {% for p in proyectos %}
+    <div class="project-row">
+        <div class="empresa-logo" style="{{ p.empresa_logo_style }}">{{ p.empresa_initials }}</div>
+        <div class="col-title">
+            <div class="project-title" title="{{ p.titulo }}">{{ p.titulo }}</div>
+            <div class="project-empresa">{{ p.empresa }}</div>
+        </div>
+        <div>
+            <span class="badge rubro-{{ p.rubro_class }}">
+                <span class="badge-dot dot-{{ p.rubro_class }}"></span>
+                {{ p.rubro }}
+            </span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">{{ p.carrera }}</div>
+        </div>
+        <div>
+            <span class="badge {% if p.modalidad_class %}badge-{{ p.modalidad_class }}{% else %}badge-modalidad{% endif %}">
+                {{ p.modalidad }}
+            </span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);">
+            {{ p.asignados }}/{{ p.vacantes }}
+            <span style="font-size:11px;font-weight:500;color:var(--text-muted);display:block;">{{ p.disponibles }} disp.</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);">{{ p.postulaciones }}</div>
+        <div>
+            <span class="badge {% if p.is_active %}badge-abierto{% else %}badge-cerrado{% endif %}">
+                {{ p.estado }}
+            </span>
+        </div>
+        <div>
+            {% if p.is_active %}
+            <button class="btn-postular">Postular</button>
+            {% else %}
+            <button class="btn-cerrado" disabled>Cerrado</button>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-row">No hay proyectos para mostrar con los filtros seleccionados.</div>
+    {% endfor %}
 </div>
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:16px;">
+    {% if page_obj.has_previous %}<a href="?rubro={{ filters.rubro }}&estado={{ filters.estado }}&modalidad={{ filters.modalidad }}&q={{ filters.q }}&page={{ page_obj.previous_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">‹</a>{% endif %}
+    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--blue-600);background:var(--blue-600);border-radius:var(--radius-md);font-size:13px;font-weight:700;display:inline-flex;align-items:center;color:#fff;">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a href="?rubro={{ filters.rubro }}&estado={{ filters.estado }}&modalidad={{ filters.modalidad }}&q={{ filters.q }}&page={{ num }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">{{ num }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a href="?rubro={{ filters.rubro }}&estado={{ filters.estado }}&modalidad={{ filters.modalidad }}&q={{ filters.q }}&page={{ page_obj.next_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">›</a>{% endif %}
+    <span style="font-size:12px;color:var(--text-muted);margin-left:6px;">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ proyectos_count }}</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setF(type, val, el) {
+    const inputMap = { rubro:'hRubro', estado:'hEstado', modalidad:'hModalidad', empresa:'hEmpresa', carrera:'hCarrera' };
+    const inputId = inputMap[type];
+    if (!inputId) return;
+    const clearVals = { empresa:'todos', carrera:'todas' };
+    const isEmpty = (val === 'todos' || val === 'todas');
+    document.getElementById(inputId).value = isEmpty ? '' : val;
+    document.getElementById('filterForm').submit();
+}
+
+function setSort(val) {
+    document.getElementById('hSort').value = val;
+    document.getElementById('filterForm').submit();
+}
+
+let _searchTimer;
+function scheduleSearch() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => document.getElementById('filterForm').submit(), 700);
+}
+</script>
 {% endblock %}
