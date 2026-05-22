@@ -1,165 +1,141 @@
 {% extends 'base.html' %}
 
 {% block title %}Notificaciones{% endblock %}
-{% block page_title %}Centro de Notificaciones{% endblock %}
+{% block page_title %}Centro de Comunicaciones{% endblock %}
 
 {% block extra_css %}
 <style>
-    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
-    .section-divider-line { height:1px; background: var(--border); flex:1; }
-    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
+    /* Barra de acciones */
+    .nt-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .nt-toolbar__txt { font-size:12.5px; color:var(--text-muted); }
+    .nt-new-btn { height:38px; padding:0 18px; border:none; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:7px; }
+    .nt-new-btn:hover { background:var(--blue-700); }
 
-    .kpis { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .kpi { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
-    .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
-    .kpis .kpi:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
-    .kpis .kpi:nth-child(2)::before { background:linear-gradient(90deg,#e11d48,#fb7185); }
-    .kpis .kpi:nth-child(3)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
-    .kpi-l { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
-    .kpi-v { font-size:28px; font-weight:700; margin-top:6px; }
+    /* Banner de éxito */
+    .nt-banner { padding:11px 15px; background:var(--green-100); border:1px solid #bbf7d0; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:var(--green-700); margin-bottom:16px; }
 
-    .split { display:grid; grid-template-columns: 1.4fr 1fr; gap:12px; }
-    .card { border:1px solid var(--border); border-radius:var(--radius-lg); background:#fff; box-shadow:var(--shadow-sm); }
-    .card-h { padding:13px 15px 0; }
-    .card-b { padding:12px 15px 15px; }
+    /* Columnas del historial: Fecha · Asunto · Segmento · Estado */
+    .nt-cols { grid-template-columns:160px 1fr 180px 130px; }
+    .nt-state { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; display:inline-block; }
+    .nt-state.enviado { background:var(--green-100); color:var(--green-700); }
+    .nt-state.procesando { background:color-mix(in srgb, var(--cat-4) 16%, #fff); color:color-mix(in srgb, var(--cat-4) 80%, #0f172a); }
 
-    .notice { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:9px; }
-    .notice:last-child { margin-bottom:0; }
-    .n-top { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
-    .n-title { font-size:13px; font-weight:700; }
-    .n-msg { font-size:12px; color:var(--text-secondary); margin-top:5px; }
-    .n-meta { margin-top:8px; font-size:11px; color:var(--text-muted); }
-    .pill { font-size:10px; border-radius:999px; padding:3px 8px; font-weight:800; }
-    .pill.read { background:#dcfce7; color:#166534; }
-    .pill.unread { background:#ffe4e6; color:#9f1239; }
+    /* Modal Nuevo Anuncio */
+    .nt-modal { display:none; position:fixed; inset:0; z-index:120; }
+    .nt-modal.open { display:block; }
+    .nt-modal__backdrop { position:absolute; inset:0; background:rgba(15,23,42,.45); }
+    .nt-modal__card { position:relative; z-index:1; width:560px; max-width:92vw; margin:8vh auto 0; background:#fff; border-radius:var(--radius-lg); box-shadow:0 20px 50px rgba(0,0,0,.25); overflow:hidden; }
+    .nt-modal__head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .nt-modal__title { font-size:15px; font-weight:800; color:var(--text-primary); }
+    .nt-modal__close { border:none; background:none; font-size:22px; line-height:1; cursor:pointer; color:var(--text-muted); padding:0; }
+    .nt-modal__body { padding:18px 20px; display:flex; flex-direction:column; gap:14px; }
+    .nt-modal__foot { padding:14px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; background:#f8fafc; }
 
-    .rem { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:9px; }
-    .rem:last-child { margin-bottom:0; }
-    .rem-h { font-size:12.5px; font-weight:700; }
-    .rem-m { font-size:11.5px; color:var(--text-secondary); margin-top:4px; }
-    .rem-f { font-size:11px; color:var(--text-muted); margin-top:6px; }
-    @media (max-width: 960px){ .kpis{grid-template-columns:1fr;} .split{grid-template-columns:1fr;} }
-</style>
-{% endblock %}
+    .nt-field { display:flex; flex-direction:column; gap:6px; }
+    .nt-field__label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+    .nt-input, .nt-select, .nt-textarea { border:1px solid var(--border); border-radius:var(--radius-md); padding:9px 11px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; box-sizing:border-box; }
+    .nt-textarea { min-height:110px; resize:vertical; }
 
-{% block extra_css %}{{ block.super }}
-<style>
-    .compose-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:16px; }
-    .compose-h { padding:13px 16px; border-bottom:1px solid var(--border); background:#f8fafc; display:flex; align-items:center; justify-content:space-between; }
-    .compose-title { font-size:14px; font-weight:800; }
-    .compose-b { padding:14px 16px 16px; display:grid; gap:10px; }
-    .field-row { display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; }
-    .field-label { font-size:12px; font-weight:700; color:var(--text-muted); }
-    .field-input { height:36px; border:1px solid var(--border); border-radius:var(--radius-md); padding:0 10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; }
-    .field-textarea { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; min-height:80px; resize:vertical; }
-    .compose-actions { display:flex; justify-content:flex-end; gap:8px; }
-    .btn-send { height:38px; padding:0 20px; border:none; border-radius:var(--radius-md); background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
-    .success-banner { padding:10px 14px; background:#dcfce7; border:1px solid #bbf7d0; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:#166534; margin-bottom:12px; }
+    .nt-btn-cancel { height:36px; padding:0 16px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; }
+    .nt-btn-submit { height:36px; padding:0 18px; border:none; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .nt-btn-submit:hover { background:var(--blue-700); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="section-divider">
-    <div class="section-divider-line"></div>
-    <div class="section-divider-text">🔔 Comunicaciones, alertas y recordatorios</div>
-    <div class="section-divider-line"></div>
+<div class="nt-toolbar">
+    <div class="nt-toolbar__txt">Campañas de comunicación masiva enviadas a la comunidad ICLAE.</div>
+    <button type="button" class="nt-new-btn" onclick="abrirAnuncioModal()">+ Nuevo Anuncio</button>
 </div>
 
 {% if sent_ok %}
-<div class="success-banner">✅ Anuncio enviado correctamente a {{ sent_count }} destinatario{{ sent_count|pluralize }}.</div>
+<div class="nt-banner">El anuncio se está procesando en segundo plano y se entregará a los destinatarios del segmento seleccionado.</div>
 {% endif %}
 
-<div class="compose-card">
-    <div class="compose-h">
-        <div class="compose-title">📣 Enviar anuncio</div>
-        <span style="font-size:12px;color:var(--text-muted);">Se registra en recordatorios masivos</span>
+<div class="iv-kpis">
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">Total campañas enviadas</div>
+        <div class="iv-kpi__value">{{ total_campanas }}</div>
+        <div class="iv-kpi__sub">Recordatorios masivos registrados</div>
     </div>
-    <form method="post" action="">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="send_announcement">
-        <div class="compose-b">
-            <div class="field-row">
-                <label class="field-label">Segmento destino</label>
-                <select name="segmento" class="field-input">
-                    <option value="todos">Todos los usuarios</option>
-                    <option value="alumnos">Solo alumnos</option>
-                    <option value="tutores_empresa">Tutores empresa</option>
-                    <option value="tutores_udd">Tutores UDD</option>
-                </select>
-            </div>
-            <div class="field-row">
-                <label class="field-label">Asunto</label>
-                <input type="text" name="titulo" class="field-input" placeholder="Ej: Recordatorio entrega bitácora" required maxlength="255">
-            </div>
-            <div class="field-row" style="align-items:flex-start;">
-                <label class="field-label" style="padding-top:8px;">Mensaje</label>
-                <textarea name="mensaje" class="field-textarea" placeholder="Escribe el mensaje del anuncio..." required></textarea>
-            </div>
-        </div>
-        <div style="padding:0 16px 14px;">
-            <div class="compose-actions">
-                <button type="submit" class="btn-send">📤 Enviar anuncio</button>
-            </div>
-        </div>
-    </form>
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">Último envío</div>
+        <div class="iv-kpi__value">{{ ultimo_envio|date:'d/m/Y'|default:'—' }}</div>
+        <div class="iv-kpi__sub">{% if ultimo_envio %}{{ ultimo_envio|date:'H:i' }} hrs{% else %}Sin envíos aún{% endif %}</div>
+    </div>
 </div>
 
-<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
-    <input name="q" value="{{ filters.q }}" placeholder="Buscar notificacion" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
-    <select name="tipo" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Tipo: todos</option>
-        {% for option in filter_options.tipo %}
-        <option value="{{ option.value }}" {% if filters.tipo == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    <select name="estado" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Estado: todos</option>
-        <option value="leida" {% if filters.estado == 'leida' %}selected{% endif %}>Leidas</option>
-        <option value="no_leida" {% if filters.estado == 'no_leida' %}selected{% endif %}>No leidas</option>
-    </select>
-    <a href="?" class="pill unread" style="text-decoration:none;border:1px solid #fecaca;">Limpiar filtros</a>
-</form>
-
-<div class="kpis">
-    <div class="kpi"><div class="kpi-l">Notificaciones</div><div class="kpi-v">{{ notificaciones_count }}</div></div>
-    <div class="kpi"><div class="kpi-l">No leidas</div><div class="kpi-v" style="color:#9f1239;">{{ no_leidas_count }}</div></div>
-    <div class="kpi"><div class="kpi-l">Periodo</div><div class="kpi-v" style="font-size:22px;">{{ periodo_label }}</div></div>
+<div class="iv-table">
+    <div class="iv-thead nt-cols">
+        <div class="iv-th">Fecha</div>
+        <div class="iv-th">Asunto</div>
+        <div class="iv-th">Segmento</div>
+        <div class="iv-th right">Estado</div>
+    </div>
+    {% for c in campanas %}
+    <div class="iv-row nt-cols">
+        <div class="iv-cell-strong">{{ c.fecha|date:'d/m/Y H:i'|default:'—' }}</div>
+        <div class="iv-cell-title">
+            <div class="iv-cell-main">{{ c.asunto }}</div>
+            <div class="iv-cell-sub">{{ c.cantidad_envios }} destinatario{{ c.cantidad_envios|pluralize }}</div>
+        </div>
+        <div><span class="iv-badge cat-carrera">{{ c.segmento }}</span></div>
+        <div class="right"><span class="nt-state {{ c.estado_class }}">{{ c.estado_label }}</span></div>
+    </div>
+    {% empty %}
+    <div class="iv-empty">Aún no se han enviado campañas masivas. Usa “+ Nuevo Anuncio” para crear la primera.</div>
+    {% endfor %}
 </div>
 
-<div class="split">
-    <div class="card">
-        <div class="card-h"><div style="font-size:15px;font-weight:700;">Notificaciones del sistema</div><div style="font-size:12px;color:var(--text-muted);">Correo, alertas y avisos internos</div></div>
-        <div class="card-b">
-            {% for n in notificaciones %}
-            <div class="notice">
-                <div class="n-top">
-                    <div>
-                        <div class="n-title">{{ n.titulo }}</div>
-                        <div class="n-msg">{{ n.mensaje|truncatechars:160 }}</div>
-                    </div>
-                    <span class="pill {% if n.leida %}read{% else %}unread{% endif %}">{% if n.leida %}Leida{% else %}No leida{% endif %}</span>
+<!-- Modal: Nuevo Anuncio -->
+<div class="nt-modal" id="anuncioModal">
+    <div class="nt-modal__backdrop" onclick="cerrarAnuncioModal()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="anuncioModalTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="anuncioModalTitle">Nuevo anuncio masivo</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarAnuncioModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send_announcement">
+            <div class="nt-modal__body">
+                <div class="nt-field">
+                    <label class="nt-field__label" for="nt-segmento">Segmento destino</label>
+                    <select name="segmento" id="nt-segmento" class="nt-select">
+                        <option value="todos">Todos los usuarios</option>
+                        <option value="alumnos">Solo alumnos</option>
+                        <option value="tutores_empresa">Tutores empresa</option>
+                        <option value="tutores_udd">Tutores UDD</option>
+                    </select>
                 </div>
-                <div class="n-meta">{{ n.tipo }} · {{ n.destinatario }} · {{ n.fecha|date:'d/m/Y H:i' }}</div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="nt-titulo">Asunto</label>
+                    <input type="text" name="titulo" id="nt-titulo" class="nt-input" placeholder="Ej: Recordatorio entrega de bitácora" required maxlength="255">
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="nt-mensaje">Mensaje</label>
+                    <textarea name="mensaje" id="nt-mensaje" class="nt-textarea" placeholder="Escribe el contenido del anuncio…" required></textarea>
+                </div>
             </div>
-            {% empty %}
-            <div style="color:var(--text-muted);">No hay notificaciones registradas.</div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-h"><div style="font-size:15px;font-weight:700;">Recordatorios masivos</div><div style="font-size:12px;color:var(--text-muted);">Envios recientes</div></div>
-        <div class="card-b">
-            {% for r in recordatorios %}
-            <div class="rem">
-                <div class="rem-h">{{ r.segmento|default:'Segmento general' }}</div>
-                <div class="rem-m">{{ r.mensaje|truncatechars:120 }}</div>
-                <div class="rem-f">{{ r.cantidad_envios|default:0 }} envios · {{ r.fecha_envio|date:'d/m/Y H:i' }}</div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarAnuncioModal()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Enviar anuncio</button>
             </div>
-            {% empty %}
-            <div style="color:var(--text-muted);">No hay recordatorios masivos enviados.</div>
-            {% endfor %}
-        </div>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function abrirAnuncioModal() {
+        document.getElementById('anuncioModal').classList.add('open');
+    }
+    function cerrarAnuncioModal() {
+        document.getElementById('anuncioModal').classList.remove('open');
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') cerrarAnuncioModal();
+    });
+</script>
 {% endblock %}

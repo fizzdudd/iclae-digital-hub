@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresar — ICLAE Digital Hub</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+            padding: 32px 32px 28px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .logo-mark {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            flex-shrink: 0;
+            letter-spacing: -0.5px;
+        }
+        .brand-title { color: #fff; font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: -0.3px; }
+        .brand-sub { color: rgba(255,255,255,0.55); font-size: 11px; margin-top: 2px; }
+
+        .login-body { padding: 32px; }
+
+        .login-headline {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
+        }
+        .login-sub {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .field { margin-bottom: 16px; }
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .field input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #0f172a;
+            background: #f8fafc;
+            transition: border-color .15s, box-shadow .15s;
+            outline: none;
+        }
+        .field input:focus {
+            border-color: #3b82f6;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+        }
+
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #b91c1c;
+            line-height: 1.5;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity .15s, transform .1s;
+            margin-top: 4px;
+        }
+        .btn-submit:hover { opacity: 0.92; transform: translateY(-1px); }
+        .btn-submit:active { transform: translateY(0); }
+
+        .login-footer {
+            text-align: center;
+            padding: 0 32px 28px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 480px) {
+            .login-body { padding: 24px; }
+            .login-header { padding: 24px 24px 20px; }
+        }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="login-header">
+        <span class="logo-mark">IC</span>
+        <div>
+            <div class="brand-title">ICLAE Digital Hub</div>
+            <div class="brand-sub">Universidad del Desarrollo</div>
+        </div>
+    </div>
+
+    <div class="login-body">
+        <div class="login-headline">Bienvenido</div>
+        <div class="login-sub">Ingresa con tu correo y contraseña institucional.</div>
+
+        {% if error %}
+        <div class="error-box">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+            <div class="field">
+                <label for="id_email">Correo electrónico</label>
+                <input 
+                    type="email" 
+                    id="id_email"
+                    name="email" 
+                    placeholder="tu@udd.cl" 
+                    autocomplete="email" 
+                    autofocus 
+                    required>
+            </div>
+            <div class="field">
+                <label for="id_password">Contraseña</label>
+                <input 
+                    type="password" 
+                    id="id_password"
+                    name="password" 
+                    placeholder="••••••••" 
+                    autocomplete="current-password" 
+                    required>
+            </div>
+            <button type="submit" class="btn-submit">Ingresar</button>
+        </form>
+    </div>
+
+    <div class="login-footer">ICLAE &mdash; Plataforma de prácticas UDD &copy; 2025</div>
+</div>
+</body>
+</html>

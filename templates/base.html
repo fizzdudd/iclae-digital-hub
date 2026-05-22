@@ -47,6 +47,13 @@
             --cyan-100: #cffafe;
             --cyan-700: #0e7490;
 
+            /* Paleta categórica para datos (armoniza con el azul institucional) */
+            --cat-1: #2563eb;   /* Azul institucional */
+            --cat-2: #06b6d4;   /* Turquesa */
+            --cat-3: #8b5cf6;   /* Morado suave */
+            --cat-4: #f97316;   /* Coral / Naranja */
+            --cat-5: #10b981;   /* Esmeralda */
+
             --radius-sm: 6px;
             --radius-md: 10px;
             --radius-lg: 14px;
@@ -195,10 +202,210 @@
                 width: 100%;
             }
         }
+
+        /* =====================================================================
+           VISTAS INSTITUCIONALES (Proyectos / Alumnos / Empresas)
+           Sistema de componentes global y consistente. Orden estándar:
+           KPIs -> barra de filtros -> tabla de resultados.
+           Las columnas específicas de cada tabla se definen por página
+           con una clase .cols-*; aquí vive todo lo compartido.
+           ===================================================================== */
+
+        /* KPIs */
+        .iv-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+        .iv-kpi { background:var(--card-bg); border:1px solid var(--border); border-top-width:4px; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:11px 16px; position:relative; overflow:hidden; }
+        .iv-kpi__label { font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); font-weight:700; }
+        .iv-kpi__value { font-size:24px; font-weight:700; line-height:1.05; margin-top:5px; color:var(--text-primary); }
+        .iv-kpi__value.accent { color:var(--blue-700); }
+        .iv-kpi__sub { font-size:11.5px; color:var(--text-secondary); margin-top:3px; }
+        /* Acento categórico por posición de tarjeta (borde superior 4px + número) */
+        .iv-kpi:nth-child(1) { border-top-color:var(--cat-2); }
+        .iv-kpi:nth-child(2) { border-top-color:var(--cat-4); }
+        .iv-kpi:nth-child(3) { border-top-color:var(--cat-3); }
+        .iv-kpi:nth-child(1) .iv-kpi__value { color:var(--cat-2); }
+        .iv-kpi:nth-child(2) .iv-kpi__value { color:var(--cat-4); }
+        .iv-kpi:nth-child(3) .iv-kpi__value { color:var(--cat-3); }
+
+        /* Barra de filtros (una sola fila limpia) */
+        .iv-filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:12px 16px; margin-bottom:16px; }
+        .iv-search { position:relative; flex:1 1 220px; max-width:300px; min-width:190px; }
+        .iv-search__icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; pointer-events:none; }
+        .iv-search__input { width:100%; height:38px; padding:0 12px 0 36px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:13px; font-family:inherit; color:var(--text-primary); }
+        .iv-search__input:focus { outline:none; border-color:var(--blue-600); }
+
+        .iv-filter-group { display:flex; align-items:center; gap:6px; }
+        .iv-filter-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); }
+
+        .iv-pills { display:flex; gap:6px; flex-wrap:wrap; }
+        .iv-pill { padding:6px 13px; border-radius:999px; border:1.5px solid var(--border); background:#fff; font-size:12px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; white-space:nowrap; transition:all .15s; }
+        .iv-pill:hover { border-color:#cbd5e1; color:var(--text-primary); }
+        .iv-pill.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+
+        .iv-select { height:38px; padding:0 32px 0 12px; border-radius:var(--radius-md); border:1.5px solid var(--border); background-color:#fff; font-size:12.5px; font-family:inherit; color:var(--text-secondary); cursor:pointer; appearance:none; max-width:200px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; }
+        .iv-select:focus { outline:none; border-color:var(--blue-600); }
+
+        .iv-filters__meta { font-size:12.5px; color:var(--text-muted); margin-left:auto; white-space:nowrap; }
+        .iv-clear { height:38px; padding:0 14px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:12.5px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; text-decoration:none; transition:all .15s; }
+        .iv-clear:hover { border-color:#fca5a5; background:#fff1f2; color:#dc2626; }
+
+        /* Tabla de resultados */
+        .iv-table { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; }
+        .iv-thead { display:grid; align-items:center; gap:14px; padding:11px 20px; background:#f8fafc; border-bottom:1.5px solid var(--border); }
+        .iv-th { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+        .iv-th.right { text-align:right; }
+        .iv-th.center { text-align:center; }
+        .iv-row { display:grid; align-items:center; gap:14px; padding:14px 20px; border-bottom:1px solid #f1f5f9; position:relative; transition:background .12s; }
+        .iv-row:last-child { border-bottom:none; }
+        .iv-row:hover { background:#f8fbff; }
+        .iv-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:var(--blue-600); transition:width .15s; }
+        .iv-row:hover::before { width:3px; }
+        .iv-row.clickable { cursor:pointer; }
+        .iv-empty { padding:32px 20px; text-align:center; color:var(--text-muted); font-size:13px; }
+
+        .iv-logo { width:40px; height:40px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; letter-spacing:-.5px; background:var(--blue-100); color:var(--blue-800); }
+        /* Avatares categóricos (efecto punteado vivo, alternando por fila) */
+        .iv-logo.c1 { background:color-mix(in srgb, var(--cat-1) 15%, #fff); color:color-mix(in srgb, var(--cat-1) 82%, #0f172a); }
+        .iv-logo.c2 { background:color-mix(in srgb, var(--cat-2) 17%, #fff); color:color-mix(in srgb, var(--cat-2) 80%, #0f172a); }
+        .iv-logo.c3 { background:color-mix(in srgb, var(--cat-3) 16%, #fff); color:color-mix(in srgb, var(--cat-3) 80%, #0f172a); }
+        .iv-logo.c4 { background:color-mix(in srgb, var(--cat-4) 17%, #fff); color:color-mix(in srgb, var(--cat-4) 78%, #0f172a); }
+        .iv-logo.c5 { background:color-mix(in srgb, var(--cat-5) 16%, #fff); color:color-mix(in srgb, var(--cat-5) 78%, #0f172a); }
+
+        /* Tags categóricos: rubro (determinístico por tipo) y carrera */
+        .iv-badge.cat-banca      { background:color-mix(in srgb, var(--cat-1) 13%, #fff); color:color-mix(in srgb, var(--cat-1) 78%, #0f172a); }
+        .iv-badge.cat-fintech    { background:color-mix(in srgb, var(--cat-5) 14%, #fff); color:color-mix(in srgb, var(--cat-5) 75%, #0f172a); }
+        .iv-badge.cat-tecnologia { background:color-mix(in srgb, var(--cat-2) 15%, #fff); color:color-mix(in srgb, var(--cat-2) 74%, #0f172a); }
+        .iv-badge.cat-retail     { background:color-mix(in srgb, var(--cat-4) 15%, #fff); color:color-mix(in srgb, var(--cat-4) 74%, #0f172a); }
+        .iv-badge.cat-energia    { background:color-mix(in srgb, var(--cat-2) 15%, #fff); color:color-mix(in srgb, var(--cat-2) 74%, #0f172a); }
+        .iv-badge.cat-insurtech  { background:color-mix(in srgb, var(--cat-3) 15%, #fff); color:color-mix(in srgb, var(--cat-3) 76%, #0f172a); }
+        .iv-badge.cat-hrtech     { background:color-mix(in srgb, var(--cat-4) 15%, #fff); color:color-mix(in srgb, var(--cat-4) 74%, #0f172a); }
+        .iv-badge.cat-default    { background:#f1f5f9; color:#475569; }
+        .iv-badge.cat-carrera    { background:color-mix(in srgb, var(--cat-3) 14%, #fff); color:color-mix(in srgb, var(--cat-3) 76%, #0f172a); }
+
+        .iv-cell-title { min-width:0; }
+        .iv-cell-main { font-size:14.5px; font-weight:700; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .iv-cell-sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+        .iv-cell-strong { font-size:13px; font-weight:600; color:var(--text-primary); }
+        .iv-cell-num { font-size:15px; font-weight:700; color:var(--text-primary); }
+        .iv-cell-muted { font-size:11px; color:var(--text-muted); }
+        .iv-stack { display:flex; flex-direction:column; gap:4px; }
+
+        .iv-badge { font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-block; white-space:nowrap; }
+        .iv-badge.neutral { background:#f1f5f9; color:#475569; }
+        .iv-badge.brand { background:var(--blue-50); color:var(--blue-800); }
+        .iv-badge.success { background:var(--green-100); color:var(--green-800); }
+
+        .iv-progress { width:90px; height:6px; background:#eef1f6; border-radius:999px; overflow:hidden; margin-bottom:3px; }
+        .iv-progress__fill { height:100%; background:var(--blue-600); width:var(--pct,0%); }
+
+        .iv-stats { display:flex; align-items:center; }
+        .iv-stat { text-align:center; flex:1; }
+        .iv-stat:not(:last-child) { border-right:1px solid #f1f5f9; }
+        .iv-stat__v { font-size:14px; font-weight:700; color:var(--text-primary); }
+        .iv-stat__l { font-size:10px; color:var(--text-muted); font-weight:500; margin-top:1px; }
+
+        .iv-enps { text-align:right; }
+        .iv-enps__v { font-size:18px; font-weight:700; line-height:1; letter-spacing:-.5px; color:var(--text-primary); }
+        .iv-enps__v.high { color:var(--green-700); }
+        .iv-enps__v.mid { color:var(--blue-700); }
+        .iv-enps__v.none { color:var(--text-muted); }
+        .iv-enps__l { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.4px; color:var(--text-muted); margin-top:1px; }
+
+        .iv-btn { height:32px; padding:0 14px; border-radius:var(--radius-md); border:none; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
+        .iv-btn-primary { background:var(--blue-600); color:#fff; }
+        .iv-btn-primary:hover { background:var(--blue-700); }
+        .iv-btn-ghost { background:#f1f5f9; color:#64748b; cursor:default; }
+
+        /* Paginación */
+        .iv-pagination { display:flex; align-items:center; gap:4px; justify-content:center; margin-top:18px; }
+        .iv-page { height:32px; min-width:32px; padding:0 9px; border:none; background:transparent; border-radius:999px; font-size:13px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; color:var(--text-secondary); transition:background .15s, box-shadow .15s, color .15s; }
+        .iv-page:hover { background:#fff; box-shadow:var(--shadow-sm); color:var(--text-primary); }
+        .iv-page.current { background:var(--blue-600); color:#fff; box-shadow:none; }
+        .iv-page.current:hover { background:var(--blue-700); }
+        .iv-page-info { font-size:12px; color:var(--text-muted); margin-left:10px; }
+
+        /* Panel de detalle (slide-over) */
+        .iv-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.4); z-index:100; }
+        .iv-overlay.open { display:block; }
+        .iv-detail { position:fixed; top:0; right:0; width:380px; max-width:90vw; height:100vh; background:#fff; box-shadow:-4px 0 24px rgba(0,0,0,.12); z-index:101; overflow-y:auto; transform:translateX(100%); transition:transform .25s ease; }
+        .iv-detail.open { transform:translateX(0); }
+        .iv-detail__head { padding:20px 20px 0; display:flex; justify-content:space-between; align-items:center; }
+        .iv-detail__eyebrow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); }
+        .iv-detail__close { border:none; background:none; font-size:20px; cursor:pointer; color:var(--text-muted); line-height:1; padding:0; }
+        .iv-detail__body { padding:16px 20px 24px; }
+        .iv-d-head { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+        .iv-d-logo { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; flex-shrink:0; background:var(--blue-100); color:var(--blue-800); }
+        .iv-d-name { font-size:16px; font-weight:800; }
+        .iv-d-sub { font-size:12px; color:var(--text-muted); }
+        .iv-d-desc { font-size:13px; color:var(--text-secondary); line-height:1.6; margin:0 0 16px; }
+        .iv-d-stats { display:flex; align-items:stretch; border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; margin-bottom:16px; }
+        .iv-d-stat { flex:1; text-align:center; padding:10px 8px; }
+        .iv-d-stat:not(:last-child) { border-right:1px solid var(--border); }
+        .iv-d-stat__v { font-size:18px; font-weight:800; }
+        .iv-d-stat__v.accent { color:var(--blue-700); }
+        .iv-d-stat__l { font-size:10.5px; color:var(--text-muted); font-weight:600; margin-top:1px; }
+        .iv-d-block { margin-bottom:14px; }
+        .iv-d-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:6px; }
+        .iv-d-progress { width:100%; height:8px; background:#eef1f6; border-radius:999px; overflow:hidden; margin-bottom:6px; }
+        .iv-d-progress__fill { height:100%; background:var(--blue-600); width:var(--pct,0%); }
+        .iv-d-tags { display:flex; gap:6px; }
+        .iv-tag { font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; }
+        .iv-tag.ok { background:var(--green-100); color:#166534; }
+        .iv-tag.no { background:#fee2e2; color:#991b1b; }
+        .iv-d-rows { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+        .iv-d-row { display:flex; flex-direction:column; gap:2px; }
+        .iv-d-row__k { font-size:11px; color:var(--text-muted); font-weight:600; }
+        .iv-d-row__v { font-size:13.5px; color:var(--text-primary); font-weight:600; word-break:break-word; }
+        .iv-d-contact { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; }
+        .iv-d-contact__name { font-size:13px; font-weight:700; }
+        .iv-d-contact__email { font-size:12px; color:var(--blue-600); text-decoration:none; }
+
+        @media (max-width:1080px) {
+            .iv-kpis { grid-template-columns:1fr; }
+            .iv-thead { display:none; }
+            .iv-row { grid-template-columns:40px 1fr !important; }
+            .iv-row > *:not(:nth-child(1)):not(:nth-child(2)) { grid-column:2; }
+            .iv-detail { width:100%; }
+        }
+
+        /* ── Menú de usuario (header) ── */
+        .user-menu { position:relative; }
+        .user-menu-trigger { display:flex; align-items:center; gap:9px; height:38px; padding:0 10px 0 6px; border:1px solid var(--border); border-radius:999px; background:#fff; cursor:pointer; font-family:inherit; transition:border-color .15s, box-shadow .15s; }
+        .user-menu-trigger:hover { border-color:#93c5fd; box-shadow:var(--shadow-sm); }
+        .user-menu-avatar { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#fff; background:var(--blue-600); overflow:hidden; }
+        .user-menu-avatar img { width:100%; height:100%; object-fit:cover; }
+        .user-menu-name { font-size:12.5px; font-weight:600; color:var(--text-primary); max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .user-menu-caret { width:14px; height:14px; color:var(--text-muted); transition:transform .2s; flex-shrink:0; }
+        .user-menu.open .user-menu-caret { transform:rotate(180deg); }
+        .user-menu-dropdown { position:absolute; top:46px; right:0; min-width:200px; background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:6px; display:none; z-index:60; }
+        .user-menu.open .user-menu-dropdown { display:block; }
+        .user-menu-head { padding:8px 10px 10px; border-bottom:1px solid var(--border); margin-bottom:6px; }
+        .user-menu-head-name { font-size:13px; font-weight:700; color:var(--text-primary); }
+        .user-menu-head-mail { font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .user-menu-form { margin:0; }
+        .user-menu-item { display:flex; align-items:center; gap:9px; width:100%; text-align:left; padding:9px 10px; border:none; background:none; border-radius:var(--radius-sm); font-family:inherit; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; text-decoration:none; }
+        .user-menu-item:hover { background:#f1f5f9; color:var(--text-primary); }
+        .user-menu-item.logout { color:#dc2626; }
+        .user-menu-item.logout:hover { background:#fef2f2; }
+        .user-menu-item svg { width:15px; height:15px; flex-shrink:0; }
+
+        /* ── Mensajes globales (Django messages) ── */
+        .app-messages { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+        .app-msg { display:flex; align-items:center; gap:9px; padding:11px 15px; border-radius:var(--radius-md); font-size:13px; font-weight:600; border:1px solid transparent; }
+        .app-msg__icon { width:16px; height:16px; flex-shrink:0; }
+        .app-msg.error { background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
+        .app-msg.success { background:var(--green-100); border-color:#bbf7d0; color:#15803d; }
+        .app-msg.warning { background:#fffbeb; border-color:#fde68a; color:#b45309; }
+        .app-msg.info { background:var(--blue-50); border-color:#bfdbfe; color:var(--blue-700); }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <script>
+        // Aplica el estado colapsado del menú antes de pintar (evita parpadeo)
+        if (localStorage.getItem('iclae_sidebar') === 'collapsed') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+    </script>
     <div class="app-shell">
         {% include 'layout/sidebar.html' %}
 
@@ -206,19 +413,54 @@
             <header class="topbar">
                 <div class="topbar-left">
                     <span class="page-title">{% block page_title %}Resumen ejecutivo{% endblock %}</span>
-                    <span class="period-badge">{{ periodo_label|default:'Sin periodo activo' }}</span>
+                    {% block period_badge %}<span class="period-badge">{{ periodo_label|default:'Sin periodo activo' }}</span>{% endblock %}
                 </div>
                 <div class="topbar-right">
                     <div class="live-status">
                         <span class="live-dot"></span>
                         <span class="live-label">Actualizacion en tiempo real</span>
                     </div>
-                    <button class="topbar-btn" type="button">Filtros</button>
-                    <button class="topbar-btn" type="button">Exportar</button>
+                    {% block topbar_actions %}{% endblock %}
+                    <div class="user-menu" id="userMenu">
+                        <button type="button" class="user-menu-trigger" onclick="toggleUserMenu(event)">
+                            <span class="user-menu-avatar">
+                                {% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="Avatar">{% else %}{{ user.nombre|first|upper }}{{ user.apellido|first|upper }}{% endif %}
+                            </span>
+                            <span class="user-menu-name">{{ user.get_full_name|default:user.email }}</span>
+                            <svg class="user-menu-caret" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        </button>
+                        <div class="user-menu-dropdown">
+                            <div class="user-menu-head">
+                                <div class="user-menu-head-name">{{ user.get_full_name|default:'Usuario ICLAE' }}</div>
+                                <div class="user-menu-head-mail">{{ user.email }}</div>
+                            </div>
+                            <a href="{% url 'perfil' %}" class="user-menu-item">
+                                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                                Mi Perfil
+                            </a>
+                            <form method="post" action="{% url 'logout' %}" class="user-menu-form">
+                                {% csrf_token %}
+                                <button type="submit" class="user-menu-item logout">
+                                    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h6a1 1 0 100-2H4V5h5a1 1 0 100-2H3zm10.293 4.293a1 1 0 011.414 0L17 9.586a1 1 0 010 1.414l-2.293 2.293a1 1 0 01-1.414-1.414L14.586 11H9a1 1 0 110-2h5.586l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                                    Cerrar sesión
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <section class="content">
+                {% if messages %}
+                <div class="app-messages">
+                    {% for message in messages %}
+                    <div class="app-msg {{ message.tags }}">
+                        <svg class="app-msg__icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% block content %}{% endblock %}
             </section>
         </main>
@@ -264,6 +506,28 @@
                 }
             });
         })();
+
+        // ── Sidebar colapsable ──
+        function toggleSidebar() {
+            const collapsed = document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('iclae_sidebar', collapsed ? 'collapsed' : 'expanded');
+        }
+
+        // ── Menú de usuario (header) ──
+        function toggleUserMenu(e) {
+            e.stopPropagation();
+            document.getElementById('userMenu').classList.toggle('open');
+        }
+        document.addEventListener('click', function (e) {
+            const menu = document.getElementById('userMenu');
+            if (menu && !menu.contains(e.target)) menu.classList.remove('open');
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                const menu = document.getElementById('userMenu');
+                if (menu) menu.classList.remove('open');
+            }
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>

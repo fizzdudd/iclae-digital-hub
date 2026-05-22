@@ -46,6 +46,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.LoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -116,7 +117,43 @@ USE_I18N = True
 USE_TZ = True
 
 
+# ─── AUTENTICACIÓN ───────────────────────────────────────────────────────────
+
+AUTH_USER_MODEL = 'apps.Usuario'
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = 'login'
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+# ─── CELERY (tareas asíncronas) ──────────────────────────────────────────────
+# Broker de mensajes. En producción usar Redis/RabbitMQ:
+#   CELERY_BROKER_URL = 'redis://localhost:6379/0'
+import os
+
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'django-db')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# Modo síncrono de seguridad: si no hay un worker/broker disponible (demo),
+# `.delay()` ejecuta la tarea en el acto. Poner en 'false' al desplegar workers.
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'true').lower() == 'true'
+CELERY_TASK_EAGER_PROPAGATES = True
+
+
+# ─── CORREO ──────────────────────────────────────────────────────────────────
+# En la demo los correos se imprimen en consola. En producción configurar SMTP
+# institucional vía variables de entorno.
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'
+)
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@iclae.udd.cl')

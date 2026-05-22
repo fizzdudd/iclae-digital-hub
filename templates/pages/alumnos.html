@@ -1,119 +1,197 @@
 {% extends 'base.html' %}
 
 {% block title %}Alumnos{% endblock %}
-{% block page_title %}Expediente de Alumnos{% endblock %}
+{% block page_title %}Alumnos{% endblock %}
+{% block topbar_actions %}<a href="{% url 'exportar_alumnos' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a>{% endblock %}
 
 {% block extra_css %}
 <style>
-    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
-    .section-divider-line { height:1px; background: var(--border); flex:1; }
-    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
-
-    .head { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .kpi { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
-    .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
-    .head .kpi:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
-    .head .kpi:nth-child(2)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
-    .head .kpi:nth-child(3)::before { background:linear-gradient(90deg,#16a34a,#4ade80); }
-    .kpi-l { font-size:11px; text-transform:uppercase; color:var(--text-muted); letter-spacing:.5px; font-weight:700; }
-    .kpi-v { font-size:28px; font-weight:700; margin-top:7px; }
-
-    .table { border:1px solid var(--border); border-radius:var(--radius-lg); background:#fff; box-shadow:var(--shadow-sm); overflow:hidden; }
-    table { width:100%; border-collapse: collapse; }
-    th { padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; color:var(--text-muted); background:#f8fafc; border-bottom:1px solid var(--border); }
-    td { padding:12px 14px; border-bottom:1px solid #f1f5f9; font-size:13px; }
-    tr:last-child td { border-bottom:none; }
-
-    .name { font-weight:700; font-size:14px; }
-    .sub { color:var(--text-muted); font-size:11.5px; margin-top:2px; }
-    .bar { width:120px; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
-    .bar > span { display:block; height:100%; background:linear-gradient(90deg,#3b82f6,#60a5fa); }
-    .pct { font-size:11px; color:var(--text-secondary); margin-top:4px; }
-    .ok { font-size:10px; border-radius:999px; padding:2px 8px; font-weight:700; }
-    .ok.yes { background:#dcfce7; color:#166534; }
-    .ok.no { background:#fee2e2; color:#991b1b; }
-
-    @media (max-width: 960px) { .head { grid-template-columns:1fr; } }
+    .iv-topbar-export { text-decoration:none; display:flex; align-items:center; gap:5px; }
+    .iv-export-icon { width:12px; height:12px; }
+    /* Columnas específicas de la tabla de alumnos */
+    .cols-alumnos { grid-template-columns:40px 1fr 190px 180px 110px; }
+    @media (max-width:1080px) { .cols-alumnos { grid-template-columns:40px 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="section-divider">
-    <div class="section-divider-line"></div>
-    <div class="section-divider-text">👤 Expediente academico y perfil digital</div>
-    <div class="section-divider-line"></div>
+
+<!-- 1) KPIs -->
+<div class="iv-kpis">
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">Alumnos registrados</div>
+        <div class="iv-kpi__value">{{ alumnos_count }}</div>
+        <div class="iv-kpi__sub">En el período vigente</div>
+    </div>
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">Perfil promedio</div>
+        <div class="iv-kpi__value accent">{{ profile_avg }}%</div>
+        <div class="iv-kpi__sub">Completitud digital media</div>
+    </div>
 </div>
 
-<form method="get" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;" data-auto-submit="true" data-auto-submit-text="true">
-    <input name="q" value="{{ filters.q }}" placeholder="Buscar alumno..." style="height:36px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 12px;font-family:inherit;font-size:13px;min-width:200px;" />
-    <select name="carrera" onchange="this.form.submit()" style="height:36px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;font-size:13px;">
-        <option value="">Carrera</option>
-        {% for option in filter_options.carrera %}
-        <option value="{{ option.value }}" {% if filters.carrera == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    <select name="sede" onchange="this.form.submit()" style="height:36px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;font-size:13px;">
-        <option value="">Sede</option>
-        {% for option in filter_options.sede %}
-        <option value="{{ option.value }}" {% if filters.sede == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    {% if filters.q or filters.carrera or filters.sede %}
-    <a href="?" style="height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;border-radius:var(--radius-md);border:1.5px solid #fca5a5;background:#fff1f2;color:#dc2626;font-size:12.5px;font-weight:700;text-decoration:none;transition:background .15s;">
-        <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        Limpiar
-    </a>
-    {% endif %}
+<!-- 2) Filtros + buscador -->
+<form id="filterForm" method="get">
+    <input type="hidden" id="h_sede" name="sede" value="{{ filters.sede }}">
+
+    <div class="iv-filters">
+        <div class="iv-search">
+            <span class="iv-search__icon">🔍</span>
+            <input class="iv-search__input" type="text" name="q" value="{{ filters.q }}" placeholder="Buscar alumno..." oninput="scheduleSearch()">
+        </div>
+
+        <select class="iv-select" name="carrera" onchange="submitFilters()" aria-label="Carrera">
+            <option value="">Carrera: todas</option>
+            {% for opt in filter_options.carrera %}
+            <option value="{{ opt.value }}" {% if filters.carrera == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+            {% endfor %}
+        </select>
+
+        <div class="iv-filter-group">
+            <span class="iv-filter-label">Sede</span>
+            <div class="iv-pills">
+                <button type="button" class="iv-pill {% if not filters.sede %}active{% endif %}" onclick="setPill('sede','')">Todas</button>
+                {% for opt in filter_options.sede %}
+                <button type="button" class="iv-pill {% if filters.sede == opt.value %}active{% endif %}" onclick="setPill('sede','{{ opt.value }}')">{{ opt.label }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <span class="iv-filters__meta">{{ alumnos_count }} alumno{{ alumnos_count|pluralize }}</span>
+        {% if filters.q or filters.carrera or filters.sede %}
+        <a href="?" class="iv-clear">✕ Limpiar</a>
+        {% endif %}
+    </div>
 </form>
 
-<div class="head">
-    <div class="kpi"><div class="kpi-l">Alumnos registrados</div><div class="kpi-v">{{ alumnos_count }}</div></div>
-    <div class="kpi"><div class="kpi-l">Periodo</div><div class="kpi-v" style="font-size:22px;">{{ periodo_label }}</div></div>
-    <div class="kpi"><div class="kpi-l">Perfil promedio</div><div class="kpi-v" style="font-size:22px;color:var(--blue-700);">{{ profile_avg }}%</div></div>
+<!-- 3) Tabla de resultados -->
+<div class="iv-table">
+    <div class="iv-thead cols-alumnos">
+        <div></div>
+        <div class="iv-th">Alumno</div>
+        <div class="iv-th">Carrera</div>
+        <div class="iv-th">Sede · Empresa</div>
+        <div class="iv-th">Perfil</div>
+    </div>
+
+    {% for a in alumnos %}
+    <div class="iv-row cols-alumnos clickable" onclick="openDetail('{{ a.id }}')">
+        <div class="iv-logo {% cycle 'c1' 'c2' 'c3' 'c4' 'c5' %}">{{ a.initials }}</div>
+        <div class="iv-cell-title">
+            <div class="iv-cell-main">{{ a.nombre }}</div>
+            <div class="iv-cell-sub">{{ a.email }}</div>
+        </div>
+        <div><span class="iv-badge cat-carrera">{{ a.carrera }}</span></div>
+        <div class="iv-stack">
+            <span class="iv-badge neutral">{{ a.sede }}</span>
+            {% if a.empresa %}<span class="iv-badge success">{{ a.empresa }}</span>{% else %}<span class="iv-cell-muted">Sin empresa</span>{% endif %}
+        </div>
+        <div>
+            <div class="iv-progress"><div class="iv-progress__fill" style="--pct:{{ a.profile_pct }}%"></div></div>
+            <div class="iv-cell-muted">{{ a.profile_pct }}%</div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="iv-empty">No hay alumnos registrados con los filtros seleccionados.</div>
+    {% endfor %}
 </div>
 
-<div class="table">
-    <table>
-        <thead>
-            <tr>
-                <th>Alumno</th>
-                <th>Carrera / Sede</th>
-                <th>Perfil digital</th>
-                <th>Recursos</th>
-                <th>Actividad</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for a in alumnos %}
-            <tr>
-                <td>
-                    <div class="name">{{ a.nombre }}</div>
-                    <div class="sub">{{ a.email }}</div>
-                </td>
-                <td>{{ a.carrera }}<div class="sub">{{ a.sede }} · Gen {{ a.generacion }}</div></td>
-                <td>
-                    <div class="bar"><span style="width: {{ a.profile_pct }}%;"></span></div>
-                    <div class="pct">{{ a.profile_pct }}% completado</div>
-                </td>
-                <td>
-                    <span class="ok {% if a.linkedin_ok %}yes{% else %}no{% endif %}">LinkedIn</span>
-                    <span class="ok {% if a.cv_ok %}yes{% else %}no{% endif %}">CV</span>
-                    <span class="ok {% if a.video_ok %}yes{% else %}no{% endif %}">Video</span>
-                </td>
-                <td>{{ a.proyectos_count }} proyectos · {{ a.badges_count }} badges<div class="sub">{{ a.bitacoras_count }} bitacoras</div></td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" style="color:var(--text-muted);">No hay alumnos registrados.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
 {% if page_obj and page_obj.paginator.num_pages > 1 %}
-<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:16px;">
-    {% if page_obj.has_previous %}<a href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.previous_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">‹</a>{% endif %}
-    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--blue-600);background:var(--blue-600);border-radius:var(--radius-md);font-size:13px;font-weight:700;display:inline-flex;align-items:center;color:#fff;">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ num }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">{{ num }}</a>{% endif %}{% endfor %}
-    {% if page_obj.has_next %}<a href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.next_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">›</a>{% endif %}
-    <span style="font-size:12px;color:var(--text-muted);margin-left:6px;">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ alumnos_count }}</span>
+<div class="iv-pagination">
+    {% if page_obj.has_previous %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.previous_page_number }}">‹</a>{% endif %}
+    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="iv-page current">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ num }}">{{ num }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.next_page_number }}">›</a>{% endif %}
+    <span class="iv-page-info">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ alumnos_count }}</span>
 </div>
 {% endif %}
+
+<!-- Panel de detalle -->
+<div id="detailOverlay" class="iv-overlay" onclick="closeDetail()"></div>
+<div id="detailPanel" class="iv-detail">
+    <div class="iv-detail__head">
+        <span class="iv-detail__eyebrow">Detalle alumno</span>
+        <button class="iv-detail__close" onclick="closeDetail()">×</button>
+    </div>
+    <div id="detailContent" class="iv-detail__body"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const _alumnosData = {
+    {% for a in alumnos %}
+    '{{ a.id }}': {
+        nombre: "{{ a.nombre|escapejs }}",
+        initials: "{{ a.initials }}",
+        email: "{{ a.email|escapejs }}",
+        carrera: "{{ a.carrera|escapejs }}",
+        sede: "{{ a.sede|escapejs }}",
+        empresa: "{{ a.empresa|escapejs }}",
+        generacion: "{{ a.generacion|escapejs }}",
+        profilePct: {{ a.profile_pct }},
+        linkedin: {{ a.linkedin_ok|lower }},
+        cv: {{ a.cv_ok|lower }},
+        video: {{ a.video_ok|lower }},
+        proyectos: {{ a.proyectos_count }},
+        badges: {{ a.badges_count }},
+        bitacoras: {{ a.bitacoras_count }},
+    },
+    {% endfor %}
+};
+
+function openDetail(id) {
+    const a = _alumnosData[id];
+    if (!a) return;
+    const okTag = (ok, label) => `<span class="iv-tag ${ok ? 'ok' : 'no'}">${label}</span>`;
+    document.getElementById('detailContent').innerHTML = `
+        <div class="iv-d-head">
+            <div class="iv-d-logo">${a.initials}</div>
+            <div>
+                <div class="iv-d-name">${a.nombre}</div>
+                <div class="iv-d-sub">${a.email}</div>
+            </div>
+        </div>
+        <div class="iv-d-stats">
+            <div class="iv-d-stat"><div class="iv-d-stat__v accent">${a.proyectos}</div><div class="iv-d-stat__l">Proyectos</div></div>
+            <div class="iv-d-stat"><div class="iv-d-stat__v">${a.bitacoras}</div><div class="iv-d-stat__l">Bitácoras</div></div>
+            <div class="iv-d-stat"><div class="iv-d-stat__v">${a.badges}</div><div class="iv-d-stat__l">Badges</div></div>
+        </div>
+        <div class="iv-d-block">
+            <div class="iv-d-label">Perfil digital</div>
+            <div class="iv-d-progress"><div class="iv-d-progress__fill" style="--pct:${a.profilePct}%"></div></div>
+            <div class="iv-d-tags">${okTag(a.linkedin,'LinkedIn')} ${okTag(a.cv,'CV')} ${okTag(a.video,'Video')}</div>
+        </div>
+        <div class="iv-d-rows">
+            ${_row('Carrera', a.carrera)}
+            ${_row('Sede', a.sede)}
+            ${a.generacion ? _row('Generación', a.generacion) : ''}
+            ${_row('Empresa', a.empresa || 'Sin asignar')}
+        </div>
+    `;
+    document.getElementById('detailOverlay').classList.add('open');
+    const panel = document.getElementById('detailPanel');
+    panel.classList.add('open');
+}
+
+function closeDetail() {
+    document.getElementById('detailPanel').classList.remove('open');
+    document.getElementById('detailOverlay').classList.remove('open');
+}
+
+function _row(label, value) {
+    return `<div class="iv-d-row"><span class="iv-d-row__k">${label}</span><span class="iv-d-row__v">${value}</span></div>`;
+}
+
+function submitFilters() { document.getElementById('filterForm').submit(); }
+function setPill(field, val) {
+    document.getElementById('h_' + field).value = val;
+    submitFilters();
+}
+let _searchTimer;
+function scheduleSearch() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(submitFilters, 600);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+</script>
 {% endblock %}

@@ -1,10 +1,93 @@
+import uuid
 from django.db import models
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+
+
+class ManejadorUsuario(BaseUserManager):
+    """Manejador de usuarios autenticados por email (sin username)."""
+    use_in_migrations = True
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('El email es obligatorio')
+        email = self.normalize_email(email)
+        extra_fields.setdefault('is_active', True)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields['is_staff'] = True
+        extra_fields['is_superuser'] = True
+        extra_fields['rol'] = 'admin'
+        extra_fields.setdefault('is_active', True)
+        return self.create_user(email, password, **extra_fields)
+
+
+class Usuario(AbstractUser):
+    """
+    Usuario central de la plataforma. Hereda de AbstractUser para integración
+    nativa con el panel de administración y el sistema de permisos de Django.
+    El identificador de acceso es el email (no hay username).
+    """
+    ROL_CHOICES = [
+        ('admin', 'Administrador'),
+        ('alumno', 'Alumno'),
+        ('tutor_udd', 'Tutor UDD'),
+        ('tutor_empresa', 'Tutor Empresa'),
+    ]
+
+    username = None
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True, max_length=254)
+    nombre = models.CharField(max_length=150)
+    apellido = models.CharField(max_length=150)
+    avatar_url = models.TextField(blank=True, null=True)
+    rol = models.CharField(max_length=20, choices=ROL_CHOICES, default='alumno')
+    created_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['nombre', 'apellido']
+
+    objects = ManejadorUsuario()
+
+    class Meta:
+        db_table = 'usuario'
+        verbose_name = 'Usuario'
+        verbose_name_plural = 'Usuarios'
+
+    def __str__(self):
+        return f"{self.get_full_name()} ({self.email})"
+
+    def get_full_name(self):
+        return f"{self.nombre} {self.apellido}".strip()
+
+    def get_short_name(self):
+        return self.nombre
+
+    @property
+    def is_admin(self):
+        return self.rol == 'admin'
+
+    @property
+    def is_alumno(self):
+        return self.rol == 'alumno'
+
+    @property
+    def is_tutor_udd(self):
+        return self.rol == 'tutor_udd'
+
+    @property
+    def is_tutor_empresa(self):
+        return self.rol == 'tutor_empresa'
 
 
 class Alumno(models.Model):
-    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True)
-    carrera = models.ForeignKey('Carrera', models.DO_NOTHING)
-    sede = models.ForeignKey('Sede', models.DO_NOTHING)
+    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True, related_name='alumno')
+    carrera = models.ForeignKey('Carrera', models.DO_NOTHING, blank=True, null=True)
+    sede = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     generacion = models.IntegerField(blank=True, null=True)
     numero_alumno = models.CharField(unique=True, max_length=30, blank=True, null=True)
     url_linkedin = models.TextField(blank=True, null=True)
@@ -291,7 +374,7 @@ class Sede(models.Model):
 
 
 class TutorEmpresa(models.Model):
-    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True)
+    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True, related_name='tutor_empresa')
     empresa = models.ForeignKey(Empresa, models.DO_NOTHING)
     cargo = models.CharField(max_length=150, blank=True, null=True)
     area = models.CharField(max_length=150, blank=True, null=True)
@@ -303,7 +386,7 @@ class TutorEmpresa(models.Model):
 
 
 class TutorUdd(models.Model):
-    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True)
+    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True, related_name='tutor_udd')
     sede = models.ForeignKey(Sede, models.DO_NOTHING, blank=True, null=True)
     departamento = models.CharField(max_length=150, blank=True, null=True)
     max_alumnos = models.IntegerField(blank=True, null=True)
@@ -322,20 +405,3 @@ class Universidad(models.Model):
         managed = False
         db_table = 'universidad'
 
-
-class Usuario(models.Model):
-    id = models.UUIDField(primary_key=True)
-    email = models.CharField(unique=True, max_length=254)
-    password_hash = models.TextField()
-    rol = models.TextField()  # This field type is a guess.
-    nombre = models.CharField(max_length=150)
-    apellido = models.CharField(max_length=150)
-    avatar_url = models.TextField(blank=True, null=True)
-    is_active = models.BooleanField(blank=True, null=True)
-    last_login = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(blank=True, null=True)
-    updated_at = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'usuario'
