@@ -2,12 +2,17 @@
 
 {% block title %}Empresas{% endblock %}
 {% block page_title %}Empresas{% endblock %}
-{% block topbar_actions %}<a href="{% url 'exportar_empresas' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a><button type="button" class="nt-new-btn" onclick="abrirEmpresaModal()">+ Nueva Empresa</button>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'exportar_empresas' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a>{% if user_rol == 'admin' %}<button type="button" class="nt-new-btn" onclick="abrirEmpresaModal()">+ Nueva Empresa</button>{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
     .iv-topbar-export { text-decoration:none; display:flex; align-items:center; gap:5px; }
     .iv-export-icon { width:12px; height:12px; }
+    /* CTA principal del detalle de empresa: crear proyecto vinculado */
+    .iv-d-cta { display:inline-flex; align-items:center; justify-content:center; gap:7px; width:100%; height:38px; margin-bottom:16px; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; text-decoration:none; }
+    .iv-d-cta:hover { background:var(--blue-700); }
+    .iv-d-proj { text-decoration:none; }
+    .iv-d-proj:hover { border-color:#93c5fd; background:var(--blue-50); }
     /* Columnas específicas de la tabla de empresas */
     .cols-empresas { grid-template-columns:40px 1fr 230px 210px 84px; }
     @media (max-width:1080px) { .cols-empresas { grid-template-columns:40px 1fr; } }
@@ -245,7 +250,7 @@ const _empresasData = {
         ubicacion: "{{ e.ubicacion|escapejs }}",
         empleados: "{{ e.empleados|escapejs }}",
         tutoresList: [{% for t in e.tutores_list %}{ nombre: "{{ t.nombre|escapejs }}", initials: "{{ t.initials|escapejs }}", cargo: "{{ t.cargo|escapejs }}", email: "{{ t.email|escapejs }}" }{% if not forloop.last %}, {% endif %}{% endfor %}],
-        proyectosList: [{% for p in e.proyectos_list %}{ titulo: "{{ p.titulo|escapejs }}", activo: {% if p.is_active %}true{% else %}false{% endif %} }{% if not forloop.last %}, {% endif %}{% endfor %}]
+        proyectosList: [{% for p in e.proyectos_list %}{ id: {{ p.id }}, titulo: "{{ p.titulo|escapejs }}", activo: {% if p.is_active %}true{% else %}false{% endif %} }{% if not forloop.last %}, {% endif %}{% endfor %}]
     },
     {% endfor %}
 };
@@ -261,6 +266,7 @@ function openDetail(id) {
                 <div class="iv-d-sub">${e.rubro}</div>
             </div>
         </div>
+        <a class="iv-d-cta" href="/proyectos/?empresa_fija=${id}">+ Nuevo Proyecto</a>
         ${e.descripcion ? `<p class="iv-d-desc">${e.descripcion}</p>` : ''}
         <div class="iv-d-stats">
             <div class="iv-d-stat"><div class="iv-d-stat__v accent">${e.practicantes}</div><div class="iv-d-stat__l">Alumnos</div></div>
@@ -317,7 +323,7 @@ function _proyectoRow(p) {
     const estado = p.activo
         ? '<span class="iv-d-proj__state is-on">Activo</span>'
         : '<span class="iv-d-proj__state">Cerrado</span>';
-    return `<div class="iv-d-proj"><span class="iv-d-proj__name">${p.titulo}</span>${estado}</div>`;
+    return `<a class="iv-d-proj" href="/proyectos/${p.id}/"><span class="iv-d-proj__name">${p.titulo}</span>${estado}</a>`;
 }
 
 // ── Modal Nueva Empresa ──

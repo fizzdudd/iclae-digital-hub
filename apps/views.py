@@ -1032,7 +1032,17 @@ def proyectos_view(request):
         perfil_tutor = TutorEmpresa.objects.select_related('empresa').filter(pk=request.user.pk).first()
         empresa_tutor = perfil_tutor.empresa if perfil_tutor else None
 
+    # Vinculación contextual: al llegar desde el detalle de una empresa, el campo
+    # de empresa viene fijo y oculto (se inyecta su id en el formulario).
+    empresa_fija = None
+    empresa_fija_id = (request.GET.get('empresa_fija') or '').strip()
+    if empresa_fija_id and not es_tutor_empresa:
+        empresa_fija = Empresa.objects.filter(id=empresa_fija_id).first()
+
     if request.method == 'POST' and request.POST.get('action') == 'create_proyecto':
+        # Solo el administrador y el tutor empresa pueden crear proyectos.
+        if real_rol not in ('admin', 'tutor_empresa'):
+            return HttpResponseForbidden('No tienes permisos para crear proyectos.')
         titulo = (request.POST.get('titulo') or '').strip()[:255]
         if es_tutor_empresa:
             # El tutor de empresa no elige empresa: se asigna forzosamente la
@@ -1053,7 +1063,7 @@ def proyectos_view(request):
             except ValueError:
                 vacantes = 1
             try:
-                Proyecto.objects.create(
+                proyecto_nuevo = Proyecto.objects.create(
                     empresa=empresa,
                     titulo=titulo,
                     descripcion=(request.POST.get('descripcion') or '').strip() or None,
@@ -1066,6 +1076,9 @@ def proyectos_view(request):
                     updated_at=timezone.now(),
                 )
                 messages.success(request, f'Proyecto “{titulo}” creado correctamente.')
+                # El admin aterriza directamente en el Hub del proyecto recién creado.
+                if not es_tutor_empresa:
+                    return redirect('proyecto_detalle', proyecto_id=proyecto_nuevo.id)
             except Exception as exc:
                 messages.error(request, f'No se pudo crear el proyecto: {exc}')
         return redirect('proyectos')
@@ -1178,9 +1191,269 @@ def proyectos_view(request):
         'carreras_select': list(Carrera.objects.order_by('nombre').values('id', 'nombre')),
         'es_tutor_empresa': es_tutor_empresa,
         'empresa_tutor_nombre': empresa_tutor.nombre if empresa_tutor else '',
+        'empresa_fija_id': empresa_fija.id if empresa_fija else '',
+        'empresa_fija_nombre': empresa_fija.nombre if empresa_fija else '',
+        'abrir_modal': bool(empresa_fija),
         'user_rol': user_rol,
     }
     return render(request, 'pages/proyectos.html', context)
+
+
+def _alumno_dict(alumno, pp_id=None):
+    """Representación ligera de un alumno para el Hub del proyecto."""
+    u = alumno.id
+    nombre = f"{u.nombre} {u.apellido}".strip()
+    return {
+        'pp_id': pp_id,
+        'id': str(alumno.pk),
+        'nombre': nombre,
+        'email': u.email or '',
+        'iniciales': (''.join(p[0] for p in nombre.split()[:2]).upper() or 'AL'),
+        'carrera': alumno.carrera.nombre if alumno.carrera else 'Sin carrera',
+    }
+
+
+@require_roles()
+def proyecto_detalle_view(request, proyecto_id):
+    """Hub de orquestación del proyecto: información base, equipo de tutores y
+    alumnos asignados, con asignación/desvinculación/reasignación dinámica.
+
+    Las asignaciones operan sobre ProyectoPeriodo del período activo: cada alumno
+    asignado es una fila (proyecto, periodo, alumno) y los tutores del proyecto se
+    replican en todas sus filas para que los paneles de tutor los reconozcan.
+    """
+    user_rol = _get_user_rol(request)
+    periodo, periodo_label = _periodo_activo()
+    proyecto = Proyecto.objects.select_related('empresa', 'carrera').filter(id=proyecto_id).first()
+    if proyecto is None:
+        messages.error(request, 'El proyecto solicitado no existe.')
+        return redirect('proyectos')
+
+    if periodo is None:
+        return render(request, 'pages/proyecto_detalle.html', {
+            'user_rol': user_rol,
+            'periodo_label': periodo_label,
+            'proyecto': proyecto,
+            'sin_periodo': True,
+        })
+
+    destino = redirect('proyecto_detalle', proyecto_id=proyecto.id)
+
+    if request.method == 'POST':
+        action = (request.POST.get('action') or '').strip()
+
+        if action == 'asignar_alumno':
+            alumno = Alumno.objects.select_related('id').filter(pk=(request.POST.get('alumno_id') or '').strip()).first()
+            if alumno is None or not alumno.id.is_active:
+                messages.error(request, 'Selecciona un alumno activo válido.')
+                return destino
+            if ProyectoPeriodo.objects.filter(periodo=periodo, alumno_id=alumno.pk).exists():
+                messages.error(request, 'Ese alumno ya tiene un proyecto asignado en el período.')
+                return destino
+            asignados_actuales = ProyectoPeriodo.objects.filter(
+                proyecto=proyecto, periodo=periodo, alumno__isnull=False
+            ).count()
+            if asignados_actuales >= (proyecto.vacantes or 0):
+                messages.error(request, 'El proyecto ya alcanzó su capacidad de vacantes.')
+                return destino
+            placeholder = ProyectoPeriodo.objects.filter(
+                proyecto=proyecto, periodo=periodo, alumno__isnull=True
+            ).first()
+            ahora = timezone.now()
+            if placeholder:
+                placeholder.alumno = alumno
+                placeholder.estado = placeholder.estado or 'en_curso'
+                placeholder.semana_actual = placeholder.semana_actual or 1
+                placeholder.updated_at = ahora
+                placeholder.save()
+            else:
+                tu = ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo, tutor_udd__isnull=False).first()
+                te = ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo, tutor_empresa__isnull=False).first()
+                ProyectoPeriodo.objects.create(
+                    proyecto=proyecto,
+                    periodo=periodo,
+                    alumno=alumno,
+                    tutor_udd=tu.tutor_udd if tu else None,
+                    tutor_empresa=te.tutor_empresa if te else None,
+                    estado='en_curso',
+                    semana_actual=1,
+                    created_at=ahora,
+                    updated_at=ahora,
+                )
+            messages.success(request, 'Alumno añadido al proyecto.')
+            return destino
+
+        if action == 'cambiar_proyecto':
+            pp = ProyectoPeriodo.objects.filter(pk=(request.POST.get('pp_id') or '').strip(), proyecto=proyecto, periodo=periodo).first()
+            destino_proy = Proyecto.objects.filter(pk=(request.POST.get('proyecto_destino_id') or '').strip(), is_active=True).first()
+            if pp is None or not pp.alumno_id or destino_proy is None:
+                messages.error(request, 'Selecciona un proyecto de destino válido.')
+                return destino
+            if destino_proy.pk == proyecto.pk:
+                messages.error(request, 'El alumno ya pertenece a este proyecto.')
+                return destino
+            asignados_destino = ProyectoPeriodo.objects.filter(
+                proyecto=destino_proy, periodo=periodo, alumno__isnull=False
+            ).count()
+            if asignados_destino >= (destino_proy.vacantes or 0):
+                messages.error(request, 'El proyecto de destino no tiene cupos disponibles.')
+                return destino
+            # Al trasladar al alumno, adopta el equipo de tutores del proyecto destino.
+            tu = ProyectoPeriodo.objects.filter(proyecto=destino_proy, periodo=periodo, tutor_udd__isnull=False).first()
+            te = ProyectoPeriodo.objects.filter(proyecto=destino_proy, periodo=periodo, tutor_empresa__isnull=False).first()
+            pp.proyecto = destino_proy
+            pp.tutor_udd = tu.tutor_udd if tu else None
+            pp.tutor_empresa = te.tutor_empresa if te else None
+            pp.updated_at = timezone.now()
+            pp.save()
+            messages.success(request, 'Alumno trasladado a “%s”.' % destino_proy.titulo)
+            return destino
+
+        if action == 'desvincular_alumno':
+            pp = ProyectoPeriodo.objects.filter(pk=(request.POST.get('pp_id') or '').strip(), proyecto=proyecto, periodo=periodo).first()
+            if pp is None or not pp.alumno_id:
+                messages.error(request, 'No se encontró la asignación a desvincular.')
+                return destino
+            # Se libera al alumno conservando la fila (equipo e histórico intactos).
+            pp.alumno = None
+            pp.updated_at = timezone.now()
+            pp.save()
+            messages.success(request, 'Alumno desvinculado del proyecto.')
+            return destino
+
+        if action in ('asignar_tutor', 'desvincular_tutor'):
+            tipo = (request.POST.get('tipo') or '').strip().lower()
+            if tipo not in ('udd', 'empresa'):
+                messages.error(request, 'Tipo de tutor no válido.')
+                return destino
+            tutor = None
+            if action == 'asignar_tutor':
+                tutor_id = (request.POST.get('tutor_id') or '').strip()
+                if tipo == 'udd':
+                    tutor = TutorUdd.objects.filter(pk=tutor_id).first()
+                else:
+                    tutor = TutorEmpresa.objects.filter(pk=tutor_id, empresa=proyecto.empresa).first()
+                if tutor is None:
+                    messages.error(request, 'Selecciona un tutor válido.')
+                    return destino
+
+            filas = list(ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo))
+            ahora = timezone.now()
+            if not filas:
+                # Sin filas aún: se crea una fila contenedora (sin alumno) del equipo.
+                ProyectoPeriodo.objects.create(
+                    proyecto=proyecto,
+                    periodo=periodo,
+                    tutor_udd=tutor if tipo == 'udd' else None,
+                    tutor_empresa=tutor if tipo == 'empresa' else None,
+                    estado='en_curso',
+                    created_at=ahora,
+                    updated_at=ahora,
+                )
+            else:
+                for fila in filas:
+                    if tipo == 'udd':
+                        fila.tutor_udd = tutor
+                    else:
+                        fila.tutor_empresa = tutor
+                    fila.updated_at = ahora
+                    fila.save()
+            if action == 'asignar_tutor':
+                messages.success(request, 'Tutor asignado al proyecto.')
+            else:
+                messages.success(request, 'Tutor desvinculado del proyecto.')
+            return destino
+
+        messages.error(request, 'Acción no reconocida.')
+        return destino
+
+    # ── GET: armado del Hub ──
+    filas = list(
+        ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo)
+        .select_related('alumno__id', 'alumno__carrera', 'tutor_udd__id', 'tutor_empresa__id')
+    )
+    alumnos = [_alumno_dict(f.alumno, pp_id=f.pk) for f in filas if f.alumno_id]
+    alumnos.sort(key=lambda a: a['nombre'])
+
+    tutor_udd = None
+    tutor_empresa = None
+    for f in filas:
+        if tutor_udd is None and f.tutor_udd_id and f.tutor_udd and f.tutor_udd.id:
+            u = f.tutor_udd.id
+            nombre = f"{u.nombre} {u.apellido}".strip()
+            tutor_udd = {
+                'nombre': nombre,
+                'email': u.email or '',
+                'iniciales': (''.join(p[0] for p in nombre.split()[:2]).upper() or 'TU'),
+                'detalle': f.tutor_udd.departamento or 'Tutor UDD',
+            }
+        if tutor_empresa is None and f.tutor_empresa_id and f.tutor_empresa and f.tutor_empresa.id:
+            u = f.tutor_empresa.id
+            nombre = f"{u.nombre} {u.apellido}".strip()
+            tutor_empresa = {
+                'nombre': nombre,
+                'email': u.email or '',
+                'iniciales': (''.join(p[0] for p in nombre.split()[:2]).upper() or 'TE'),
+                'detalle': f.tutor_empresa.cargo or 'Tutor empresa',
+            }
+
+    # Alumnos activos sin proyecto en el período (para añadir / reasignar).
+    asignados_ids = set(
+        ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False).values_list('alumno_id', flat=True)
+    )
+    disponibles = [
+        {'id': str(a.pk), 'nombre': f"{a.id.nombre} {a.id.apellido}".strip(), 'email': a.id.email or '', 'carrera': a.carrera.nombre if a.carrera else 'Sin carrera'}
+        for a in Alumno.objects.select_related('id', 'carrera').filter(id__is_active=True).exclude(pk__in=asignados_ids).order_by('id__nombre', 'id__apellido')
+    ]
+
+    # Proyectos de destino para "Cambiar Proyecto": activos, con cupos libres.
+    asignados_por_proyecto = {
+        row['proyecto']: row['c']
+        for row in ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False).values('proyecto').annotate(c=Count('id'))
+    }
+    proyectos_destino = []
+    for p in Proyecto.objects.filter(is_active=True).exclude(id=proyecto.id).select_related('empresa').order_by('titulo'):
+        libres = (p.vacantes or 0) - asignados_por_proyecto.get(p.id, 0)
+        if libres > 0:
+            proyectos_destino.append({
+                'id': p.id,
+                'titulo': p.titulo,
+                'empresa': p.empresa.nombre if p.empresa else 'Sin empresa',
+                'disponibles': libres,
+            })
+
+    tutores_udd = [
+        {'id': str(t.pk), 'nombre': f"{t.id.nombre} {t.id.apellido}".strip(), 'detalle': t.departamento or 'Tutor UDD'}
+        for t in TutorUdd.objects.select_related('id').order_by('id__nombre', 'id__apellido')
+    ]
+    tutores_empresa = [
+        {'id': str(t.pk), 'nombre': f"{t.id.nombre} {t.id.apellido}".strip(), 'detalle': t.cargo or 'Tutor empresa'}
+        for t in TutorEmpresa.objects.select_related('id').filter(empresa=proyecto.empresa).order_by('id__nombre', 'id__apellido')
+    ]
+
+    modalidad_label = (proyecto.modalidad or 'Sin definir').strip().title()
+    context = {
+        'user_rol': user_rol,
+        'periodo_label': periodo_label,
+        'sin_periodo': False,
+        'proyecto': proyecto,
+        'empresa_nombre': proyecto.empresa.nombre if proyecto.empresa else 'Sin empresa',
+        'carrera_nombre': proyecto.carrera.nombre if proyecto.carrera else 'Multicarrera',
+        'modalidad_label': modalidad_label,
+        'descripcion': proyecto.descripcion or '',
+        'vacantes': proyecto.vacantes or 0,
+        'is_active': bool(proyecto.is_active),
+        'alumnos': alumnos,
+        'alumnos_count': len(alumnos),
+        'cupos_llenos': len(alumnos) >= (proyecto.vacantes or 0),
+        'tutor_udd': tutor_udd,
+        'tutor_empresa': tutor_empresa,
+        'disponibles': disponibles,
+        'proyectos_destino': proyectos_destino,
+        'tutores_udd': tutores_udd,
+        'tutores_empresa': tutores_empresa,
+    }
+    return render(request, 'pages/proyecto_detalle.html', context)
 
 
 def empresas_view(request):
@@ -1188,6 +1461,9 @@ def empresas_view(request):
     periodo, periodo_label = _periodo_activo()
 
     if request.method == 'POST' and request.POST.get('action') == 'create_empresa':
+        # Solo el administrador puede crear empresas.
+        if getattr(request.user, 'rol', None) != 'admin':
+            return HttpResponseForbidden('No tienes permisos para crear empresas.')
         nombre = (request.POST.get('nombre') or '').strip()[:255]
         if not nombre:
             messages.error(request, 'El nombre de la empresa es obligatorio.')
@@ -1327,6 +1603,7 @@ def empresas_view(request):
     proyectos_map = {}
     for pr in Proyecto.objects.filter(empresa_id__in=page_ids).order_by('-is_active', 'titulo'):
         proyectos_map.setdefault(pr.empresa_id, []).append({
+            'id': pr.id,
             'titulo': pr.titulo,
             'is_active': bool(pr.is_active),
         })

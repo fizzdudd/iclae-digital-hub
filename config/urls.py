@@ -51,6 +51,7 @@ urlpatterns = [
 
     # Vistas principales
     path('proyectos/', views.proyectos_view, name='proyectos'),
+    path('proyectos/<int:proyecto_id>/', views.proyecto_detalle_view, name='proyecto_detalle'),
     path('alumnos/', views.alumnos_view, name='alumnos'),
     path('empresas/', views.empresas_view, name='empresas'),
     path('postulaciones/', views.postulaciones_view, name='postulaciones'),

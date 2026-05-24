@@ -2,7 +2,7 @@
 
 {% block title %}Proyectos{% endblock %}
 {% block page_title %}Explorador de Proyectos{% endblock %}
-{% block topbar_actions %}<button type="button" class="nt-new-btn" onclick="abrirProyectoModal()">+ Nuevo Proyecto</button>{% endblock %}
+{% block topbar_actions %}{% if user_rol == 'admin' or user_rol == 'tutor_empresa' %}<button type="button" class="nt-new-btn" onclick="abrirProyectoModal()">+ Nuevo Proyecto</button>{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -106,7 +106,7 @@
     </div>
 
     {% for p in proyectos %}
-    <div class="iv-row cols-proy">
+    <div class="iv-row cols-proy clickable" onclick="location.href='{% url 'proyecto_detalle' p.id %}'">
         <div class="iv-logo {% cycle 'c1' 'c2' 'c3' 'c4' 'c5' %}">{{ p.empresa_initials }}</div>
         <div class="iv-cell-title">
             <div class="iv-cell-main" title="{{ p.titulo }}">{{ p.titulo }}</div>
@@ -153,6 +153,10 @@
                     {% if es_tutor_empresa %}
                     <input class="nt-input" type="text" id="pr-empresa" value="{{ empresa_tutor_nombre }}" disabled>
                     <div class="nt-note">Como Tutor Empresa, el proyecto se vincula automáticamente a {{ empresa_tutor_nombre }}.</div>
+                    {% elif empresa_fija_id %}
+                    <input class="nt-input" type="text" id="pr-empresa" value="{{ empresa_fija_nombre }}" disabled>
+                    <input type="hidden" name="empresa_id" value="{{ empresa_fija_id }}">
+                    <div class="nt-note">El proyecto se vinculará a {{ empresa_fija_nombre }}.</div>
                     {% else %}
                     <select class="nt-select" id="pr-empresa" name="empresa_id" required>
                         <option value="">Selecciona una empresa…</option>
@@ -213,5 +217,8 @@ function scheduleSearch() {
 function abrirProyectoModal() { document.getElementById('proyectoModal').classList.add('open'); }
 function cerrarProyectoModal() { document.getElementById('proyectoModal').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarProyectoModal(); });
+
+// Apertura automática del modal cuando se llega con una empresa fija.
+{% if abrir_modal %}abrirProyectoModal();{% endif %}
 </script>
 {% endblock %}
