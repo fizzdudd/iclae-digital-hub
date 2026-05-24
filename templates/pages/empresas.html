@@ -2,7 +2,7 @@
 
 {% block title %}Empresas{% endblock %}
 {% block page_title %}Empresas{% endblock %}
-{% block topbar_actions %}<a href="{% url 'exportar_empresas' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'exportar_empresas' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a><button type="button" class="nt-new-btn" onclick="abrirEmpresaModal()">+ Nueva Empresa</button>{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -156,6 +156,72 @@
     </div>
     <div id="detailContent" class="iv-detail__body"></div>
 </div>
+
+<!-- Modal: Nueva Empresa -->
+<div class="nt-modal" id="empresaModal">
+    <div class="nt-modal__backdrop" onclick="cerrarEmpresaModal()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="empresaModalTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="empresaModalTitle">Nueva empresa</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarEmpresaModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="{% url 'empresas' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_empresa">
+            <div class="nt-modal__body">
+                <div class="nt-field">
+                    <label class="nt-field__label" for="em-nombre">Nombre</label>
+                    <input class="nt-input" type="text" id="em-nombre" name="nombre" maxlength="255" placeholder="Ej: Banco Falabella" required>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-rubro">Rubro</label>
+                        <input class="nt-input" type="text" id="em-rubro" name="rubro" maxlength="150" placeholder="Ej: Banca">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-ubic">Ubicación</label>
+                        <input class="nt-input" type="text" id="em-ubic" name="ubicacion" maxlength="255" placeholder="Ej: Santiago">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-tam">Tamaño</label>
+                        <select class="nt-select" id="em-tam" name="tamano">
+                            <option value="">Sin definir</option>
+                            <option value="pequeña">Pequeña</option>
+                            <option value="mediana">Mediana</option>
+                            <option value="grande">Grande</option>
+                        </select>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-pres">Presencia</label>
+                        <select class="nt-select" id="em-pres" name="presencia">
+                            <option value="">Sin definir</option>
+                            <option value="chile">Solo Chile</option>
+                            <option value="multinacional">Multinacional</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="em-desc">Descripción</label>
+                    <textarea class="nt-textarea" id="em-desc" name="descripcion" placeholder="Breve descripción de la empresa..."></textarea>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-cn">Contacto (nombre)</label>
+                        <input class="nt-input" type="text" id="em-cn" name="contacto_nombre" maxlength="150" placeholder="Nombre del contacto">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-ce">Contacto (email)</label>
+                        <input class="nt-input" type="email" id="em-ce" name="contacto_email" maxlength="254" placeholder="correo@empresa.cl">
+                    </div>
+                </div>
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarEmpresaModal()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Crear empresa</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -177,7 +243,9 @@ const _empresasData = {
         contactoNombre: "{{ e.contacto_nombre|escapejs }}",
         contactoEmail: "{{ e.contacto_email|escapejs }}",
         ubicacion: "{{ e.ubicacion|escapejs }}",
-        empleados: "{{ e.empleados|escapejs }}"
+        empleados: "{{ e.empleados|escapejs }}",
+        tutoresList: [{% for t in e.tutores_list %}{ nombre: "{{ t.nombre|escapejs }}", initials: "{{ t.initials|escapejs }}", cargo: "{{ t.cargo|escapejs }}", email: "{{ t.email|escapejs }}" }{% if not forloop.last %}, {% endif %}{% endfor %}],
+        proyectosList: [{% for p in e.proyectos_list %}{ titulo: "{{ p.titulo|escapejs }}", activo: {% if p.is_active %}true{% else %}false{% endif %} }{% if not forloop.last %}, {% endif %}{% endfor %}]
     },
     {% endfor %}
 };
@@ -213,6 +281,14 @@ function openDetail(id) {
             ${e.contactoNombre ? `<div class="iv-d-contact__name">${e.contactoNombre}</div>` : ''}
             ${e.contactoEmail ? `<a href="mailto:${e.contactoEmail}" class="iv-d-contact__email">${e.contactoEmail}</a>` : ''}
         </div>` : ''}
+        <div class="iv-d-tutors">
+            <div class="iv-d-label">Tutores empresa · ${e.tutoresList.length}</div>
+            ${e.tutoresList.length ? e.tutoresList.map(_tutorRow).join('') : '<div class="iv-d-tutors__empty">Sin tutores asociados.</div>'}
+        </div>
+        <div class="iv-d-projects">
+            <div class="iv-d-label">Proyectos asociados · ${e.proyectosList.length}</div>
+            ${e.proyectosList.length ? e.proyectosList.map(_proyectoRow).join('') : '<div class="iv-d-tutors__empty">Sin proyectos asociados.</div>'}
+        </div>
     `;
     document.getElementById('detailOverlay').classList.add('open');
     document.getElementById('detailPanel').classList.add('open');
@@ -227,6 +303,27 @@ function _row(label, value) {
     return `<div class="iv-d-row"><span class="iv-d-row__k">${label}</span><span class="iv-d-row__v">${value}</span></div>`;
 }
 
+function _tutorRow(t) {
+    return `<div class="iv-d-tutor">
+        <div class="iv-d-tutor__av">${t.initials}</div>
+        <div class="iv-d-tutor__info">
+            <div class="iv-d-tutor__name">${t.nombre}</div>
+            <div class="iv-d-tutor__role">${t.cargo || t.email || 'Tutor empresa'}</div>
+        </div>
+    </div>`;
+}
+
+function _proyectoRow(p) {
+    const estado = p.activo
+        ? '<span class="iv-d-proj__state is-on">Activo</span>'
+        : '<span class="iv-d-proj__state">Cerrado</span>';
+    return `<div class="iv-d-proj"><span class="iv-d-proj__name">${p.titulo}</span>${estado}</div>`;
+}
+
+// ── Modal Nueva Empresa ──
+function abrirEmpresaModal() { document.getElementById('empresaModal').classList.add('open'); }
+function cerrarEmpresaModal() { document.getElementById('empresaModal').classList.remove('open'); }
+
 function submitFilters() { document.getElementById('filterForm').submit(); }
 function setPill(field, val) {
     document.getElementById('h_' + field).value = val;
@@ -237,6 +334,6 @@ function scheduleSearch() {
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(submitFilters, 600);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); cerrarEmpresaModal(); } });
 </script>
 {% endblock %}

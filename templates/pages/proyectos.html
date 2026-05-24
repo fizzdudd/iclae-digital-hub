@@ -2,6 +2,7 @@
 
 {% block title %}Proyectos{% endblock %}
 {% block page_title %}Explorador de Proyectos{% endblock %}
+{% block topbar_actions %}<button type="button" class="nt-new-btn" onclick="abrirProyectoModal()">+ Nuevo Proyecto</button>{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -130,6 +131,69 @@
     <span class="iv-page-info">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ proyectos_count }}</span>
 </div>
 {% endif %}
+
+<!-- Modal: Nuevo Proyecto -->
+<div class="nt-modal" id="proyectoModal">
+    <div class="nt-modal__backdrop" onclick="cerrarProyectoModal()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="proyectoModalTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="proyectoModalTitle">Nuevo proyecto</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarProyectoModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="{% url 'proyectos' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_proyecto">
+            <div class="nt-modal__body">
+                <div class="nt-field">
+                    <label class="nt-field__label" for="pr-titulo">Título del proyecto</label>
+                    <input class="nt-input" type="text" id="pr-titulo" name="titulo" maxlength="255" placeholder="Ej: Práctica en analítica de datos" required>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="pr-empresa">Empresa</label>
+                    {% if es_tutor_empresa %}
+                    <input class="nt-input" type="text" id="pr-empresa" value="{{ empresa_tutor_nombre }}" disabled>
+                    <div class="nt-note">Como Tutor Empresa, el proyecto se vincula automáticamente a {{ empresa_tutor_nombre }}.</div>
+                    {% else %}
+                    <select class="nt-select" id="pr-empresa" name="empresa_id" required>
+                        <option value="">Selecciona una empresa…</option>
+                        {% for em in empresas_select %}<option value="{{ em.id }}">{{ em.nombre }}</option>{% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="pr-carrera">Carrera</label>
+                        <select class="nt-select" id="pr-carrera" name="carrera_id">
+                            <option value="">Multicarrera</option>
+                            {% for ca in carreras_select %}<option value="{{ ca.id }}">{{ ca.nombre }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="pr-modalidad">Modalidad</label>
+                        <select class="nt-select" id="pr-modalidad" name="modalidad">
+                            <option value="">Sin definir</option>
+                            <option value="presencial">Presencial</option>
+                            <option value="hibrido">Híbrido</option>
+                            <option value="remoto">Remoto</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="pr-vacantes">Vacantes</label>
+                    <input class="nt-input" type="number" id="pr-vacantes" name="vacantes" min="1" max="99" value="1">
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="pr-desc">Descripción</label>
+                    <textarea class="nt-textarea" id="pr-desc" name="descripcion" placeholder="Describe el objetivo y las tareas del proyecto..."></textarea>
+                </div>
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarProyectoModal()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Crear proyecto</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -144,5 +208,10 @@ function scheduleSearch() {
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(submitFilters, 600);
 }
+
+// ── Modal Nuevo Proyecto ──
+function abrirProyectoModal() { document.getElementById('proyectoModal').classList.add('open'); }
+function cerrarProyectoModal() { document.getElementById('proyectoModal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarProyectoModal(); });
 </script>
 {% endblock %}

@@ -5,125 +5,156 @@
 
 {% block extra_css %}
 <style>
-    .bk-wrap { display:grid; gap:14px; }
+    .bk-wrap { display:flex; flex-direction:column; gap:18px; }
+    .bk-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:20px 22px; }
+    .bk-back { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; font-size:12.5px; font-weight:700; color:var(--text-secondary); text-decoration:none; }
+    .bk-back:hover { color:var(--blue-700); }
 
-    /* Cabecera */
-    .bk-hero { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .bk-hero-main { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .bk-hero-title { font-size:16px; font-weight:800; color:var(--text-primary); }
-    .bk-hero-pill { font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; background:var(--blue-50); color:var(--blue-800); }
-    .bk-hero-sub { font-size:12px; color:var(--text-muted); }
-    .bk-hero-form { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .bk-hero-label { font-size:12px; font-weight:700; color:var(--text-muted); }
-    .bk-select { height:34px; border:1px solid var(--border); border-radius:var(--radius-md); padding:0 10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fff; }
+    /* ── 1) Cabecera y progreso (top bar) ── */
+    .bk-top-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+    .bk-top-title { font-size:17px; font-weight:800; color:var(--text-primary); letter-spacing:-.3px; }
+    .bk-top-ctx { font-size:13px; color:var(--text-secondary); margin-top:4px; }
 
-    /* Barra de progreso */
-    .bk-progress { border:1px solid var(--border); background:var(--card-bg); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-    .bk-progress-label { font-size:13px; font-weight:700; flex-shrink:0; }
-    .bk-progress-track { flex:1; min-width:140px; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
-    .bk-progress-fill { height:100%; border-radius:999px; background:var(--cat-5); width:var(--pct,0%); transition:width .3s ease; }
-    .bk-progress-pct { font-size:14px; font-weight:800; color:var(--green-700); min-width:40px; text-align:right; }
-    .bk-tags { display:flex; gap:8px; flex-wrap:wrap; }
-    .bk-tag { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; }
-    .bk-tag--ok { background:var(--green-100); color:#166534; }
-    .bk-tag--warn { background:#ffedd5; color:#9a3412; }
-    .bk-tag--muted { background:#f1f5f9; color:#64748b; }
+    .bk-progress { display:flex; align-items:center; gap:12px; margin-top:16px; }
+    .bk-progress-track { flex:1; height:6px; background:#eef0f4; border-radius:999px; overflow:hidden; }
+    .bk-progress-fill { height:100%; background:var(--cat-5); border-radius:999px; width:var(--pct,0%); transition:width .3s ease; }
+    .bk-progress-pct { font-size:12.5px; font-weight:800; color:var(--green-700); min-width:34px; text-align:right; }
 
-    /* Distribución: columna de semanas angosta + área de registro como foco */
-    .bk-layout { display:grid; grid-template-columns:148px minmax(0,1fr); gap:14px; align-items:start; }
+    .bk-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+    .bk-badge2 { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; border:1px solid transparent; }
+    .bk-badge2::before { content:''; width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .bk-badge2--ok { background:color-mix(in srgb, var(--cat-5) 9%, #fff); border-color:color-mix(in srgb, var(--cat-5) 28%, #fff); color:var(--green-700); }
+    .bk-badge2--ok::before { background:var(--cat-5); }
+    .bk-badge2--warn { background:color-mix(in srgb, var(--cat-4) 10%, #fff); border-color:color-mix(in srgb, var(--cat-4) 30%, #fff); color:#b45309; }
+    .bk-badge2--warn::before { background:var(--cat-4); }
+    .bk-badge2--info { background:var(--blue-50); border-color:#bfdbfe; color:var(--blue-700); }
+    .bk-badge2--info::before { background:var(--blue-600); }
+    .bk-badge2--muted { background:#f8fafc; border-color:var(--border); color:var(--text-secondary); }
+    .bk-badge2--muted::before { background:#cbd5e1; }
 
-    .bk-weeks { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; position:sticky; top:76px; }
-    .bk-weeks-h { padding:11px 13px; background:#f8fafc; border-bottom:1px solid var(--border); font-size:10.5px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; }
-    .bk-week-list { max-height:calc(100vh - 180px); overflow:auto; }
-    .bk-week { display:flex; align-items:center; gap:8px; padding:9px 13px; border-bottom:1px solid #f6f8fb; text-decoration:none; color:inherit; }
-    .bk-week:last-child { border-bottom:none; }
-    .bk-week:hover { background:#f8fbff; }
-    .bk-week.active { background:var(--blue-50); box-shadow:inset 3px 0 0 var(--blue-600); }
-    .bk-week-n { font-size:13px; font-weight:700; color:var(--text-secondary); flex:1; }
-    .bk-week.active .bk-week-n { color:var(--blue-800); }
-    .bk-week-dot { width:9px; height:9px; border-radius:50%; background:#cbd5e1; flex-shrink:0; }
-    .bk-week-dot.ok { background:var(--cat-5); }
-    .bk-week-dot.warn { background:var(--cat-4); }
-    .bk-week-dot.bad { background:#f43f5e; }
-    .bk-week-dot.sent { background:var(--blue-500,#3b82f6); }
-    .bk-week-tag { font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; }
-    .bk-week-tag.now { background:var(--blue-100); color:var(--blue-800); }
-    .bk-week-tag.muted { background:#eef2f7; color:#94a3b8; }
+    /* ── 2) Stepper horizontal de semanas ── */
+    .bk-stepcard-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+    .bk-stepcard-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); }
+    .bk-stepcard-hint { font-size:12px; color:var(--text-muted); }
+    .bk-stepper { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; }
+    .bk-step { flex:0 0 auto; width:74px; height:74px; border:1.5px solid #e5e7eb; border-radius:12px; background:var(--card-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; text-decoration:none; color:inherit; transition:border-color .15s, box-shadow .15s; }
+    .bk-step:hover { border-color:#d1d5db; background:#f8fbff; }
+    .bk-step.is-active { border-color:var(--blue-600); border-width:2px; box-shadow:0 0 0 3px rgba(37,99,235,.10); }
+    .bk-step-n { font-size:12px; font-weight:700; color:var(--text-muted); }
+    .bk-step.is-active .bk-step-n { color:var(--blue-700); }
+    .bk-step-ico { width:18px; height:18px; display:flex; align-items:center; justify-content:center; margin-top:8px; }
+    .bk-step-ico svg { width:18px; height:18px; }
+    .bk-step-ico .ico-ok { color:var(--cat-5); }
+    .bk-step-ico .ico-warn { color:var(--cat-4); }
+    .bk-step-ico .ico-bad { color:#ef4444; }
+    .bk-step-ico .ico-info { width:11px; height:11px; border-radius:50%; background:var(--blue-600); }
+    .bk-step-ico .ico-empty { width:11px; height:11px; border-radius:50%; border:1.5px solid #cbd5e1; }
 
-    /* Panel central */
-    .bk-panel { display:grid; gap:14px; }
-    .bk-card { border:1px solid var(--border); background:var(--card-bg); border-radius:var(--radius-lg); box-shadow:0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04); overflow:hidden; }
-    .bk-card-h { padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
-    .bk-card-title { font-size:14px; font-weight:800; color:var(--text-primary); }
-    .bk-card-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
-    .bk-card-b { padding:16px; }
+    /* ── 3) Visor de la semana (tarjeta) ── */
+    .bk-doc { display:flex; flex-direction:column; }
+    .bk-doc-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .bk-eyebrow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.1px; color:var(--text-muted); }
+    .bk-meta { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-muted); margin-top:10px; padding-bottom:18px; border-bottom:1px solid var(--border); }
+    .bk-meta svg { width:14px; height:14px; flex-shrink:0; }
 
-    /* Badge de estado (componente limpio: punto + etiqueta) */
-    .bk-badge { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; padding:4px 11px; border-radius:999px; white-space:nowrap; }
-    .bk-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
-    .bk-badge--aprobado { background:var(--green-100); color:#15803d; }
-    .bk-badge--pendiente { background:#f1f5f9; color:#64748b; }
-    .bk-badge--corregido { background:#ffedd5; color:#9a3412; }
-    .bk-badge--reprobado { background:#ffe4e6; color:#9f1239; }
-    .bk-badge--enviada { background:var(--blue-50); color:var(--blue-700); }
+    .bk-statelabel { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; padding:4px 11px; border-radius:999px; white-space:nowrap; }
+    .bk-statelabel svg { width:13px; height:13px; }
+    .bk-statelabel--ok { background:var(--green-100); color:var(--green-700); }
+    .bk-statelabel--warn { background:color-mix(in srgb, var(--cat-4) 16%, #fff); color:#b45309; }
+    .bk-statelabel--bad { background:#ffe4e6; color:#9f1239; }
+    .bk-statelabel--info { background:var(--blue-50); color:var(--blue-700); }
+    .bk-statelabel--muted { background:#f1f5f9; color:#64748b; }
 
-    /* Registro semanal */
-    .bk-textarea { width:100%; min-height:170px; padding:13px 15px; border-radius:var(--radius-md); border:1.5px solid var(--border); font-family:inherit; font-size:14px; color:var(--text-primary); resize:vertical; line-height:1.65; background:#fafbff; box-sizing:border-box; }
-    .bk-textarea:focus { outline:none; border-color:var(--blue-600); background:#fff; }
-    .bk-textarea[readonly] { background:#f8fafc; color:var(--text-secondary); cursor:default; }
-    .bk-hint { font-size:12px; color:var(--text-muted); margin-top:8px; }
-    .bk-lock { display:flex; align-items:center; gap:8px; margin-top:12px; padding:10px 12px; border-radius:var(--radius-md); background:var(--green-100); color:#15803d; font-size:12.5px; font-weight:600; }
-    .bk-lock svg { width:15px; height:15px; flex-shrink:0; }
+    /* Sección con encabezado de icono */
+    .bk-section { margin-top:26px; }
+    .bk-sec-title { display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:700; color:var(--text-primary); margin:0 0 14px; }
+    .bk-sec-title > svg { width:17px; height:17px; color:var(--text-muted); flex-shrink:0; }
+    .bk-sec-count { font-weight:500; color:var(--text-muted); font-size:12.5px; }
 
-    .bk-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
+    /* Registro de la semana */
+    .bk-report { background:#f3f4f6; border:none; border-radius:8px; padding:22px 24px; }
+    .bk-report p { font-size:14.5px; line-height:1.9; color:var(--text-primary); margin:0 0 15px; }
+    .bk-report p:last-child { margin-bottom:0; }
+    .bk-report-empty { background:#f3f4f6; border:none; border-radius:8px; padding:22px 24px; color:var(--text-muted); font-size:13.5px; }
+
+    /* Modo edición */
+    .bk-textarea { width:100%; min-height:200px; padding:16px 18px; border-radius:var(--radius-lg); border:1px solid var(--border); font-family:inherit; font-size:14.5px; color:var(--text-primary); resize:vertical; line-height:1.75; background:#fff; box-sizing:border-box; }
+    .bk-textarea:focus { outline:none; border-color:var(--blue-600); box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+    .bk-hint { font-size:12px; color:var(--text-muted); margin-top:10px; }
+    .bk-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
     .btn { height:38px; padding:0 18px; border:none; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
-    .btn-secondary { background:#f1f5f9; color:var(--text-secondary); }
-    .btn-secondary:hover { background:#e2e8f0; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .btn-secondary { background:#e7ebf3; color:var(--text-secondary); }
+    .btn-secondary:hover { background:#dbe1ec; }
     .btn-primary { background:var(--blue-600); color:#fff; }
     .btn-primary:hover { background:var(--blue-700); }
 
-    /* Evidencia */
-    .bk-ev-list { display:grid; gap:8px; }
-    .bk-ev { display:flex; align-items:center; gap:10px; border:1px solid var(--border); background:#fafbff; border-radius:var(--radius-md); padding:10px 12px; }
-    .bk-ev-ico { font-size:16px; }
-    .bk-ev-name { font-size:13px; font-weight:700; color:var(--blue-700); }
-    .bk-ev-meta { margin-left:auto; font-size:11px; color:var(--text-muted); }
-    .bk-ev-empty { font-size:12.5px; color:var(--text-muted); font-style:italic; }
-    .bk-upload { margin-top:12px; }
-    .bk-upload-input { display:none; }
-    .bk-upload-label { display:flex; align-items:center; gap:8px; border:1px dashed var(--border); border-radius:var(--radius-md); padding:9px 12px; cursor:pointer; background:#fafbff; font-size:12.5px; color:var(--text-muted); }
-    .bk-upload-label:hover { border-color:#93c5fd; background:var(--blue-50); }
-    .bk-upload-btn { margin-top:8px; width:100%; }
+    /* ── 4) Evidencia: tarjetas horizontales ── */
+    .bk-ev-list { display:flex; flex-direction:column; gap:10px; }
+    .bk-ev-card { display:flex; align-items:center; gap:14px; border:1px solid #eef0f4; border-radius:var(--radius-md); padding:12px 14px; background:#fff; }
+    .bk-ev-ico { width:40px; height:40px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:18px; background:#f1f5f9; flex-shrink:0; }
+    .bk-ev-info { flex:1; min-width:0; }
+    .bk-ev-name { font-size:13.5px; font-weight:700; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bk-ev-meta { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .bk-ev-dl { width:36px; height:36px; flex-shrink:0; border:1px solid var(--border); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; color:var(--blue-600); text-decoration:none; transition:background .15s; }
+    .bk-ev-dl:hover { background:var(--blue-50); border-color:#93c5fd; }
+    .bk-ev-dl svg { width:16px; height:16px; }
+    .bk-ev-none { font-size:13px; color:var(--text-muted); }
 
-    /* Estado tutores */
-    .bk-tutors { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .bk-tutor { display:flex; align-items:center; gap:10px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); padding:12px 14px; }
-    .bk-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px; flex-shrink:0; }
-    .bk-avatar--emp { background:var(--cat-4); }
-    .bk-avatar--udd { background:var(--cat-3); }
-    .bk-tutor-info { min-width:0; }
-    .bk-tutor-name { font-size:13px; font-weight:800; color:var(--text-primary); }
-    .bk-tutor-role { font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .bk-tutor .bk-badge { margin-left:auto; }
+    /* Drag & drop de evidencia */
+    .bk-evupload { margin-top:14px; }
+    .bk-dz-input { display:none; }
+    .bk-dz { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:30px 20px; text-align:center; background:#fafbff; cursor:pointer; transition:border-color .15s, background .15s; }
+    .bk-dz:hover { border-color:#93c5fd; background:var(--blue-50); }
+    .bk-dz.dragover { border-color:var(--blue-600); background:var(--blue-50); }
+    .bk-dz.has-file { border-style:solid; border-color:var(--cat-5); background:color-mix(in srgb, var(--cat-5) 7%, #fff); }
+    .bk-dz-ico { width:42px; height:42px; color:var(--cat-2); margin:0 auto 10px; display:block; }
+    .bk-dz.has-file .bk-dz-ico { color:var(--cat-5); }
+    .bk-dz-title { font-size:13.5px; font-weight:700; color:var(--text-primary); }
+    .bk-dz-sub { font-size:12px; color:var(--text-muted); margin-top:5px; }
 
-    .bk-feedback-wrap { margin-top:12px; display:grid; gap:8px; }
-    .bk-feedback { border-radius:var(--radius-md); padding:10px 12px; }
-    .bk-feedback--emp { background:color-mix(in srgb, var(--cat-4) 8%, #fff); border:1px solid color-mix(in srgb, var(--cat-4) 22%, #fff); }
-    .bk-feedback--udd { background:color-mix(in srgb, var(--cat-3) 8%, #fff); border:1px solid color-mix(in srgb, var(--cat-3) 22%, #fff); }
-    .bk-feedback-label { font-size:11px; font-weight:700; margin-bottom:4px; }
-    .bk-feedback--emp .bk-feedback-label { color:color-mix(in srgb, var(--cat-4) 75%, #0f172a); }
-    .bk-feedback--udd .bk-feedback-label { color:color-mix(in srgb, var(--cat-3) 75%, #0f172a); }
-    .bk-feedback-text { font-size:13px; color:var(--text-secondary); line-height:1.5; }
+    /* ── 5) Evaluaciones / tutores como hilo ── */
+    .bk-thread { display:flex; flex-direction:column; gap:14px; }
+    .bk-comment { display:flex; gap:12px; border:1px solid #eef0f4; border-radius:var(--radius-md); padding:14px 16px; background:#fff; }
+    .bk-comment-av { width:38px; height:38px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px; }
+    .bk-comment-av--emp { background:var(--cat-4); }
+    .bk-comment-av--udd { background:var(--cat-3); }
+    .bk-comment-body { flex:1; min-width:0; }
+    .bk-comment-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .bk-comment-name { font-size:13px; font-weight:700; color:var(--text-primary); }
+    .bk-comment-role { font-size:11.5px; color:var(--text-muted); }
+    .bk-comment-state { margin-left:auto; }
+    .bk-comment-text { font-size:13px; color:var(--text-secondary); line-height:1.6; margin-top:6px; }
+    .bk-comment-text.muted { font-style:italic; color:var(--text-muted); }
+    .bk-comment.is-active { border-color:#bfdbfe; box-shadow:0 0 0 3px rgba(37,99,235,.08); }
 
-    .bk-empty { border:1px dashed var(--border); background:var(--card-bg); border-radius:var(--radius-lg); padding:28px; text-align:center; color:var(--text-muted); }
+    /* Panel de evaluación del tutor activo */
+    .bk-review { margin-top:12px; }
+    .bk-rbtns { display:flex; gap:8px; flex-wrap:wrap; }
+    .bk-rbtn { height:36px; padding:0 16px; border:1.5px solid var(--border); border-radius:var(--radius-md); background:#fff; font-family:inherit; font-size:12.5px; font-weight:700; color:var(--text-secondary); cursor:pointer; transition:border-color .12s, background .12s, color .12s; }
+    .bk-rbtn:hover { border-color:#cbd5e1; }
+    .bk-rbtn--ok.is-on { background:color-mix(in srgb, var(--cat-5) 12%, #fff); border-color:var(--cat-5); color:var(--green-700); }
+    .bk-rbtn--warn.is-on { background:color-mix(in srgb, var(--cat-4) 14%, #fff); border-color:var(--cat-4); color:#b45309; }
+    .bk-rbtn--bad.is-on { background:#ffe4e6; border-color:#ef4444; color:#9f1239; }
+    .bk-review-fb { margin-top:12px; }
+    .bk-review-fb[hidden] { display:none; }
+    .bk-review-fb .bk-textarea { min-height:110px; }
+    .bk-review[hidden], .bk-review-view[hidden] { display:none; }
+
+    /* Modo lectura del veredicto del tutor */
+    .bk-review-view { margin-top:10px; }
+    .bk-verdict { display:flex; align-items:center; gap:8px; }
+    .bk-verdict-label { font-size:12px; font-weight:700; color:var(--text-muted); }
+    .bk-edit-btn { display:inline-flex; align-items:center; gap:7px; margin-top:12px; height:32px; padding:0 13px; border:1px solid var(--border); border-radius:var(--radius-md); background:#fff; font-family:inherit; font-size:12px; font-weight:700; color:var(--text-secondary); cursor:pointer; transition:border-color .12s, color .12s, background .12s; }
+    .bk-edit-btn:hover { border-color:#93c5fd; color:var(--blue-700); background:var(--blue-50); }
+    .bk-edit-btn svg { width:14px; height:14px; }
+
+    .bk-empty { border:1px dashed var(--border); background:var(--card-bg); border-radius:var(--radius-lg); padding:32px; text-align:center; color:var(--text-muted); }
     .bk-empty h3 { margin:0 0 6px; color:var(--text-primary); }
     .bk-empty p { margin:0; }
 
-    @media (max-width:960px) {
-        .bk-layout { grid-template-columns:1fr; }
-        .bk-weeks { position:static; }
-        .bk-week-list { max-height:none; }
-        .bk-tutors { grid-template-columns:1fr; }
+    @media (max-width:680px) {
+        .bk-step { width:62px; height:64px; }
     }
 </style>
 {% endblock %}
@@ -136,169 +167,306 @@
 </div>
 {% else %}
 <div class="bk-wrap">
-    <div class="bk-hero">
-        <div class="bk-hero-main">
-            <div class="bk-hero-title">{{ student_name }}</div>
-            <div class="bk-hero-pill">{{ student_company }} · {{ periodo_label }}</div>
-            <div class="bk-hero-sub">{{ project_name }}</div>
-        </div>
-        <form method="get" class="bk-hero-form">
-            <input type="hidden" name="sem" value="{{ selected_week }}">
-            <label class="bk-hero-label">Alumno</label>
-            <select name="alumno" class="bk-select" onchange="this.form.submit()">
-                {% for option in student_options %}
-                <option value="{{ option.id }}" {% if option.id == selected_student_id %}selected{% endif %}>{{ option.label }}</option>
-                {% endfor %}
-            </select>
-        </form>
-    </div>
 
-    <div class="bk-progress">
-        <span class="bk-progress-label">Progreso práctica</span>
-        <div class="bk-progress-track"><div class="bk-progress-fill" style="--pct:{{ progress_pct }}%"></div></div>
-        <span class="bk-progress-pct">{{ progress_pct }}%</span>
-        <div class="bk-tags">
-            <span class="bk-tag bk-tag--ok">{{ approved_count }} aprobadas</span>
-            <span class="bk-tag bk-tag--warn">{{ corrected_count }} a corregir</span>
-            <span class="bk-tag bk-tag--muted">{{ pending_count }} pendientes</span>
-        </div>
-    </div>
+    {% if volver_url %}
+    <a class="bk-back" href="{{ volver_url }}">← Volver al buscador de alumnos</a>
+    {% endif %}
 
-    <div class="bk-layout">
-        <aside class="bk-weeks">
-            <div class="bk-weeks-h">Semanas</div>
-            <div class="bk-week-list">
-                {% for week in weeks %}
-                <a class="bk-week {% if week.selected %}active{% endif %}" href="?alumno={{ selected_student_id }}&sem={{ week.n }}">
-                    <span class="bk-week-n">Sem {{ week.n }}</span>
-                    {% if week.future %}
-                        <span class="bk-week-tag muted">—</span>
-                    {% elif week.current %}
-                        <span class="bk-week-tag now">Actual</span>
-                    {% else %}
-                        <span class="bk-week-dot {% if week.estado_emp == 'aprobado' and week.estado_udd == 'aprobado' %}ok{% elif week.estado_emp == 'corregido' or week.estado_udd == 'corregido' %}warn{% elif week.estado_emp == 'reprobado' or week.estado_udd == 'reprobado' %}bad{% elif week.has_sent %}sent{% endif %}"></span>
-                    {% endif %}
-                </a>
-                {% endfor %}
+    <!-- 1) Cabecera + progreso -->
+    <section class="bk-card">
+        <div class="bk-top-head">
+            <div>
+                <div class="bk-top-title">{{ project_name }}</div>
+                <div class="bk-top-ctx">{{ student_name }} · {{ student_company }} · {{ periodo_label }}</div>
             </div>
-        </aside>
+        </div>
 
-        <section class="bk-panel">
+        <div class="bk-progress">
+            <div class="bk-progress-track"><div class="bk-progress-fill" style="--pct:{{ progress_pct }}%"></div></div>
+            <span class="bk-progress-pct">{{ progress_pct }}%</span>
+        </div>
+
+        <div class="bk-badges">
+            <span class="bk-badge2 bk-badge2--ok">{{ approved_count }} Aprobadas</span>
+            <span class="bk-badge2 bk-badge2--warn">{{ corrected_count }} Por corregir</span>
+            <span class="bk-badge2 bk-badge2--info">{{ en_curso_count }} En curso</span>
+            <span class="bk-badge2 bk-badge2--muted">{{ pending_count }} Pendientes</span>
+        </div>
+    </section>
+
+    <!-- 2) Stepper de semanas -->
+    <section class="bk-card">
+        <div class="bk-stepcard-head">
+            <span class="bk-stepcard-title">Semanas del período</span>
+            <span class="bk-stepcard-hint">Toca una semana para revisarla</span>
+        </div>
+        <nav class="bk-stepper" aria-label="Semanas">
+            {% for week in weeks %}
+            <a class="bk-step {% if week.selected %}is-active{% endif %}" href="?alumno={{ selected_student_id }}&sem={{ week.n }}">
+                <span class="bk-step-n">{{ week.n }}</span>
+                <span class="bk-step-ico">
+                    {% if week.status == 'aprobado' %}
+                        <svg class="ico-ok" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 011.42-1.42l2.79 2.8 6.79-6.8a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
+                    {% elif week.status == 'corregido' %}
+                        <svg class="ico-warn" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.257 3.1c.765-1.36 2.72-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM10 7a1 1 0 00-1 1v2a1 1 0 002 0V8a1 1 0 00-1-1zm0 7a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                    {% elif week.status == 'reprobado' %}
+                        <svg class="ico-bad" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.257 3.1c.765-1.36 2.72-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM10 7a1 1 0 00-1 1v2a1 1 0 002 0V8a1 1 0 00-1-1zm0 7a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                    {% elif week.has_sent %}
+                        <span class="ico-info"></span>
+                    {% else %}
+                        <span class="ico-empty"></span>
+                    {% endif %}
+                </span>
+            </a>
+            {% endfor %}
+        </nav>
+    </section>
+
+    <!-- 3) Visor de la semana -->
+    <section class="bk-card bk-doc">
+        <div class="bk-doc-head">
+            <span class="bk-eyebrow">Semana {{ selected_week }} de {{ weeks_total }}</span>
+            {% if selected_week_status == 'aprobado' %}
+            <span class="bk-statelabel bk-statelabel--ok">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 011.42-1.42l2.79 2.8 6.79-6.8a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
+                Aprobada
+            </span>
+            {% elif selected_week_status == 'corregido' %}
+            <span class="bk-statelabel bk-statelabel--warn">Por corregir</span>
+            {% elif selected_week_status == 'reprobado' %}
+            <span class="bk-statelabel bk-statelabel--bad">Reprobada</span>
+            {% elif selected_week_has_sent %}
+            <span class="bk-statelabel bk-statelabel--info">Enviada</span>
+            {% else %}
+            <span class="bk-statelabel bk-statelabel--muted">Pendiente</span>
+            {% endif %}
+        </div>
+
+        {% if selected_week_has_sent and selected_week_fecha %}
+        <div class="bk-meta">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.926A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.085l-1.414 4.926a.75.75 0 00.826.95 28.897 28.897 0 0015.293-7.155.75.75 0 000-1.114A28.897 28.897 0 003.105 2.289z"/></svg>
+            Enviada el {{ selected_week_fecha|date:'D d M Y · H:i' }}
+        </div>
+        {% else %}
+        <div class="bk-meta">Esta semana aún no ha sido enviada.</div>
+        {% endif %}
+
+        <!-- Registro de la semana -->
+        <div class="bk-section">
+            <h3 class="bk-sec-title">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0116 6.622V16.5a1.5 1.5 0 01-1.5 1.5h-10A1.5 1.5 0 013 16.5v-13z"/></svg>
+                Registro de la semana
+            </h3>
+            {% if can_edit_registro and not selected_week_has_sent %}
             <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="semana" value="{{ selected_week }}">
-
-                <div class="bk-card">
-                    <div class="bk-card-h">
-                        <div>
-                            <div class="bk-card-title">Semana {{ selected_week }} de {{ weeks_total }}</div>
-                            <div class="bk-card-sub">{% if editable %}Editable hasta su envío{% elif locked_by_tutor %}Aprobada — solo lectura{% else %}Solo lectura{% endif %}</div>
-                        </div>
-                        {% if selected_week_has_sent %}
-                        <span class="bk-badge bk-badge--enviada">Enviada</span>
-                        {% else %}
-                        <span class="bk-badge bk-badge--pendiente">Pendiente</span>
-                        {% endif %}
-                    </div>
-                    <div class="bk-card-b">
-                        <textarea class="bk-textarea" name="texto" {% if not editable %}readonly{% endif %} placeholder="Describe brevemente las actividades que realizaste esta semana...">{{ selected_text }}</textarea>
-                        {% if editable %}
-                        <div class="bk-hint">{{ bitacora_weekday_hint }}</div>
-                        {% elif locked_by_tutor %}
-                        <div class="bk-lock">
-                            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
-                            Un tutor ya aprobó esta bitácora, por lo que no puede modificarse.
-                        </div>
-                        {% endif %}
-
-                        {% if editable %}
-                        <div class="bk-actions">
-                            <button class="btn btn-secondary" type="submit" name="action" value="draft">Guardar borrador</button>
-                            {% if not selected_week_has_sent %}
-                            <button class="btn btn-primary" type="submit" name="action" value="send">Enviar bitácora</button>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
+                <textarea class="bk-textarea" name="texto" placeholder="Describe brevemente las actividades que realizaste esta semana...">{{ selected_text }}</textarea>
+                <div class="bk-hint">{{ bitacora_weekday_hint }}</div>
+                <div class="bk-actions">
+                    <button class="btn btn-secondary" type="submit" name="action" value="draft">Guardar borrador</button>
+                    <button class="btn btn-primary" type="submit" name="action" value="send">Enviar bitácora</button>
                 </div>
             </form>
+            {% elif selected_text %}
+            <article class="bk-report">{{ selected_text|linebreaks }}</article>
+            {% else %}
+            <div class="bk-report-empty">Esta semana aún no tiene un registro.</div>
+            {% endif %}
+        </div>
 
-            <div class="bk-card">
-                <div class="bk-card-h">
-                    <div class="bk-card-title">Evidencia · {{ selected_evidences|length }} archivo{{ selected_evidences|length|pluralize }}</div>
-                </div>
-                <div class="bk-card-b">
-                    <div class="bk-ev-list">
-                        {% for ev in selected_evidences %}
-                        <div class="bk-ev">
-                            <span class="bk-ev-ico">{% if ev.tipo == 'pdf' %}📄{% else %}🖼️{% endif %}</span>
-                            <span class="bk-ev-name">{{ ev.nombre }}</span>
-                            <span class="bk-ev-meta">{{ ev.tamano }}</span>
-                        </div>
-                        {% empty %}
-                        <div class="bk-ev-empty">Sin archivos adjuntos.</div>
-                        {% endfor %}
+        <!-- 4) Evidencia -->
+        <div class="bk-section">
+            <h3 class="bk-sec-title">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clip-rule="evenodd"/></svg>
+                Evidencia <span class="bk-sec-count">· {{ selected_evidences|length }} archivo{{ selected_evidences|length|pluralize }}</span>
+            </h3>
+            {% if selected_evidences %}
+            <div class="bk-ev-list">
+                {% for ev in selected_evidences %}
+                <div class="bk-ev-card">
+                    <div class="bk-ev-ico">{% if ev.tipo == 'pdf' %}📄{% elif ev.tipo == 'jpg' or ev.tipo == 'jpeg' or ev.tipo == 'png' %}🖼️{% else %}📎{% endif %}</div>
+                    <div class="bk-ev-info">
+                        <div class="bk-ev-name">{{ ev.nombre }}</div>
+                        <div class="bk-ev-meta">{{ ev.tipo|upper }}{% if ev.tamano %} · {{ ev.tamano }}{% endif %}</div>
                     </div>
-                    {% if editable and project_period %}
-                    <form method="post" action="{% url 'bitacora_upload' %}" enctype="multipart/form-data" class="bk-upload">
-                        {% csrf_token %}
-                        <input type="hidden" name="proyecto_periodo_id" value="{{ project_period.pk }}">
-                        <input type="hidden" name="semana" value="{{ selected_week }}">
-                        <input type="hidden" name="alumno_id" value="{{ selected_student_id }}">
-                        <input type="file" name="archivo" id="evFile" class="bk-upload-input" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx" onchange="document.getElementById('evLabel').textContent=this.files[0]?.name||'Seleccionar archivo'; document.getElementById('evSubmit').disabled=!this.files.length;">
-                        <label class="bk-upload-label" for="evFile">
-                            <span>📎</span>
-                            <span id="evLabel">Seleccionar archivo...</span>
-                        </label>
-                        <button id="evSubmit" type="submit" class="btn btn-secondary bk-upload-btn" disabled>Subir archivo</button>
-                    </form>
+                    {% if ev.url %}
+                    <a class="bk-ev-dl" href="{{ ev.url }}" target="_blank" rel="noopener" title="Descargar" aria-label="Descargar {{ ev.nombre }}">
+                        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1zM4 16a1 1 0 100 2h12a1 1 0 100-2H4z" clip-rule="evenodd"/></svg>
+                    </a>
                     {% endif %}
                 </div>
+                {% endfor %}
             </div>
+            {% else %}
+            <p class="bk-ev-none">Sin archivos adjuntos.</p>
+            {% endif %}
 
-            <div class="bk-card">
-                <div class="bk-card-h">
-                    <div class="bk-card-title">Estado tutores</div>
+            {% if can_edit_registro and not selected_week_has_sent and project_period %}
+            <form method="post" action="{% url 'bitacora_upload' %}" enctype="multipart/form-data" class="bk-evupload" id="evForm">
+                {% csrf_token %}
+                <input type="hidden" name="proyecto_periodo_id" value="{{ project_period.pk }}">
+                <input type="hidden" name="semana" value="{{ selected_week }}">
+                <input type="hidden" name="alumno_id" value="{{ selected_student_id }}">
+                <input type="file" name="archivo" id="evFile" accept=".pdf,.png,.jpg,.jpeg" class="bk-dz-input">
+                <div class="bk-dz" id="evDrop" onclick="document.getElementById('evFile').click()" role="button" tabindex="0" aria-label="Subir evidencia">
+                    <svg class="bk-dz-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M7 18a4 4 0 01-.9-7.9A5 5 0 0117 9.6 3.5 3.5 0 0117 17"/>
+                        <path d="M12 12v7"/>
+                        <path d="M9 15l3-3 3 3"/>
+                    </svg>
+                    <div class="bk-dz-title" id="evDzTitle">Arrastra y suelta tu archivo aquí, o haz clic para explorar</div>
+                    <div class="bk-dz-sub">Formatos permitidos: PDF, PNG, JPG</div>
                 </div>
-                <div class="bk-card-b">
-                    <div class="bk-tutors">
-                        <div class="bk-tutor">
-                            <div class="bk-avatar bk-avatar--emp">{{ tutor_empresa_initials }}</div>
-                            <div class="bk-tutor-info">
-                                <div class="bk-tutor-name">Tutor Empresa</div>
-                                <div class="bk-tutor-role">{{ tutor_empresa_nombre }}</div>
-                            </div>
-                            <span class="bk-badge bk-badge--{{ selected_estado_emp_class }}">{{ selected_estado_emp }}</span>
+                <div class="bk-actions">
+                    <button type="submit" id="evSubmit" class="btn btn-primary" disabled>Subir evidencia</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- 5) Evaluaciones -->
+        <div class="bk-section">
+            <h3 class="bk-sec-title">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3c-4.31 0-8 3.033-8 7 0 2.024.978 3.825 2.499 5.085a3.478 3.478 0 01-.522 1.756.75.75 0 00.584 1.143 5.976 5.976 0 003.936-1.108c.487.082.99.124 1.503.124 4.31 0 8-3.033 8-7s-3.69-7-8-7z" clip-rule="evenodd"/></svg>
+                Evaluaciones
+            </h3>
+            <div class="bk-thread">
+                <!-- Caja Tutor Empresa -->
+                <div class="bk-comment {% if is_tutor and tutor_tipo == 'empresa' %}is-active{% endif %}">
+                    <div class="bk-comment-av bk-comment-av--emp">{{ tutor_empresa_initials }}</div>
+                    <div class="bk-comment-body">
+                        <div class="bk-comment-head">
+                            <span class="bk-comment-name">{{ tutor_empresa_nombre }}</span>
+                            <span class="bk-comment-role">Tutor Empresa{% if is_tutor and tutor_tipo == 'empresa' %} · tú{% endif %}</span>
+                            <span class="bk-comment-state">
+                                <span class="bk-statelabel bk-statelabel--{% if selected_estado_emp_class == 'aprobado' %}ok{% elif selected_estado_emp_class == 'corregido' %}warn{% elif selected_estado_emp_class == 'reprobado' %}bad{% elif selected_estado_emp_class == 'enviado' %}info{% else %}muted{% endif %}">{{ selected_estado_emp }}</span>
+                            </span>
                         </div>
-                        <div class="bk-tutor">
-                            <div class="bk-avatar bk-avatar--udd">{{ tutor_udd_initials }}</div>
-                            <div class="bk-tutor-info">
-                                <div class="bk-tutor-name">Tutor UDD</div>
-                                <div class="bk-tutor-role">{{ tutor_udd_nombre }}</div>
-                            </div>
-                            <span class="bk-badge bk-badge--{{ selected_estado_udd_class }}">{{ selected_estado_udd }}</span>
-                        </div>
-                    </div>
-                    {% if selected_feedback_emp or selected_feedback_udd %}
-                    <div class="bk-feedback-wrap">
-                        {% if selected_feedback_emp %}
-                        <div class="bk-feedback bk-feedback--emp">
-                            <div class="bk-feedback-label">Feedback Tutor Empresa</div>
-                            <div class="bk-feedback-text">{{ selected_feedback_emp }}</div>
-                        </div>
+                        {% if is_tutor and tutor_tipo == 'empresa' and can_review %}
+                        {% include 'pages/_bitacora_review.html' %}
+                        {% elif selected_feedback_emp %}
+                        <p class="bk-comment-text">{{ selected_feedback_emp }}</p>
+                        {% else %}
+                        <p class="bk-comment-text muted">Sin comentarios para esta semana.</p>
                         {% endif %}
-                        {% if selected_feedback_udd %}
-                        <div class="bk-feedback bk-feedback--udd">
-                            <div class="bk-feedback-label">Feedback Tutor UDD</div>
-                            <div class="bk-feedback-text">{{ selected_feedback_udd }}</div>
+                    </div>
+                </div>
+                <!-- Caja Tutor UDD -->
+                <div class="bk-comment {% if is_tutor and tutor_tipo == 'udd' %}is-active{% endif %}">
+                    <div class="bk-comment-av bk-comment-av--udd">{{ tutor_udd_initials }}</div>
+                    <div class="bk-comment-body">
+                        <div class="bk-comment-head">
+                            <span class="bk-comment-name">{{ tutor_udd_nombre }}</span>
+                            <span class="bk-comment-role">Tutor UDD{% if is_tutor and tutor_tipo == 'udd' %} · tú{% endif %}</span>
+                            <span class="bk-comment-state">
+                                <span class="bk-statelabel bk-statelabel--{% if selected_estado_udd_class == 'aprobado' %}ok{% elif selected_estado_udd_class == 'corregido' %}warn{% elif selected_estado_udd_class == 'reprobado' %}bad{% elif selected_estado_udd_class == 'enviado' %}info{% else %}muted{% endif %}">{{ selected_estado_udd }}</span>
+                            </span>
                         </div>
+                        {% if is_tutor and tutor_tipo == 'udd' and can_review %}
+                        {% include 'pages/_bitacora_review.html' %}
+                        {% elif selected_feedback_udd %}
+                        <p class="bk-comment-text">{{ selected_feedback_udd }}</p>
+                        {% else %}
+                        <p class="bk-comment-text muted">Sin comentarios para esta semana.</p>
                         {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
-        </section>
-    </div>
+        </div>
+    </section>
 </div>
+
+<script>
+(function () {
+    var inp = document.getElementById('evFile');
+    if (!inp) return;
+    var dz = document.getElementById('evDrop');
+    var title = document.getElementById('evDzTitle');
+    var submit = document.getElementById('evSubmit');
+    var DEFAULT = title.textContent;
+
+    function refresh() {
+        if (inp.files.length) {
+            title.textContent = inp.files[0].name;
+            dz.classList.add('has-file');
+            submit.disabled = false;
+        } else {
+            title.textContent = DEFAULT;
+            dz.classList.remove('has-file');
+            submit.disabled = true;
+        }
+    }
+    ['dragenter', 'dragover'].forEach(function (e) {
+        dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.add('dragover'); });
+    });
+    ['dragleave', 'dragend'].forEach(function (e) {
+        dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.remove('dragover'); });
+    });
+    dz.addEventListener('drop', function (ev) {
+        ev.preventDefault();
+        dz.classList.remove('dragover');
+        if (ev.dataTransfer.files && ev.dataTransfer.files.length) {
+            inp.files = ev.dataTransfer.files;
+            refresh();
+        }
+    });
+    dz.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); inp.click(); }
+    });
+    inp.addEventListener('change', refresh);
+
+    // Evita que el navegador abra el archivo (y abandone la página) si se suelta
+    // fuera de la zona: el dropzone es el único que gestiona la subida.
+    ['dragover', 'drop'].forEach(function (e) {
+        document.addEventListener(e, function (ev) {
+            if (!dz.contains(ev.target)) ev.preventDefault();
+        });
+    });
+
+    refresh();
+})();
+
+(function () {
+    var form = document.getElementById('bkReviewForm');
+    if (!form) return;
+    var hidden = document.getElementById('bkDecision');
+    var fbWrap = document.getElementById('bkFbWrap');
+    var fb = document.getElementById('bkFeedback');
+    var submit = document.getElementById('bkReviewSubmit');
+    var btns = form.querySelectorAll('.bk-rbtn');
+
+    function apply(decision) {
+        hidden.value = decision || '';
+        btns.forEach(function (b) { b.classList.toggle('is-on', b.dataset.decision === decision); });
+        var needsFb = decision === 'corregir' || decision === 'reprobar';
+        fbWrap.hidden = !needsFb;
+        if (needsFb) {
+            fb.setAttribute('required', 'required');
+        } else {
+            fb.removeAttribute('required');
+        }
+        submit.disabled = !decision;
+    }
+
+    btns.forEach(function (b) {
+        b.addEventListener('click', function () { apply(b.dataset.decision); });
+    });
+
+    // Transición de modo lectura a modo edición.
+    var view = document.getElementById('bkReviewView');
+    var editBtn = document.getElementById('bkEditBtn');
+    if (editBtn && view) {
+        editBtn.addEventListener('click', function () {
+            view.hidden = true;
+            form.hidden = false;
+            apply(hidden.value);
+        });
+    }
+
+    // Estado inicial según la decisión ya guardada (si existe).
+    apply(hidden.value);
+})();
+</script>
 {% endif %}
 {% endblock %}

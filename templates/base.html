@@ -159,12 +159,28 @@
             padding: 0 14px;
             font-family: inherit;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
         }
 
         .topbar-btn:hover {
             border-color: #93c5fd;
             color: var(--blue-700);
             background: var(--blue-50);
+        }
+
+        .topbar-btn--primary {
+            background: var(--blue-600);
+            color: #fff;
+            border-color: var(--blue-600);
+        }
+        .topbar-btn--primary:hover {
+            background: var(--blue-700);
+            color: #fff;
+            border-color: var(--blue-700);
         }
 
         .content {
@@ -358,6 +374,20 @@
         .iv-d-contact { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; }
         .iv-d-contact__name { font-size:13px; font-weight:700; }
         .iv-d-contact__email { font-size:12px; color:var(--blue-600); text-decoration:none; }
+        /* Tutores asociados (detalle empresa) */
+        .iv-d-tutors { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; display:flex; flex-direction:column; gap:8px; }
+        .iv-d-tutor { display:flex; align-items:center; gap:10px; }
+        .iv-d-tutor__av { width:32px; height:32px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#fff; background:var(--cat-4); }
+        .iv-d-tutor__info { min-width:0; }
+        .iv-d-tutor__name { font-size:13px; font-weight:700; color:var(--text-primary); }
+        .iv-d-tutor__role { font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .iv-d-tutors__empty { font-size:12.5px; color:var(--text-muted); font-style:italic; }
+
+        .iv-d-projects { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; display:flex; flex-direction:column; gap:6px; }
+        .iv-d-proj { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:#fff; }
+        .iv-d-proj__name { font-size:12.5px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .iv-d-proj__state { font-size:10.5px; font-weight:700; padding:2px 9px; border-radius:999px; background:#f1f5f9; color:#64748b; flex-shrink:0; }
+        .iv-d-proj__state.is-on { background:var(--green-100); color:var(--green-700); }
 
         @media (max-width:1080px) {
             .iv-kpis { grid-template-columns:1fr; }
@@ -396,6 +426,35 @@
         .app-msg.success { background:var(--green-100); border-color:#bbf7d0; color:#15803d; }
         .app-msg.warning { background:#fffbeb; border-color:#fde68a; color:#b45309; }
         .app-msg.info { background:var(--blue-50); border-color:#bfdbfe; color:var(--blue-700); }
+
+        /* ── Botón primario de creación (top-right) ── */
+        .nt-new-btn { height:38px; padding:0 18px; border:none; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+        .nt-new-btn:hover { background:var(--blue-700); }
+
+        /* ── Modal global (estándar reutilizable) ── */
+        .nt-modal { display:none; position:fixed; inset:0; z-index:120; }
+        .nt-modal.open { display:block; }
+        .nt-modal__backdrop { position:absolute; inset:0; background:rgba(15,23,42,.45); }
+        .nt-modal__card { position:relative; z-index:1; width:560px; max-width:92vw; margin:7vh auto 0; background:#fff; border-radius:var(--radius-lg); box-shadow:0 20px 50px rgba(0,0,0,.25); overflow:hidden; max-height:86vh; display:flex; flex-direction:column; }
+        .nt-modal__head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+        .nt-modal__title { font-size:15px; font-weight:800; color:var(--text-primary); }
+        .nt-modal__close { border:none; background:none; font-size:22px; line-height:1; cursor:pointer; color:var(--text-muted); padding:0; }
+        .nt-modal__body { padding:18px 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+        .nt-modal__foot { padding:14px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; background:#f8fafc; }
+        .nt-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        @media (max-width:520px){ .nt-grid-2 { grid-template-columns:1fr; } }
+
+        .nt-field { display:flex; flex-direction:column; gap:6px; }
+        .nt-field__label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+        .nt-input, .nt-select, .nt-textarea { border:1px solid var(--border); border-radius:var(--radius-md); padding:9px 11px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; box-sizing:border-box; }
+        .nt-input:focus, .nt-select:focus, .nt-textarea:focus { outline:none; border-color:var(--blue-600); background:#fff; }
+        .nt-textarea { min-height:90px; resize:vertical; }
+
+        .nt-btn-cancel { height:36px; padding:0 16px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; }
+        .nt-btn-submit { height:36px; padding:0 18px; border:none; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+        .nt-btn-submit:hover { background:var(--blue-700); }
+        .nt-note { display:flex; align-items:flex-start; gap:8px; padding:10px 12px; border-radius:var(--radius-md); background:var(--blue-50); border:1px solid #bfdbfe; color:var(--blue-800); font-size:12px; line-height:1.5; }
+        .nt-note svg { width:15px; height:15px; flex-shrink:0; margin-top:1px; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>

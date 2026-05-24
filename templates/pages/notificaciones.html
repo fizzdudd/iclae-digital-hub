@@ -1,65 +1,85 @@
 {% extends 'base.html' %}
 
 {% block title %}Notificaciones{% endblock %}
-{% block page_title %}Centro de Comunicaciones{% endblock %}
+{% block page_title %}{% if is_admin %}Comunicados Institucionales{% else %}Bandeja de Entrada{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
     /* Barra de acciones */
     .nt-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
     .nt-toolbar__txt { font-size:12.5px; color:var(--text-muted); }
-    .nt-new-btn { height:38px; padding:0 18px; border:none; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:7px; }
-    .nt-new-btn:hover { background:var(--blue-700); }
+    .nt-toolbar__actions { display:flex; align-items:center; gap:10px; }
+    .nt-clear-btn { height:34px; padding:0 14px; border:1px solid var(--border); background:#fff; color:var(--text-secondary); border-radius:var(--radius-md); font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .nt-clear-btn:hover { border-color:#93c5fd; color:var(--blue-700); background:var(--blue-50); }
 
     /* Banner de éxito */
     .nt-banner { padding:11px 15px; background:var(--green-100); border:1px solid #bbf7d0; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:var(--green-700); margin-bottom:16px; }
 
-    /* Columnas del historial: Fecha · Asunto · Segmento · Estado */
-    .nt-cols { grid-template-columns:160px 1fr 180px 130px; }
+    /* Comunicados (admin): Fecha · Asunto · Segmento · Estado · Acciones */
+    .nt-cols { grid-template-columns:150px 1fr 150px 110px 110px; }
+    .nt-archive-btn { height:30px; padding:0 12px; border:1px solid var(--border); background:#fff; color:var(--text-secondary); border-radius:var(--radius-md); font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .nt-archive-btn:hover { border-color:#fca5a5; color:#b91c1c; background:#fef2f2; }
     .nt-state { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; display:inline-block; }
     .nt-state.enviado { background:var(--green-100); color:var(--green-700); }
     .nt-state.procesando { background:color-mix(in srgb, var(--cat-4) 16%, #fff); color:color-mix(in srgb, var(--cat-4) 80%, #0f172a); }
 
-    /* Modal Nuevo Anuncio */
-    .nt-modal { display:none; position:fixed; inset:0; z-index:120; }
-    .nt-modal.open { display:block; }
-    .nt-modal__backdrop { position:absolute; inset:0; background:rgba(15,23,42,.45); }
-    .nt-modal__card { position:relative; z-index:1; width:560px; max-width:92vw; margin:8vh auto 0; background:#fff; border-radius:var(--radius-lg); box-shadow:0 20px 50px rgba(0,0,0,.25); overflow:hidden; }
-    .nt-modal__head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-    .nt-modal__title { font-size:15px; font-weight:800; color:var(--text-primary); }
-    .nt-modal__close { border:none; background:none; font-size:22px; line-height:1; cursor:pointer; color:var(--text-muted); padding:0; }
-    .nt-modal__body { padding:18px 20px; display:flex; flex-direction:column; gap:14px; }
-    .nt-modal__foot { padding:14px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; background:#f8fafc; }
+    /* Bandeja (alumno/tutor): indicador · Asunto · Fecha */
+    .nt-inbox-cols { grid-template-columns:30px 1fr 150px; }
+    .nt-msg { cursor:pointer; }
+    .nt-msg:hover { background:var(--blue-50); }
+    .nt-dot-cell { display:flex; align-items:center; justify-content:center; }
+    .nt-dot { width:9px; height:9px; border-radius:50%; background:var(--blue-600); display:inline-block; }
+    .nt-unread .iv-cell-main { font-weight:800; color:var(--text-primary); }
+    .nt-unread .iv-cell-sub { color:var(--text-secondary); }
+    .nt-msg:not(.nt-unread) .iv-cell-main { font-weight:500; color:var(--text-secondary); }
 
-    .nt-field { display:flex; flex-direction:column; gap:6px; }
-    .nt-field__label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
-    .nt-input, .nt-select, .nt-textarea { border:1px solid var(--border); border-radius:var(--radius-md); padding:9px 11px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; box-sizing:border-box; }
-    .nt-textarea { min-height:110px; resize:vertical; }
+    /* Cuerpo del modal de lectura */
+    .nt-read-date { font-size:12px; color:var(--text-muted); }
+    .nt-read-body { font-size:14px; line-height:1.7; color:var(--text-primary); white-space:pre-wrap; }
 
-    .nt-btn-cancel { height:36px; padding:0 16px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; }
-    .nt-btn-submit { height:36px; padding:0 18px; border:none; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
-    .nt-btn-submit:hover { background:var(--blue-700); }
+    /* Pestañas estilo bandeja (Gmail) */
+    .nt-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+    .nt-tab { appearance:none; border:none; background:none; font-family:inherit; font-size:13px; font-weight:700; color:var(--text-muted); padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; display:inline-flex; align-items:center; gap:8px; }
+    .nt-tab:hover { color:var(--text-secondary); }
+    .nt-tab.is-active { color:var(--blue-700); border-bottom-color:var(--blue-600); }
+    .nt-tab-count { font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; background:var(--blue-50); color:var(--blue-700); }
+    .nt-panel { display:none; }
+    .nt-panel.is-active { display:block; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="nt-toolbar">
-    <div class="nt-toolbar__txt">Campañas de comunicación masiva enviadas a la comunidad ICLAE.</div>
-    <button type="button" class="nt-new-btn" onclick="abrirAnuncioModal()">+ Nuevo Anuncio</button>
+    {% if is_admin %}
+    <div class="nt-toolbar__txt">Comunicados institucionales emitidos a la comunidad ICLAE.</div>
+    <div class="nt-toolbar__actions">
+        <button type="button" class="nt-new-btn" onclick="abrirAnuncioModal()">+ Nuevo Anuncio</button>
+    </div>
+    {% else %}
+    <div class="nt-toolbar__txt">Tus mensajes y avisos de la comunidad ICLAE.{% if no_leidas %} · {{ no_leidas }} sin leer{% endif %}</div>
+    <div class="nt-toolbar__actions">
+        <form method="post" action="{% url 'notificaciones_limpiar' %}">
+            {% csrf_token %}
+            <button type="submit" class="nt-clear-btn">Limpiar leídas</button>
+        </form>
+    </div>
+    {% endif %}
 </div>
 
 {% if sent_ok %}
 <div class="nt-banner">El anuncio se está procesando en segundo plano y se entregará a los destinatarios del segmento seleccionado.</div>
 {% endif %}
 
+{% if is_admin %}
+<!-- ── Administrador: Comunicados Institucionales ── -->
 <div class="iv-kpis">
     <div class="iv-kpi">
-        <div class="iv-kpi__label">Total campañas enviadas</div>
+        <div class="iv-kpi__label">Mensajes emitidos</div>
         <div class="iv-kpi__value">{{ total_campanas }}</div>
-        <div class="iv-kpi__sub">Recordatorios masivos registrados</div>
+        <div class="iv-kpi__sub">Comunicados masivos registrados</div>
     </div>
     <div class="iv-kpi">
-        <div class="iv-kpi__label">Último envío</div>
+        <div class="iv-kpi__label">Última actualización</div>
         <div class="iv-kpi__value">{{ ultimo_envio|date:'d/m/Y'|default:'—' }}</div>
         <div class="iv-kpi__sub">{% if ultimo_envio %}{{ ultimo_envio|date:'H:i' }} hrs{% else %}Sin envíos aún{% endif %}</div>
     </div>
@@ -71,6 +91,7 @@
         <div class="iv-th">Asunto</div>
         <div class="iv-th">Segmento</div>
         <div class="iv-th right">Estado</div>
+        <div class="iv-th right">Acciones</div>
     </div>
     {% for c in campanas %}
     <div class="iv-row nt-cols">
@@ -81,13 +102,90 @@
         </div>
         <div><span class="iv-badge cat-carrera">{{ c.segmento }}</span></div>
         <div class="right"><span class="nt-state {{ c.estado_class }}">{{ c.estado_label }}</span></div>
+        <div class="right">
+            <form method="post" action="" onsubmit="return confirm('¿Archivar este comunicado? Dejará de verse aquí, pero seguirá disponible para sus destinatarios.');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="archivar_comunicado">
+                <input type="hidden" name="recordatorio_id" value="{{ c.id }}">
+                <button type="submit" class="nt-archive-btn">Archivar</button>
+            </form>
+        </div>
     </div>
     {% empty %}
-    <div class="iv-empty">Aún no se han enviado campañas masivas. Usa “+ Nuevo Anuncio” para crear la primera.</div>
+    <div class="iv-empty">Aún no se han enviado comunicados. Usa “+ Nuevo Anuncio” para crear el primero.</div>
     {% endfor %}
 </div>
+{% else %}
+<!-- ── Alumno / Tutor: Bandeja de Entrada con pestañas ── -->
+<div class="nt-tabs" role="tablist">
+    <button type="button" class="nt-tab is-active" data-panel="inbox" id="tabInbox" role="tab">
+        Bandeja de entrada
+        <span class="nt-tab-count" id="inboxCount" {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>
+    </button>
+    <button type="button" class="nt-tab" data-panel="read" id="tabRead" role="tab">Leídos</button>
+</div>
 
-<!-- Modal: Nuevo Anuncio -->
+<!-- Panel: Bandeja de entrada (no leídas) -->
+<div class="nt-panel is-active" id="panelInbox" role="tabpanel">
+    <div class="iv-table">
+        <div class="iv-thead nt-inbox-cols">
+            <div class="iv-th"></div>
+            <div class="iv-th">Asunto</div>
+            <div class="iv-th right">Fecha</div>
+        </div>
+        <div id="inboxList">
+            {% for m in mensajes_pendientes %}
+            <div class="iv-row nt-inbox-cols nt-msg nt-unread"
+                 role="button" tabindex="0"
+                 data-id="{{ m.id }}"
+                 data-asunto="{{ m.asunto }}"
+                 data-fecha="{{ m.fecha|date:'d/m/Y H:i' }}"
+                 data-cuerpo="{{ m.cuerpo }}">
+                <div class="nt-dot-cell"><span class="nt-dot"></span></div>
+                <div class="iv-cell-title">
+                    <div class="iv-cell-main">{{ m.asunto }}</div>
+                    <div class="iv-cell-sub">{{ m.cuerpo|truncatechars:90 }}</div>
+                </div>
+                <div class="iv-cell-strong right">{{ m.fecha|date:'d/m/Y H:i'|default:'—' }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="iv-empty" id="inboxEmpty" {% if mensajes_pendientes %}hidden{% endif %}>No tienes mensajes sin leer.</div>
+    </div>
+</div>
+
+<!-- Panel: Leídos (histórico) -->
+<div class="nt-panel" id="panelRead" role="tabpanel">
+    <div class="iv-table">
+        <div class="iv-thead nt-inbox-cols">
+            <div class="iv-th"></div>
+            <div class="iv-th">Asunto</div>
+            <div class="iv-th right">Fecha</div>
+        </div>
+        <div id="readList">
+            {% for m in mensajes_leidos %}
+            <div class="iv-row nt-inbox-cols nt-msg"
+                 role="button" tabindex="0"
+                 data-id="{{ m.id }}"
+                 data-asunto="{{ m.asunto }}"
+                 data-fecha="{{ m.fecha|date:'d/m/Y H:i' }}"
+                 data-cuerpo="{{ m.cuerpo }}">
+                <div class="nt-dot-cell"></div>
+                <div class="iv-cell-title">
+                    <div class="iv-cell-main">{{ m.asunto }}</div>
+                    <div class="iv-cell-sub">{{ m.cuerpo|truncatechars:90 }}</div>
+                </div>
+                <div class="iv-cell-strong right">{{ m.fecha|date:'d/m/Y H:i'|default:'—' }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="iv-empty" id="readEmpty" {% if mensajes_leidos %}hidden{% endif %}>Aún no has leído ningún mensaje.</div>
+    </div>
+</div>
+{% endif %}
+
+{% if is_admin %}
+<!-- Modal: Nuevo Anuncio (solo administradores) -->
 <div class="nt-modal" id="anuncioModal">
     <div class="nt-modal__backdrop" onclick="cerrarAnuncioModal()"></div>
     <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="anuncioModalTitle">
@@ -124,9 +222,29 @@
         </form>
     </div>
 </div>
+{% else %}
+<!-- Modal: Lectura de mensaje (alumno/tutor) -->
+<div class="nt-modal" id="leerModal">
+    <div class="nt-modal__backdrop" onclick="cerrarLeerModal()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="leerModalTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="leerModalTitle">Mensaje</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarLeerModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="nt-modal__body">
+            <div class="nt-read-date" id="leerModalFecha"></div>
+            <div class="nt-read-body" id="leerModalCuerpo"></div>
+        </div>
+        <div class="nt-modal__foot">
+            <button type="button" class="nt-btn-submit" onclick="cerrarLeerModal()">Cerrar</button>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+{% if is_admin %}
 <script>
     function abrirAnuncioModal() {
         document.getElementById('anuncioModal').classList.add('open');
@@ -138,4 +256,89 @@
         if (e.key === 'Escape') cerrarAnuncioModal();
     });
 </script>
+{% else %}
+<script>
+(function () {
+    var modal = document.getElementById('leerModal');
+    var elTitle = document.getElementById('leerModalTitle');
+    var elFecha = document.getElementById('leerModalFecha');
+    var elBody = document.getElementById('leerModalCuerpo');
+    var tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+    var token = tokenInput ? tokenInput.value : '';
+
+    var inboxList = document.getElementById('inboxList');
+    var readList = document.getElementById('readList');
+    var inboxEmpty = document.getElementById('inboxEmpty');
+    var readEmpty = document.getElementById('readEmpty');
+    var inboxCount = document.getElementById('inboxCount');
+
+    // ── Pestañas ──
+    var tabs = document.querySelectorAll('.nt-tab');
+    var panels = {
+        inbox: document.getElementById('panelInbox'),
+        read: document.getElementById('panelRead'),
+    };
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            tabs.forEach(function (t) { t.classList.remove('is-active'); });
+            tab.classList.add('is-active');
+            Object.keys(panels).forEach(function (k) {
+                panels[k].classList.toggle('is-active', k === tab.dataset.panel);
+            });
+        });
+    });
+
+    function refreshEstado() {
+        if (inboxEmpty) inboxEmpty.hidden = inboxList.querySelector('.nt-msg') !== null;
+        if (readEmpty) readEmpty.hidden = readList.querySelector('.nt-msg') !== null;
+        if (inboxCount) {
+            var n = inboxList.querySelectorAll('.nt-msg').length;
+            inboxCount.textContent = n;
+            inboxCount.hidden = n === 0;
+        }
+    }
+
+    function cerrarLeerModal() { modal.classList.remove('open'); }
+    window.cerrarLeerModal = cerrarLeerModal;
+
+    // Traslada la fila de Bandeja de entrada al inicio de Leídos, sin recargar.
+    function moverALeidos(row) {
+        row.classList.remove('nt-unread');
+        var dot = row.querySelector('.nt-dot');
+        if (dot) dot.remove();
+        readList.insertBefore(row, readList.firstChild);
+        refreshEstado();
+    }
+
+    function marcarLeida(row) {
+        if (!row.classList.contains('nt-unread')) return;
+        fetch('/notificaciones/' + row.dataset.id + '/leer/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': token },
+        }).then(function (r) {
+            if (r.ok) { moverALeidos(row); }
+        });
+    }
+
+    function abrir(row) {
+        elTitle.textContent = row.dataset.asunto;
+        elFecha.textContent = row.dataset.fecha;
+        elBody.textContent = row.dataset.cuerpo;
+        modal.classList.add('open');
+        marcarLeida(row);
+    }
+
+    // Los listeners viajan con la fila aunque se mueva de contenedor.
+    document.querySelectorAll('.nt-msg').forEach(function (row) {
+        row.addEventListener('click', function () { abrir(row); });
+        row.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(row); }
+        });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') cerrarLeerModal();
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

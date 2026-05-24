@@ -230,21 +230,10 @@ function selectTab(btn) {
     }
 }
 
-// ── 2) Descargar plantilla (CSV compatible con Excel, generado en cliente) ──
+// ── 2) Descargar plantilla Excel (.xlsx generada en el servidor) ──
 function downloadTemplate() {
     const tipo = document.getElementById('tipoUsuario').value;
-    const wrap = document.querySelector('.imp-cols[data-cols="' + tipo + '"]');
-    const cols = [...wrap.querySelectorAll('.imp-col')].map(s => s.textContent.trim());
-    const csv = '﻿' + cols.join(',') + '\r\n';
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'plantilla_' + tipo + '.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    window.location.href = "{% url 'descargar_plantilla' %}?tipo=" + encodeURIComponent(tipo);
 }
 
 // ── 3) Drag & Drop ──

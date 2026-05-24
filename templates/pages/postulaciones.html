@@ -26,19 +26,13 @@
     .filter-group-text { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); }
     .filter-divider-v { width:1px; height:20px; background:var(--border); flex-shrink:0; }
     .filter-chips { display:flex; gap:6px; flex-wrap:wrap; }
-    .filter-chip { padding:5px 13px; border-radius:20px; border:1.5px solid var(--border); background:#f8fafc; font-size:12px; font-weight:500; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
-    .filter-chip:hover { background:#f1f5f9; border-color:#cbd5e1; color:var(--text-primary); }
-    .filter-chip.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
-    .filter-chip.active[data-modalidad="presencial"] { background:var(--green-100); border-color:#86efac; color:var(--green-700); }
-    .filter-chip.active[data-modalidad="hibrido"] { background:var(--blue-100); border-color:#93c5fd; color:var(--blue-800); }
-    .filter-chip.active[data-modalidad="remoto"] { background:#ede9fe; border-color:#c4b5fd; color:#5b21b6; }
-    .filter-chip.active[data-estado="abierto"] { background:var(--green-100); border-color:#86efac; color:var(--green-700); }
-    .filter-chip.active[data-estado="cerrado"] { background:#f1f5f9; border-color:#94a3b8; color:#475569; }
+    .filter-chip { padding:7px 14px; border-radius:var(--radius-md); border:1px solid var(--border); background:#fff; font-size:12.5px; font-weight:600; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+    .filter-chip:hover { background:var(--blue-50); border-color:#93c5fd; color:var(--blue-700); }
+    .filter-chip.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
 
     /* ── PAGE HEADER ── */
     .page-header { margin-bottom:20px; }
-    .page-header-title { font-size:26px; font-weight:800; color:var(--text-primary); letter-spacing:-0.5px; margin:0 0 4px; }
-    .page-header-sub { font-size:13px; color:var(--text-muted); }
+    .page-header-sub { font-size:13.5px; font-weight:600; color:var(--text-secondary); }
 
     /* ── KPIs ── */
     .kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
@@ -73,15 +67,16 @@
     .job-title { font-size:14px; font-weight:800; color:var(--text-primary); margin-bottom:8px; line-height:1.35; }
     .job-chips { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
     .chip { font-size:10.5px; border-radius:999px; padding:2px 8px; font-weight:700; }
-    .chip-blue { background:var(--blue-100); color:var(--blue-800); }
-    .chip-green { background:#dcfce7; color:#166534; }
-    .chip-gray { background:#f1f5f9; color:#475569; }
+    .chip-blue { background:var(--blue-50); color:var(--blue-700); }
+    .chip-green { background:var(--green-100); color:var(--green-700); }
+    .chip-gray { background:#f1f5f9; color:var(--text-secondary); }
     .job-card-bottom { padding:10px 16px 14px; border-top:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .job-meta { font-size:11px; color:var(--text-muted); }
-    .btn { height:32px; padding:0 14px; border:none; border-radius:var(--radius-md); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; }
-    .btn-postular { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; }
-    .btn-postular:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); }
+    .btn { height:32px; padding:0 14px; border:none; border-radius:var(--radius-md); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; }
+    .btn-postular { background:var(--blue-600); color:#fff; }
+    .btn-postular:hover { background:var(--blue-700); }
     .btn-cerrado { background:#f1f5f9; color:#94a3b8; cursor:default; }
+    .btn-count { background:var(--blue-50); color:var(--blue-700); cursor:default; }
 
     /* ── MIS POSTULACIONES ── */
     .pipeline-list { display:grid; gap:10px; }
@@ -111,8 +106,7 @@
 {% block content %}
 
 <div class="page-header">
-    <h1 class="page-header-title">Postulaciones</h1>
-    <div class="page-header-sub">Explora vacantes disponibles y gestiona tus postulaciones</div>
+    <div class="page-header-sub">Portal de oportunidades profesionales y vinculación empresarial</div>
 </div>
 
 <div class="kpis">
@@ -192,16 +186,12 @@
                 <div class="job-meta">{{ v.vacantes }} vacante{{ v.vacantes|pluralize }} · {{ v.postulaciones }} postulación{{ v.postulaciones|pluralize:"es" }}</div>
                 {% if user_rol == 'alumno' %}
                     {% if v.is_active %}
-                    <form method="post" action="{% url 'postular' %}" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="proyecto_id" value="{{ v.id }}">
-                        <button type="submit" class="btn btn-postular">Postular</button>
-                    </form>
+                    <a class="btn btn-postular" href="https://mercadolaboral.udd.cl" target="_blank" rel="noopener noreferrer">Postular</a>
                     {% else %}
                     <button class="btn btn-cerrado" disabled>Cerrado</button>
                     {% endif %}
                 {% else %}
-                    <button class="btn" style="background:#f0f9ff;color:#0369a1;cursor:default;">{{ v.postulaciones }} postul.</button>
+                    <span class="btn btn-count">{{ v.postulaciones }} postul.</span>
                 {% endif %}
             </div>
         </div>

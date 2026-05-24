@@ -1,0 +1,37 @@
+{% comment %}
+Panel de evaluación del tutor activo. Usa las variables review_* (veredicto de
+la caja del tutor que está logueado). Modo lectura cuando ya hay una decisión
+guardada; modo edición (formulario) cuando aún no evalúa o pulsa "Editar".
+{% endcomment %}
+<div class="bk-review-view" id="bkReviewView" {% if not review_ya_evaluo %}hidden{% endif %}>
+    <div class="bk-verdict">
+        <span class="bk-verdict-label">Tu veredicto:</span>
+        <span class="bk-statelabel bk-statelabel--{% if review_estado_class == 'aprobado' %}ok{% elif review_estado_class == 'corregido' %}warn{% elif review_estado_class == 'reprobado' %}bad{% else %}muted{% endif %}">{{ review_estado_label }}</span>
+    </div>
+    {% if review_feedback %}
+    <p class="bk-comment-text">{{ review_feedback }}</p>
+    {% else %}
+    <p class="bk-comment-text muted">Sin observaciones para esta semana.</p>
+    {% endif %}
+    <button type="button" class="bk-edit-btn" id="bkEditBtn">
+        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+        Editar evaluación
+    </button>
+</div>
+<form method="post" action="?alumno={{ selected_student_id }}&sem={{ selected_week }}" class="bk-review" id="bkReviewForm" {% if review_ya_evaluo %}hidden{% endif %}>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="review">
+    <input type="hidden" name="semana" value="{{ selected_week }}">
+    <input type="hidden" name="decision" id="bkDecision" value="{% if review_estado_class == 'aprobado' %}aprobar{% elif review_estado_class == 'corregido' %}corregir{% elif review_estado_class == 'reprobado' %}reprobar{% endif %}">
+    <div class="bk-rbtns" role="group" aria-label="Decisión de evaluación">
+        <button type="button" class="bk-rbtn bk-rbtn--ok {% if review_estado_class == 'aprobado' %}is-on{% endif %}" data-decision="aprobar">Aprobar</button>
+        <button type="button" class="bk-rbtn bk-rbtn--warn {% if review_estado_class == 'corregido' %}is-on{% endif %}" data-decision="corregir">Por corregir</button>
+        <button type="button" class="bk-rbtn bk-rbtn--bad {% if review_estado_class == 'reprobado' %}is-on{% endif %}" data-decision="reprobar">Reprobar</button>
+    </div>
+    <div class="bk-review-fb" id="bkFbWrap">
+        <textarea class="bk-textarea" name="feedback" id="bkFeedback" placeholder="Explica al alumno qué debe corregir...">{{ review_feedback }}</textarea>
+    </div>
+    <div class="bk-actions">
+        <button type="submit" class="btn btn-primary" id="bkReviewSubmit" disabled>Guardar evaluación</button>
+    </div>
+</form>

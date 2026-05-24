@@ -2,19 +2,24 @@ from functools import wraps
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.db.models import Avg, Count, Max, Min, Q
 from django.utils import timezone
 from .models import (
     Alumno,
     AlumnoBadge,
+    Badge,
     Bitacora,
     BitacoraEvidencia,
+    CalificacionCompetencia,
     Carrera,
+    CompetenciaHito,
     ConfigEvaluacionPeriodo,
     Empresa,
+    EvaluacionEmpresa,
     EvaluacionHito,
+    EvidenciaBitacora,
     HitoEvaluacion,
     Notificacion,
     PeriodoAcademico,
@@ -22,6 +27,7 @@ from .models import (
     Proyecto,
     ProyectoPeriodo,
     PuntajeCompetencia,
+    RecordatorioArchivado,
     RecordatorioMasivo,
     Sede,
     TutorEmpresa,
@@ -93,6 +99,7 @@ def _bitacora_estado_label(estado):
         'reprobado': 'Reprobado',
         'enviada': 'Enviada',
         'enviado': 'Enviada',
+        'en_curso': 'En curso',
     }.get(estado_text, estado_text.title())
 
 
@@ -133,17 +140,226 @@ def require_roles(*roles):
     return decorator
 
 
+def _fmt_bytes(n):
+    """Formatea un tamaño en bytes a KB/MB legible (cadena vacía si no hay dato)."""
+    if not n:
+        return ''
+    if n >= 1024 * 1024:
+        return f"{round(n / (1024 * 1024), 1)} MB"
+    return f"{round(n / 1024, 1)} KB"
+
+
+def _ext_de(nombre):
+    import os
+    return os.path.splitext(nombre or '')[1].lstrip('.').lower()
+
+
 def _bitacora_estado_class(estado):
     estado_text = (estado or 'pendiente').strip().lower()
     if estado_text in {'aprobado', 'aprobada'}:
         return 'aprobado'
-    if estado_text in {'corregido'}:
+    if estado_text in {'corregido', 'corregida'}:
         return 'corregido'
-    if estado_text in {'reprobado'}:
+    if estado_text in {'reprobado', 'reprobada'}:
         return 'reprobado'
     if estado_text in {'enviada', 'enviado'}:
-        return 'aprobado'
+        return 'enviado'
     return 'pendiente'
+
+
+def calcular_nota_bitacoras(semanas_aprobadas, total_semanas, porcentaje_exigencia=60):
+    """Calcula la nota final de bitácoras en escala universitaria chilena (1.0 a 7.0).
+
+    El puntaje máximo es el total de semanas del período y el puntaje obtenido
+    son las semanas en estado aprobado. La exigencia ingresada por el admin
+    (ej. 60) se transforma a un factor decimal (0.6).
+
+    - Si el cumplimiento es menor a la exigencia:
+        nota = 1.0 + 3.0 * (cumplimiento / exigencia)
+    - Si el cumplimiento es mayor o igual:
+        nota = 4.0 + 3.0 * ((cumplimiento - exigencia) / (1.0 - exigencia))
+    """
+    if not total_semanas or total_semanas <= 0:
+        return 1.0
+
+    cumplimiento = semanas_aprobadas / total_semanas
+
+    exigencia = (porcentaje_exigencia or 0) / 100.0
+    # Salvaguardas para evitar divisiones por cero con exigencias extremas.
+    if exigencia <= 0:
+        exigencia = 0.6
+    if exigencia >= 1:
+        exigencia = 0.99
+
+    if cumplimiento < exigencia:
+        nota = 1.0 + 3.0 * (cumplimiento / exigencia)
+    else:
+        nota = 4.0 + 3.0 * ((cumplimiento - exigencia) / (1.0 - exigencia))
+
+    return round(nota, 1)
+
+
+def _render_buscador_alumno(request, periodo, periodo_label, user_rol, titulo, accion_label):
+    """Panel de búsqueda de alumnos para el administrador (Bitácoras / Evaluaciones).
+
+    Cuando el admin no ha seleccionado a nadie se muestra esta lista filtrable por
+    nombre/correo y por carrera, con el diseño corporativo de Gestión de Usuarios.
+    Al elegir un alumno se navega a la misma vista con ?alumno=<uid> para ver el
+    detalle de su bitácora o de su evaluación.
+    """
+    q = (request.GET.get('q') or '').strip()
+    carrera_filter = (request.GET.get('carrera') or '').strip().lower()
+
+    pps = (
+        ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False)
+        .select_related('alumno__id', 'alumno__carrera', 'proyecto__empresa')
+        .order_by('alumno__id__nombre', 'alumno__id__apellido')
+    )
+
+    carreras = {}
+    alumnos = []
+    for pp in pps:
+        u = pp.alumno.id
+        nombre = f"{u.nombre} {u.apellido}".strip()
+        email = u.email or ''
+        carrera_nombre = pp.alumno.carrera.nombre if pp.alumno.carrera else ''
+        if carrera_nombre:
+            carreras[carrera_nombre.lower()] = carrera_nombre
+        if q and q.lower() not in nombre.lower() and q.lower() not in email.lower():
+            continue
+        if carrera_filter and carrera_nombre.lower() != carrera_filter:
+            continue
+        alumnos.append({
+            'id': str(pp.alumno.id_id),
+            'nombre': nombre,
+            'email': email,
+            'iniciales': (''.join(p[0] for p in nombre.split()[:2]).upper() or 'AL'),
+            'carrera': carrera_nombre or 'Sin carrera',
+            'empresa': pp.proyecto.empresa.nombre if pp.proyecto and pp.proyecto.empresa else 'Sin empresa',
+            'proyecto': pp.proyecto.titulo if pp.proyecto else 'Sin proyecto',
+        })
+
+    carrera_options = [
+        {'value': key, 'label': label}
+        for key, label in sorted(carreras.items(), key=lambda item: item[1].lower())
+    ]
+
+    return render(request, 'pages/buscador_alumno.html', {
+        'periodo_label': periodo_label,
+        'user_rol': user_rol,
+        'buscador_titulo': titulo,
+        'accion_label': accion_label,
+        'alumnos': alumnos,
+        'alumnos_count': len(alumnos),
+        'carrera_options': carrera_options,
+        'filters': {'q': q, 'carrera': carrera_filter},
+    })
+
+
+def _calcular_boletin(periodo, current_pp):
+    """Construye el boletín de notas de un alumno en el período activo.
+
+    Devuelve (rows, promedio_final, en_calculo, pendientes): la fila automática de
+    bitácoras más una fila por hito, con el promedio ponderado por peso_pct. El
+    promedio solo es definitivo cuando no quedan hitos pendientes de evaluación.
+    """
+    total_semanas = periodo.total_semanas or 13
+    config = ConfigEvaluacionPeriodo.objects.filter(periodo=periodo).first()
+    peso_bitacoras = config.peso_bitacoras_pct if config else 0
+    exigencia = config.umbral_bitacoras_pct if (config and config.umbral_bitacoras_pct) else 60
+
+    aprobadas = 0
+    for b in Bitacora.objects.filter(proyecto_periodo=current_pp):
+        if (_bitacora_estado_class(b.estado_emp) == 'aprobado'
+                and _bitacora_estado_class(b.estado_udd) == 'aprobado'):
+            aprobadas += 1
+    nota_bitacoras = calcular_nota_bitacoras(aprobadas, total_semanas, exigencia)
+
+    rows = [{
+        'nombre': 'Bitácoras',
+        'detalle': '%s de %s semanas aprobadas' % (aprobadas, total_semanas),
+        'peso': peso_bitacoras,
+        'nota': nota_bitacoras,
+        'evaluado': True,
+        'auto': True,
+    }]
+
+    suma_pond = nota_bitacoras * peso_bitacoras
+    suma_pesos = peso_bitacoras
+    pendientes = 0
+
+    eval_map = {e.hito_id: e for e in EvaluacionHito.objects.filter(proyecto_periodo=current_pp)}
+    for h in HitoEvaluacion.objects.filter(periodo=periodo).order_by('orden', 'semana'):
+        ev = eval_map.get(h.pk)
+        nota = float(ev.nota_calculada) if (ev and ev.nota_calculada is not None) else None
+        evaluado = nota is not None
+        if evaluado:
+            suma_pond += nota * (h.peso_pct or 0)
+            suma_pesos += (h.peso_pct or 0)
+        else:
+            pendientes += 1
+        rows.append({
+            'nombre': h.nombre,
+            'detalle': 'Semana %s' % h.semana,
+            'peso': h.peso_pct or 0,
+            'nota': nota,
+            'evaluado': evaluado,
+            'auto': False,
+        })
+
+    en_calculo = pendientes > 0
+    promedio_final = round(suma_pond / suma_pesos, 1) if suma_pesos else None
+    return rows, promedio_final, en_calculo, pendientes
+
+
+def _render_dashboard_tutor(request, periodo, periodo_label, user_rol, tutor_tipo, project_periods):
+    """Panel del tutor: lista de alumnos asignados con su porcentaje de avance.
+
+    El avance es el porcentaje de semanas aprobadas (ambos tutores) sobre el
+    total del período. Se incluye además cuántas semanas están pendientes de la
+    revisión de este tutor para que pueda priorizar.
+    """
+    total_weeks = periodo.total_semanas or 13
+    pps = list(project_periods)
+    pp_ids = [pp.pk for pp in pps]
+
+    aprob_por_pp = {}
+    pend_por_pp = {}
+    if pp_ids:
+        for b in Bitacora.objects.filter(proyecto_periodo_id__in=pp_ids):
+            ce = _bitacora_estado_class(b.estado_emp)
+            cu = _bitacora_estado_class(b.estado_udd)
+            if ce == 'aprobado' and cu == 'aprobado':
+                aprob_por_pp[b.proyecto_periodo_id] = aprob_por_pp.get(b.proyecto_periodo_id, 0) + 1
+            propio = cu if tutor_tipo == 'udd' else ce
+            if b.fecha_envio and propio in ('enviado', 'pendiente'):
+                pend_por_pp[b.proyecto_periodo_id] = pend_por_pp.get(b.proyecto_periodo_id, 0) + 1
+
+    rows = []
+    for pp in pps:
+        aprobadas = aprob_por_pp.get(pp.pk, 0)
+        rows.append({
+            'alumno_id': str(pp.alumno.id_id),
+            'alumno_nombre': f"{pp.alumno.id.nombre} {pp.alumno.id.apellido}".strip(),
+            'empresa': pp.proyecto.empresa.nombre if pp.proyecto and pp.proyecto.empresa else 'Sin empresa',
+            'proyecto': pp.proyecto.titulo if pp.proyecto else 'Sin proyecto',
+            'aprobadas': aprobadas,
+            'total': total_weeks,
+            'pct': int((aprobadas / max(total_weeks, 1)) * 100),
+            'pendientes': pend_por_pp.get(pp.pk, 0),
+        })
+
+    rows.sort(key=lambda r: (-r['pendientes'], r['alumno_nombre']))
+    pendientes_total = sum(r['pendientes'] for r in rows)
+
+    return render(request, 'pages/dashboard_tutor.html', {
+        'periodo_label': periodo_label,
+        'user_rol': user_rol,
+        'tutor_tipo': tutor_tipo,
+        'rows': rows,
+        'total_alumnos': len(rows),
+        'pendientes_total': pendientes_total,
+    })
 
 
 @require_roles('alumno', 'tutor_udd', 'tutor_empresa')
@@ -163,14 +379,50 @@ def bitacora_view(request):
             },
         )
 
+    user = request.user
+    real_rol = getattr(user, 'rol', None)
+    # El rol efectivo respeta la previsualización del admin (demo); el rol real
+    # se usa para el alcance de datos por seguridad.
+    is_tutor = user_rol in ('tutor_udd', 'tutor_empresa')
+    tutor_tipo = 'udd' if user_rol == 'tutor_udd' else ('empresa' if user_rol == 'tutor_empresa' else None)
+
     alumno_uid = (request.GET.get('alumno') or '').strip()
     semana_query = request.GET.get('sem')
 
     project_periods = (
         ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False)
-        .select_related('proyecto__empresa', 'alumno__id', 'sede')
+        .select_related('proyecto__empresa', 'alumno__id', 'tutor_udd__id', 'tutor_empresa__id', 'sede')
         .order_by('alumno__id__nombre', 'alumno__id__apellido', 'proyecto__titulo')
     )
+
+    # ── Alcance por rol (seguridad, según el rol REAL) ──
+    # Alumno: solo su propia bitácora. Tutor: solo sus alumnos asignados.
+    # Admin: todos (incluido cuando previsualiza otro rol).
+    if real_rol == 'alumno':
+        project_periods = project_periods.filter(alumno_id=user.id)
+        alumno_uid = str(user.id)
+    elif real_rol == 'tutor_udd':
+        project_periods = project_periods.filter(tutor_udd_id=user.id)
+    elif real_rol == 'tutor_empresa':
+        project_periods = project_periods.filter(tutor_empresa_id=user.id)
+
+    # ── Bifurcación por rol ──
+    # Un tutor que entra sin un alumno seleccionado ve su panel (dashboard) con
+    # la lista de alumnos asignados. Al elegir un alumno (?alumno=) ve el detalle.
+    if is_tutor and not alumno_uid and request.method == 'GET':
+        return _render_dashboard_tutor(
+            request, periodo, periodo_label, user_rol, tutor_tipo, project_periods
+        )
+
+    # ── Administrador sin alumno seleccionado: panel de búsqueda ──
+    # Al elegir un alumno (?alumno=) se renderiza el detalle de su bitácora.
+    is_admin = user_rol == 'admin'
+    if is_admin and not alumno_uid and request.method == 'GET':
+        return _render_buscador_alumno(
+            request, periodo, periodo_label, user_rol,
+            'Bitácoras · Selección de alumno', 'Ver bitácora',
+        )
+
     current_pp = None
     if alumno_uid:
         current_pp = project_periods.filter(alumno__id_id=alumno_uid).first()
@@ -186,6 +438,47 @@ def bitacora_view(request):
 
         texto = (request.POST.get('texto') or '').strip()
         action = (request.POST.get('action') or 'draft').strip().lower()
+
+        # ── Revisión del tutor (Aprobar / Por corregir / Reprobar) ──
+        if action == 'review' and is_tutor:
+            destino_review = f"{request.path}?alumno={current_pp.alumno.id_id}&sem={semana_post_int}"
+            decision = (request.POST.get('decision') or '').strip().lower()
+            feedback = (request.POST.get('feedback') or '').strip()
+            mapping = {'aprobar': 'aprobada', 'corregir': 'corregida', 'reprobar': 'reprobada'}
+            nuevo_estado = mapping.get(decision)
+            if not nuevo_estado:
+                messages.error(request, 'Selecciona una decisión válida para la evaluación.')
+                return redirect(destino_review)
+            if nuevo_estado in ('corregida', 'reprobada') and not feedback:
+                messages.error(request, 'Debes escribir un comentario para "Por corregir" o "Reprobar".')
+                return redirect(destino_review)
+
+            bitacora_rev = Bitacora.objects.filter(
+                proyecto_periodo=current_pp, semana=semana_post_int
+            ).first()
+            if not bitacora_rev or not bitacora_rev.fecha_envio:
+                messages.error(request, 'No se puede evaluar una semana que aún no ha sido enviada.')
+                return redirect(destino_review)
+
+            ahora = timezone.now()
+            if tutor_tipo == 'udd':
+                bitacora_rev.estado_udd = nuevo_estado
+                bitacora_rev.feedback_udd = feedback
+                bitacora_rev.fecha_revision_udd = ahora
+            else:
+                bitacora_rev.estado_emp = nuevo_estado
+                bitacora_rev.feedback_emp = feedback
+                bitacora_rev.fecha_revision_emp = ahora
+            bitacora_rev.updated_at = ahora
+            bitacora_rev.save()
+
+            if bitacora_rev.esta_cerrada:
+                messages.success(request, 'Evaluación guardada. La bitácora quedó cerrada (ambos tutores aprobaron).')
+            else:
+                messages.success(request, 'Evaluación guardada correctamente.')
+            return redirect(destino_review)
+
+        # A partir de aquí, solo el alumno (o admin) edita/envía el registro.
 
         # Si un tutor ya aprobó la semana, la bitácora queda bloqueada: no se
         # permite editar ni reenviar (ni desde el front ni vía POST directo).
@@ -220,16 +513,29 @@ def bitacora_view(request):
         selected_week = int(semana_query) if semana_query and str(semana_query).isdigit() else (current_pp.semana_actual or 1)
         selected_week = max(1, min(selected_week, total_weeks))
 
-        bitacoras_qs = Bitacora.objects.filter(proyecto_periodo=current_pp).prefetch_related('bitacoraevidencia_set')
+        bitacoras_qs = Bitacora.objects.filter(proyecto_periodo=current_pp).prefetch_related('bitacoraevidencia_set', 'evidencias')
         bitacoras_by_week = {item.semana: item for item in bitacoras_qs}
 
+        # Un tutor sin semana explícita aterriza en la más antigua pendiente de SU
+        # revisión (enviada y sin resolver por su caja). Si no hay, deja la actual.
+        if is_tutor and not (semana_query and str(semana_query).isdigit()):
+            for n in range(1, total_weeks + 1):
+                b = bitacoras_by_week.get(n)
+                if not (b and b.fecha_envio):
+                    continue
+                propio = _bitacora_estado_class(b.estado_udd if tutor_tipo == 'udd' else b.estado_emp)
+                if propio in ('enviado', 'pendiente'):
+                    selected_week = n
+                    break
+
         weeks = []
-        approved = corrected = pending = 0
+        approved = corrected = pending = en_curso = 0
         for week_number in range(1, total_weeks + 1):
             bitacora = bitacoras_by_week.get(week_number)
             if bitacora:
                 estado_emp = _bitacora_estado_class(bitacora.estado_emp)
                 estado_udd = _bitacora_estado_class(bitacora.estado_udd)
+                has_sent = bool(bitacora.fecha_envio)
                 if estado_emp == 'aprobado' and estado_udd == 'aprobado':
                     progress_state = 'aprobado'
                     approved += 1
@@ -238,21 +544,37 @@ def bitacora_view(request):
                     corrected += 1
                 elif estado_emp == 'reprobado' or estado_udd == 'reprobado':
                     progress_state = 'reprobado'
+                elif has_sent:
+                    # Enviada y a la espera de revisión de los tutores.
+                    progress_state = 'en_curso'
+                    en_curso += 1
                 else:
                     progress_state = 'pendiente'
                     pending += 1
-                has_sent = bool(bitacora.fecha_envio)
                 texto_bitacora = bitacora.texto or ''
                 fecha_envio = bitacora.fecha_envio
+                # Evidencias: combinamos el legado (BitacoraEvidencia, solo URL) con
+                # las subidas nuevas (EvidenciaBitacora, archivo real).
                 evidencias = [
                     {
                         'nombre': ev.nombre_archivo,
                         'url': ev.url,
-                        'tipo': (ev.tipo_archivo or 'archivo').lower(),
-                        'tamano': f"{round((ev.tamaño_bytes or 0) / 1024, 1)} KB" if ev.tamaño_bytes else '',
+                        'tipo': (ev.tipo_archivo or _ext_de(ev.nombre_archivo) or 'archivo').lower(),
+                        'tamano': _fmt_bytes(ev.tamaño_bytes),
                     }
                     for ev in bitacora.bitacoraevidencia_set.all()
                 ]
+                for ev in bitacora.evidencias.all():
+                    try:
+                        size = ev.archivo.size if ev.archivo else 0
+                    except (OSError, ValueError):
+                        size = 0
+                    evidencias.append({
+                        'nombre': ev.nombre,
+                        'url': ev.archivo.url if ev.archivo else '',
+                        'tipo': ev.extension or 'archivo',
+                        'tamano': _fmt_bytes(size),
+                    })
             else:
                 progress_state = 'aprobado' if week_number < (current_pp.semana_actual or 1) and week_number in bitacoras_by_week else 'pendiente'
                 if week_number >= (current_pp.semana_actual or 1):
@@ -316,6 +638,19 @@ def bitacora_view(request):
         selected_feedback_emp = (selected_bitacora.feedback_emp or '') if selected_bitacora else ''
         selected_feedback_udd = (selected_bitacora.feedback_udd or '') if selected_bitacora else ''
 
+        # Datos del veredicto de la caja del tutor ACTIVO (la que puede editar).
+        # review_ya_evaluo indica si ya guardó una decisión (aprobado/corregido/
+        # reprobado) para mostrar el modo lectura en lugar del formulario.
+        if tutor_tipo == 'udd':
+            review_estado_class = selected_estado_udd_class
+            review_estado_label = selected_estado_udd
+            review_feedback = selected_feedback_udd
+        else:
+            review_estado_class = selected_estado_emp_class
+            review_estado_label = selected_estado_emp
+            review_feedback = selected_feedback_emp
+        review_ya_evaluo = review_estado_class in ('aprobado', 'corregido', 'reprobado')
+
         context = {
             'periodo_label': periodo_label,
             'student_name': alumno_name,
@@ -331,6 +666,7 @@ def bitacora_view(request):
             'progress_pct': progress_pct,
             'approved_count': approved,
             'corrected_count': corrected,
+            'en_curso_count': en_curso,
             'pending_count': pending,
             'selected_week_label': selected_week_data['status_label'],
             'selected_week_status': selected_week_data['status'],
@@ -338,6 +674,14 @@ def bitacora_view(request):
             'selected_week_fecha': selected_week_data['fecha_envio'],
             'selected_week_future': selected_week_data['future'],
             'can_choose_weeks': True,
+            'is_tutor': is_tutor,
+            'tutor_tipo': tutor_tipo,
+            'can_edit_registro': editable and not is_tutor,
+            'can_review': is_tutor and selected_week_data['has_sent'],
+            'review_estado_class': review_estado_class,
+            'review_estado_label': review_estado_label,
+            'review_feedback': review_feedback,
+            'review_ya_evaluo': review_ya_evaluo,
             'project_period': current_pp,
             'student_options': [
                 {
@@ -361,6 +705,7 @@ def bitacora_view(request):
             'selected_feedback_emp': selected_feedback_emp,
             'selected_feedback_udd': selected_feedback_udd,
             'user_rol': user_rol,
+            'volver_url': request.path if is_admin else '',
         }
         return render(request, 'pages/bitacora.html', context)
 
@@ -680,6 +1025,51 @@ def proyectos_view(request):
     user_rol = _get_user_rol(request)
     _, periodo_label = _periodo_activo()
 
+    real_rol = getattr(request.user, 'rol', None)
+    es_tutor_empresa = real_rol == 'tutor_empresa'
+    empresa_tutor = None
+    if es_tutor_empresa:
+        perfil_tutor = TutorEmpresa.objects.select_related('empresa').filter(pk=request.user.pk).first()
+        empresa_tutor = perfil_tutor.empresa if perfil_tutor else None
+
+    if request.method == 'POST' and request.POST.get('action') == 'create_proyecto':
+        titulo = (request.POST.get('titulo') or '').strip()[:255]
+        if es_tutor_empresa:
+            # El tutor de empresa no elige empresa: se asigna forzosamente la
+            # empresa vinculada a su perfil, ignorando cualquier empresa_id enviado.
+            empresa = empresa_tutor
+        else:
+            empresa_id = request.POST.get('empresa_id')
+            empresa = Empresa.objects.filter(id=empresa_id).first() if empresa_id else None
+        if not titulo or empresa is None:
+            messages.error(request, 'El título y la empresa son obligatorios.')
+        else:
+            modalidad = (request.POST.get('modalidad') or '').strip().lower() or None
+            if modalidad not in (None, 'presencial', 'hibrido', 'remoto'):
+                modalidad = None
+            carrera = Carrera.objects.filter(id=request.POST.get('carrera_id')).first() if request.POST.get('carrera_id') else None
+            try:
+                vacantes = int(request.POST.get('vacantes') or 1)
+            except ValueError:
+                vacantes = 1
+            try:
+                Proyecto.objects.create(
+                    empresa=empresa,
+                    titulo=titulo,
+                    descripcion=(request.POST.get('descripcion') or '').strip() or None,
+                    carrera=carrera,
+                    modalidad=modalidad,
+                    vacantes=max(1, vacantes),
+                    is_active=True,
+                    created_by=request.user,
+                    created_at=timezone.now(),
+                    updated_at=timezone.now(),
+                )
+                messages.success(request, f'Proyecto “{titulo}” creado correctamente.')
+            except Exception as exc:
+                messages.error(request, f'No se pudo crear el proyecto: {exc}')
+        return redirect('proyectos')
+
     q = (request.GET.get('q') or '').strip()
     estado_filter = (request.GET.get('estado') or '').strip().lower()
     modalidad_filter = (request.GET.get('modalidad') or '').strip().lower()
@@ -784,6 +1174,10 @@ def proyectos_view(request):
             'empresa': empresa_options,
             'carrera': carrera_options,
         },
+        'empresas_select': list(Empresa.objects.order_by('nombre').values('id', 'nombre')),
+        'carreras_select': list(Carrera.objects.order_by('nombre').values('id', 'nombre')),
+        'es_tutor_empresa': es_tutor_empresa,
+        'empresa_tutor_nombre': empresa_tutor.nombre if empresa_tutor else '',
         'user_rol': user_rol,
     }
     return render(request, 'pages/proyectos.html', context)
@@ -791,7 +1185,35 @@ def proyectos_view(request):
 
 def empresas_view(request):
     user_rol = _get_user_rol(request)
-    _, periodo_label = _periodo_activo()
+    periodo, periodo_label = _periodo_activo()
+
+    if request.method == 'POST' and request.POST.get('action') == 'create_empresa':
+        nombre = (request.POST.get('nombre') or '').strip()[:255]
+        if not nombre:
+            messages.error(request, 'El nombre de la empresa es obligatorio.')
+        else:
+            tamano = (request.POST.get('tamano') or '').strip().lower() or None
+            if tamano not in (None, 'pequeña', 'mediana', 'grande'):
+                tamano = None
+            presencia = (request.POST.get('presencia') or '').strip().lower() or None
+            if presencia not in (None, 'chile', 'multinacional'):
+                presencia = None
+            try:
+                Empresa.objects.create(
+                    nombre=nombre,
+                    rubro=(request.POST.get('rubro') or '').strip()[:150] or None,
+                    ubicacion=(request.POST.get('ubicacion') or '').strip()[:255] or None,
+                    tamano=tamano,
+                    presencia=presencia,
+                    descripcion=(request.POST.get('descripcion') or '').strip() or None,
+                    contacto_nombre=(request.POST.get('contacto_nombre') or '').strip()[:150] or None,
+                    contacto_email=(request.POST.get('contacto_email') or '').strip()[:254] or None,
+                    is_active=True,
+                )
+                messages.success(request, f'Empresa “{nombre}” creada correctamente.')
+            except Exception as exc:
+                messages.error(request, f'No se pudo crear la empresa: {exc}')
+        return redirect('empresas')
 
     q = (request.GET.get('q') or '').strip()
     rubro_filter = (request.GET.get('rubro') or '').strip().lower()
@@ -838,6 +1260,22 @@ def empresas_view(request):
     elif sort_filter == 'proyectos':
         empresas_qs = empresas_qs.order_by('-proyectos_count', 'nombre')
 
+    # ── eNPS real: se calcula desde EvaluacionEmpresa filtrando por el período
+    # activo. Escala 1–10: promotores (>=9), detractores (<=6); pasivos (7–8).
+    # eNPS = (% promotores − % detractores), en el rango −100 a 100.
+    enps_map = {}
+    if periodo:
+        conteo = {}
+        for ev in EvaluacionEmpresa.objects.filter(periodo=periodo).values('empresa', 'puntuacion'):
+            bucket = conteo.setdefault(ev['empresa'], {'total': 0, 'promotores': 0, 'detractores': 0})
+            bucket['total'] += 1
+            if ev['puntuacion'] >= 9:
+                bucket['promotores'] += 1
+            elif ev['puntuacion'] <= 6:
+                bucket['detractores'] += 1
+        for emp_id, b in conteo.items():
+            enps_map[emp_id] = round((b['promotores'] - b['detractores']) / b['total'] * 100) if b['total'] else 0
+
     empresas = []
     for e in empresas_qs:
         rubro = e.rubro or 'Sin rubro'
@@ -854,7 +1292,7 @@ def empresas_view(request):
                 'presencia': (e.presencia or 'Sin definir').title(),
                 'tamano': (e.tamano or 'Sin definir').title(),
                 'campus': e.campus.nombre if e.campus else 'Sin sede',
-                'enps': float(e.enps_score or 0),
+                'enps': enps_map.get(e.id, 0),
                 'proyectos': e.proyectos_count,
                 'practicantes': e.practicantes_count,
                 'tutores': e.tutores_count,
@@ -866,10 +1304,36 @@ def empresas_view(request):
             }
         )
 
-    enps_avg = round(sum(item['enps'] for item in empresas) / len(empresas), 1) if empresas else 0
+    # Promedio de eNPS solo sobre empresas con evaluaciones reales en el período.
+    enps_evaluadas = [enps_map[k] for k in enps_map]
+    enps_avg = round(sum(enps_evaluadas) / len(enps_evaluadas), 1) if enps_evaluadas else 0
 
     paginator = Paginator(empresas, 25)
     page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    # Tutores empresa asociados (vía FK) para el panel de detalle de la página actual.
+    page_ids = [e['id'] for e in page_obj.object_list]
+    tutores_map = {}
+    for te in TutorEmpresa.objects.filter(empresa_id__in=page_ids).select_related('id'):
+        u = te.id
+        nombre_tutor = f"{u.nombre} {u.apellido}".strip()
+        tutores_map.setdefault(te.empresa_id, []).append({
+            'nombre': nombre_tutor,
+            'initials': (''.join(p[0] for p in nombre_tutor.split()[:2]).upper() or 'TE'),
+            'cargo': te.cargo or '',
+            'email': u.email or '',
+        })
+    # Proyectos asociados (resumen) para el panel de detalle de la página actual.
+    proyectos_map = {}
+    for pr in Proyecto.objects.filter(empresa_id__in=page_ids).order_by('-is_active', 'titulo'):
+        proyectos_map.setdefault(pr.empresa_id, []).append({
+            'titulo': pr.titulo,
+            'is_active': bool(pr.is_active),
+        })
+    for e in page_obj.object_list:
+        e['tutores_list'] = tutores_map.get(e['id'], [])
+        e['proyectos_list'] = proyectos_map.get(e['id'], [])
+
     context = {
         'periodo_label': periodo_label,
         'empresas': page_obj.object_list,
@@ -1127,71 +1591,131 @@ def alumnos_view(request):
     return render(request, 'pages/alumnos.html', context)
 
 
+def _semana_estado_combinado(estado_emp, estado_udd, has_sent):
+    """Estado consolidado de la semana para la línea de tiempo (timeline)."""
+    ce = _bitacora_estado_class(estado_emp)
+    cu = _bitacora_estado_class(estado_udd)
+    if ce == 'aprobado' and cu == 'aprobado':
+        return 'aprobada'
+    if 'corregido' in (ce, cu):
+        return 'corregida'
+    if 'reprobado' in (ce, cu):
+        return 'reprobada'
+    if has_sent:
+        return 'enviada'
+    return 'pendiente'
+
+
 @require_roles('tutor_udd', 'tutor_empresa')
 def bitacoras_view(request):
     user_rol = _get_user_rol(request)
-    _, periodo_label = _periodo_activo()
+    periodo, periodo_label = _periodo_activo()
 
-    q = (request.GET.get('q') or '').strip()
-    estado_emp_filter = (request.GET.get('estado_emp') or '').strip().lower()
-    estado_udd_filter = (request.GET.get('estado_udd') or '').strip().lower()
+    if not periodo:
+        return render(request, 'pages/bitacoras.html', {
+            'periodo_label': periodo_label,
+            'user_rol': user_rol,
+            'bitacoras_empty': True,
+            'message': 'No hay un período activo para mostrar el seguimiento de bitácoras.',
+        })
 
-    base_qs = (
-        Bitacora.objects.select_related(
-            'proyecto_periodo__proyecto__empresa', 'proyecto_periodo__alumno__id'
-        )
-        .order_by('-created_at', '-semana')
+    project_periods = (
+        ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False)
+        .select_related('proyecto__empresa', 'alumno__id', 'tutor_empresa__id', 'tutor_udd__id')
+        .order_by('alumno__id__nombre', 'alumno__id__apellido')
     )
 
-    estado_emp_options = _build_filter_options(base_qs.values_list('estado_emp', flat=True).distinct())
-    estado_udd_options = _build_filter_options(base_qs.values_list('estado_udd', flat=True).distinct())
-    bitacoras = base_qs
+    alumno_uid = (request.GET.get('alumno') or '').strip()
+    current_pp = None
+    if alumno_uid:
+        current_pp = project_periods.filter(alumno__id_id=alumno_uid).first()
+    if current_pp is None:
+        current_pp = project_periods.first()
 
-    if q:
-        bitacoras = bitacoras.filter(
-            Q(proyecto_periodo__proyecto__titulo__icontains=q)
-            | Q(proyecto_periodo__proyecto__empresa__nombre__icontains=q)
-            | Q(proyecto_periodo__alumno__id__nombre__icontains=q)
-            | Q(proyecto_periodo__alumno__id__apellido__icontains=q)
-        )
-    if estado_emp_filter:
-        bitacoras = bitacoras.filter(estado_emp__icontains=estado_emp_filter)
-    if estado_udd_filter:
-        bitacoras = bitacoras.filter(estado_udd__icontains=estado_udd_filter)
+    student_options = [
+        {
+            'id': str(pp.alumno.id_id),
+            'label': f"{pp.alumno.id.nombre} {pp.alumno.id.apellido}".strip(),
+            'empresa': pp.proyecto.empresa.nombre if pp.proyecto and pp.proyecto.empresa else '',
+        }
+        for pp in project_periods
+    ]
 
-    bitacoras = bitacoras[:250]
+    if current_pp is None:
+        return render(request, 'pages/bitacoras.html', {
+            'periodo_label': periodo_label,
+            'user_rol': user_rol,
+            'bitacoras_empty': True,
+            'message': 'No hay alumnos con proyecto asignado en el período activo.',
+        })
 
-    rows = []
-    for b in bitacoras:
-        alumno_nombre = 'Sin alumno'
-        if b.proyecto_periodo and b.proyecto_periodo.alumno and b.proyecto_periodo.alumno.id:
-            u = b.proyecto_periodo.alumno.id
-            alumno_nombre = f"{u.nombre} {u.apellido}".strip()
-        rows.append(
-            {
-                'proyecto': b.proyecto_periodo.proyecto.titulo if b.proyecto_periodo and b.proyecto_periodo.proyecto else 'Sin proyecto',
-                'empresa': b.proyecto_periodo.proyecto.empresa.nombre if b.proyecto_periodo and b.proyecto_periodo.proyecto and b.proyecto_periodo.proyecto.empresa else 'Sin empresa',
-                'alumno': alumno_nombre,
-                'semana': b.semana,
-                'estado_emp': b.estado_emp or 'pendiente',
-                'estado_udd': b.estado_udd or 'pendiente',
-                'fecha_envio': b.fecha_envio,
-            }
-        )
+    total_semanas = periodo.total_semanas or 13
+    bitacoras_by_week = {
+        b.semana: b
+        for b in Bitacora.objects.filter(proyecto_periodo=current_pp)
+    }
+
+    weeks = []
+    semanas_aprobadas = 0
+    for n in range(1, total_semanas + 1):
+        b = bitacoras_by_week.get(n)
+        estado_emp = b.estado_emp if b else None
+        estado_udd = b.estado_udd if b else None
+        has_sent = bool(b and b.fecha_envio)
+        estado = _semana_estado_combinado(estado_emp, estado_udd, has_sent)
+        if estado == 'aprobada':
+            semanas_aprobadas += 1
+        weeks.append({
+            'n': n,
+            'estado': estado,
+            'estado_emp': _bitacora_estado_class(estado_emp),
+            'estado_udd': _bitacora_estado_class(estado_udd),
+            'estado_emp_label': _bitacora_estado_label(estado_emp),
+            'estado_udd_label': _bitacora_estado_label(estado_udd),
+            'texto': (b.texto or '') if b else '',
+            'has_sent': has_sent,
+            'readonly': estado in ('aprobada', 'enviada', 'corregida', 'reprobada'),
+            'fecha_str': b.fecha_envio.strftime('%d/%m/%Y %H:%M') if (b and b.fecha_envio) else '',
+            'feedback_emp': (b.feedback_emp or '') if b else '',
+            'feedback_udd': (b.feedback_udd or '') if b else '',
+        })
+
+    # Nota final de bitácoras (escala chilena) según la exigencia configurada.
+    config_eval = ConfigEvaluacionPeriodo.objects.filter(periodo=periodo).first()
+    porcentaje_exigencia = config_eval.umbral_bitacoras_pct if (config_eval and config_eval.umbral_bitacoras_pct) else 60
+    nota_final = calcular_nota_bitacoras(semanas_aprobadas, total_semanas, porcentaje_exigencia)
+    cumplimiento_pct = round((semanas_aprobadas / total_semanas) * 100) if total_semanas else 0
+
+    def _initials(nombre):
+        return ''.join(p[0] for p in nombre.split()[:2]).upper() or '--'
+
+    tutor_empresa_nombre = 'Sin asignar'
+    tutor_udd_nombre = 'Sin asignar'
+    if current_pp.tutor_empresa and current_pp.tutor_empresa.id:
+        te = current_pp.tutor_empresa.id
+        tutor_empresa_nombre = f"{te.nombre} {te.apellido}".strip()
+    if current_pp.tutor_udd and current_pp.tutor_udd.id:
+        tu = current_pp.tutor_udd.id
+        tutor_udd_nombre = f"{tu.nombre} {tu.apellido}".strip()
 
     context = {
         'periodo_label': periodo_label,
-        'bitacoras': rows,
-        'bitacoras_count': len(rows),
-        'filters': {
-            'q': q,
-            'estado_emp': estado_emp_filter,
-            'estado_udd': estado_udd_filter,
-        },
-        'filter_options': {
-            'estado_emp': estado_emp_options,
-            'estado_udd': estado_udd_options,
-        },
+        'bitacoras_empty': False,
+        'student_options': student_options,
+        'selected_student_id': str(current_pp.alumno.id_id),
+        'student_name': f"{current_pp.alumno.id.nombre} {current_pp.alumno.id.apellido}".strip(),
+        'student_company': current_pp.proyecto.empresa.nombre if current_pp.proyecto and current_pp.proyecto.empresa else 'Sin empresa',
+        'project_name': current_pp.proyecto.titulo if current_pp.proyecto else 'Sin proyecto',
+        'weeks': weeks,
+        'total_semanas': total_semanas,
+        'semanas_aprobadas': semanas_aprobadas,
+        'cumplimiento_pct': cumplimiento_pct,
+        'porcentaje_exigencia': porcentaje_exigencia,
+        'nota_final': nota_final,
+        'tutor_empresa_nombre': tutor_empresa_nombre,
+        'tutor_empresa_initials': _initials(tutor_empresa_nombre),
+        'tutor_udd_nombre': tutor_udd_nombre,
+        'tutor_udd_initials': _initials(tutor_udd_nombre),
         'user_rol': user_rol,
     }
     return render(request, 'pages/bitacoras.html', context)
@@ -1199,104 +1723,98 @@ def bitacoras_view(request):
 
 @require_roles('tutor_udd', 'tutor_empresa')
 def evaluaciones_view(request):
+    """Gestor de Hitos: lista las configuraciones de evaluación del período activo
+    (Diagnóstico, Intermedia, Final) con métricas agregadas por hito: cantidad de
+    rúbricas contestadas y promedio global del hito.
+    """
     user_rol = _get_user_rol(request)
-    _, periodo_label = _periodo_activo()
+    periodo, periodo_label = _periodo_activo()
 
-    q = (request.GET.get('q') or '').strip()
-    hito = (request.GET.get('hito') or '').strip().lower()
-    min_nota = request.GET.get('min_nota')
-
-    evaluaciones = (
-        EvaluacionHito.objects.select_related(
-            'hito',
-            'proyecto_periodo__proyecto',
-            'proyecto_periodo__alumno__id',
-            'evaluado_por',
+    # ── Administrador: buscador de alumnos → detalle (boletín) por alumno ──
+    # Sin alumno seleccionado se muestra el panel de búsqueda; al elegir uno se
+    # renderiza el detalle de su evaluación (boletín de notas del período).
+    if user_rol == 'admin' and periodo:
+        alumno_uid = (request.GET.get('alumno') or '').strip()
+        if not alumno_uid:
+            return _render_buscador_alumno(
+                request, periodo, periodo_label, user_rol,
+                'Evaluaciones · Selección de alumno', 'Ver evaluación',
+            )
+        current_pp = (
+            ProyectoPeriodo.objects.filter(
+                periodo=periodo, alumno__isnull=False, alumno__id_id=alumno_uid
+            )
+            .select_related('proyecto__empresa', 'alumno__id')
+            .first()
         )
-        .order_by('-fecha_evaluacion')
-    )
-
-    if q:
-        evaluaciones = evaluaciones.filter(
-            Q(hito__nombre__icontains=q)
-            | Q(proyecto_periodo__proyecto__titulo__icontains=q)
-            | Q(proyecto_periodo__alumno__id__nombre__icontains=q)
-            | Q(proyecto_periodo__alumno__id__apellido__icontains=q)
-        )
-    if hito:
-        evaluaciones = evaluaciones.filter(hito__nombre__icontains=hito)
-    if min_nota:
-        try:
-            evaluaciones = evaluaciones.filter(nota_calculada__gte=float(min_nota))
-        except ValueError:
-            pass
-
-    evaluaciones = evaluaciones[:300]
-
-    rows = []
-    for ev in evaluaciones:
-        alumno = 'Sin alumno'
-        if ev.proyecto_periodo and ev.proyecto_periodo.alumno and ev.proyecto_periodo.alumno.id:
-            u = ev.proyecto_periodo.alumno.id
-            alumno = f"{u.nombre} {u.apellido}".strip()
-        rows.append(
-            {
-                'hito': ev.hito.nombre if ev.hito else 'Sin hito',
-                'semana': ev.hito.semana if ev.hito else '-',
-                'proyecto': ev.proyecto_periodo.proyecto.titulo if ev.proyecto_periodo and ev.proyecto_periodo.proyecto else 'Sin proyecto',
-                'alumno': alumno,
-                'nota': float(ev.nota_calculada or 0),
-                'evaluador': f"{ev.evaluado_por.nombre} {ev.evaluado_por.apellido}".strip() if ev.evaluado_por else 'Sin evaluador',
-                'fecha': ev.fecha_evaluacion,
-            }
-        )
-
-    nota_avg = round(sum(x['nota'] for x in rows) / len(rows), 1) if rows else 0
+        if current_pp is None:
+            return _render_buscador_alumno(
+                request, periodo, periodo_label, user_rol,
+                'Evaluaciones · Selección de alumno', 'Ver evaluación',
+            )
+        rows, promedio_final, en_calculo, pendientes = _calcular_boletin(periodo, current_pp)
+        return render(request, 'pages/mis_notas.html', {
+            'user_rol': user_rol,
+            'periodo_label': periodo_label,
+            'sin_datos': False,
+            'student_name': f"{current_pp.alumno.id.nombre} {current_pp.alumno.id.apellido}".strip(),
+            'student_company': current_pp.proyecto.empresa.nombre if current_pp.proyecto and current_pp.proyecto.empresa else 'Sin empresa',
+            'project_name': current_pp.proyecto.titulo if current_pp.proyecto else 'Sin proyecto',
+            'rows': rows,
+            'promedio_final': promedio_final,
+            'en_calculo': en_calculo,
+            'pendientes': pendientes,
+            'volver_url': request.path,
+        })
 
     hitos_resumen = []
-    if rows:
-        acumulado = {}
-        for row in rows:
-            key = (row['hito'], row['semana'])
-            bucket = acumulado.setdefault(
-                key, {'hito': row['hito'], 'semana': row['semana'], 'cantidad': 0, 'suma': 0.0}
-            )
-            bucket['cantidad'] += 1
-            bucket['suma'] += row['nota']
+    total_rubricas = 0
+    suma_global = 0.0
+    cuenta_global = 0
 
-        for item in acumulado.values():
-            promedio = round(item['suma'] / item['cantidad'], 1) if item['cantidad'] else 0
-            if promedio >= 6:
-                estado = 'evaluado'
-            elif promedio >= 5:
-                estado = 'disponible'
-            else:
-                estado = 'pendiente'
-            hitos_resumen.append(
-                {
-                    'nombre': item['hito'],
-                    'semana': item['semana'],
-                    'cantidad': item['cantidad'],
-                    'promedio': promedio,
-                    'estado': estado,
-                    'activo': hito and item['hito'].lower() == hito,
-                }
-            )
+    if periodo:
+        total_alumnos = ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False).count()
 
-        hitos_resumen.sort(key=lambda x: (x['semana'] if isinstance(x['semana'], int) else 999, x['nombre']))
+        # Agregados por hito desde las evaluaciones (rúbricas) contestadas.
+        agregados = {
+            row['hito']: row
+            for row in (
+                EvaluacionHito.objects.filter(hito__periodo=periodo)
+                .values('hito')
+                .annotate(cantidad=Count('id'), promedio=Avg('nota_calculada'))
+            )
+        }
+
+        eval_labels = {'udd': 'Tutor UDD', 'empresa': 'Tutor Empresa', 'ambos': 'Ambos tutores'}
+        for h in HitoEvaluacion.objects.filter(periodo=periodo).order_by('orden', 'semana'):
+            datos = agregados.get(h.pk)
+            cantidad = datos['cantidad'] if datos else 0
+            promedio = round(float(datos['promedio']), 1) if (datos and datos['promedio'] is not None) else None
+            total_rubricas += cantidad
+            if promedio is not None:
+                suma_global += float(datos['promedio']) * cantidad
+                cuenta_global += cantidad
+            evaluador = (h.evaluador or 'ambos').strip().lower()
+            hitos_resumen.append({
+                'id': h.pk,
+                'nombre': h.nombre,
+                'semana': h.semana,
+                'peso_pct': h.peso_pct,
+                'evaluador_label': eval_labels.get(evaluador, 'Ambos tutores'),
+                'cantidad': cantidad,
+                'total_alumnos': total_alumnos,
+                'pct': int((cantidad / total_alumnos) * 100) if total_alumnos else 0,
+                'promedio': promedio,
+            })
+
+    promedio_global = round(suma_global / cuenta_global, 1) if cuenta_global else None
 
     context = {
         'periodo_label': periodo_label,
-        'evaluaciones': rows,
-        'evaluaciones_count': len(rows),
-        'nota_promedio': nota_avg,
         'hitos_resumen': hitos_resumen,
         'hitos_count': len(hitos_resumen),
-        'filters': {
-            'q': q,
-            'hito': hito,
-            'min_nota': min_nota or '',
-        },
+        'total_rubricas': total_rubricas,
+        'promedio_global': promedio_global,
         'user_rol': user_rol,
     }
     return render(request, 'pages/evaluaciones.html', context)
@@ -1471,6 +1989,230 @@ def hitos_config_view(request):
     return render(request, 'pages/hitos_config.html', context)
 
 
+# ─── CONFIGURACIÓN GLOBAL (períodos / evaluaciones / badges) ─────────────────
+
+ICONOS_BADGE = ['🏆', '⭐', '🎯', '🚀', '💡', '🤝', '📈', '🔥', '🎖️', '👑']
+
+
+@require_roles()
+def configuracion_view(request):
+    """Panel de configuración global con 3 áreas: períodos, evaluaciones, badges."""
+    import json
+    from datetime import datetime as _dt
+
+    user_rol = _get_user_rol(request)
+    active_tab = 'periodos'
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        active_tab = request.POST.get('active_tab', 'periodos')
+
+        # ── Período académico: nombre + 4 fechas diferenciadas ──
+        if action == 'save_periodo':
+            nombre = (request.POST.get('nombre') or '').strip()[:20]
+
+            def _parse(name):
+                raw = (request.POST.get(name) or '').strip()
+                return _dt.strptime(raw, '%Y-%m-%d').date() if raw else None
+
+            try:
+                fi_acad = _parse('fecha_inicio')
+                ff_acad = _parse('fecha_fin')
+                fi_iclae = _parse('fecha_inicio_iclae')
+                ff_iclae = _parse('fecha_fin_iclae')
+            except ValueError:
+                messages.error(request, 'Formato de fecha inválido.')
+                return redirect(f"{request.path}?tab=periodos")
+
+            if not nombre or not fi_acad or not ff_acad or not fi_iclae or not ff_iclae:
+                messages.error(request, 'Completa el nombre y las cuatro fechas.')
+            elif fi_acad > ff_acad or fi_iclae > ff_iclae:
+                messages.error(request, 'Las fechas de inicio no pueden ser posteriores a las de fin.')
+            else:
+                # Las fechas ICLAE determinan el número de semanas de bitácora.
+                total_semanas = max(1, round((ff_iclae - fi_iclae).days / 7))
+                periodo = PeriodoAcademico.objects.filter(is_active=True).first()
+                if periodo is None:
+                    periodo = PeriodoAcademico.objects.filter(nombre=nombre).first()
+                if periodo is None:
+                    periodo = PeriodoAcademico(created_at=timezone.now())
+                periodo.nombre = nombre
+                periodo.fecha_inicio = fi_acad
+                periodo.fecha_fin = ff_acad
+                periodo.fecha_inicio_iclae = fi_iclae
+                periodo.fecha_fin_iclae = ff_iclae
+                periodo.total_semanas = total_semanas
+                periodo.is_active = True
+                periodo.save()
+                messages.success(request, f'Período “{nombre}” guardado. Las bitácoras tendrán {total_semanas} semanas.')
+            return redirect(f"{request.path}?tab=periodos")
+
+        # ── Evaluación continua (bitácoras): porcentaje de exigencia fijo ──
+        elif action == 'save_exigencia_bitacoras':
+            periodo = PeriodoAcademico.objects.filter(is_active=True).first()
+            if periodo is None:
+                messages.error(request, 'Primero crea un período activo en la pestaña Períodos.')
+            else:
+                try:
+                    exigencia = int(request.POST.get('porcentaje_exigencia') or 60)
+                except ValueError:
+                    exigencia = 60
+                exigencia = max(1, min(99, exigencia))
+                config, _ = ConfigEvaluacionPeriodo.objects.get_or_create(
+                    periodo=periodo,
+                    defaults={'peso_bitacoras_pct': 0, 'created_at': timezone.now()},
+                )
+                config.umbral_bitacoras_pct = exigencia
+                config.updated_at = timezone.now()
+                config.save()
+                messages.success(request, f'Exigencia de bitácoras guardada en {exigencia}%.')
+            return redirect(f"{request.path}?tab=evaluaciones")
+
+        # ── Hito de evaluación con competencias dinámicas ──
+        elif action == 'add_hito':
+            periodo = PeriodoAcademico.objects.filter(is_active=True).first()
+            nombre = (request.POST.get('nombre') or '').strip()[:150]
+            try:
+                semana = int(request.POST.get('semana') or 1)
+            except ValueError:
+                semana = 1
+            evaluador = (request.POST.get('evaluador') or 'udd').strip()
+            if evaluador not in ('udd', 'empresa', 'ambos'):
+                evaluador = 'udd'
+            try:
+                competencias = json.loads(request.POST.get('competencias_json') or '[]')
+            except json.JSONDecodeError:
+                competencias = []
+
+            comps = [
+                {'nombre': str(c.get('nombre', '')).strip()[:150], 'peso': int(c.get('peso') or 0)}
+                for c in competencias
+                if str(c.get('nombre', '')).strip()
+            ]
+            suma = sum(c['peso'] for c in comps)
+
+            if periodo is None:
+                messages.error(request, 'Primero crea un período activo en la pestaña Períodos.')
+            elif not nombre or not comps:
+                messages.error(request, 'Ingresa el nombre del hito y al menos una competencia.')
+            elif suma != 100:
+                messages.error(request, f'La ponderación de las competencias debe sumar 100% (suma actual: {suma}%).')
+            else:
+                max_ord = HitoEvaluacion.objects.filter(periodo=periodo).aggregate(Max('orden'))['orden__max'] or 0
+                hito = HitoEvaluacion.objects.create(
+                    periodo=periodo,
+                    nombre=nombre,
+                    semana=semana,
+                    peso_pct=100,
+                    evaluador=evaluador,
+                    estado='pendiente',
+                    orden=max_ord + 1,
+                    created_at=timezone.now(),
+                    updated_at=timezone.now(),
+                )
+                for orden, c in enumerate(comps, start=1):
+                    CompetenciaHito.objects.create(
+                        hito=hito,
+                        nombre=c['nombre'],
+                        peso_pct=c['peso'],
+                        orden=orden,
+                        created_at=timezone.now(),
+                    )
+                messages.success(request, f'Hito “{nombre}” creado con {len(comps)} competencias.')
+            return redirect(f"{request.path}?tab=evaluaciones")
+
+        elif action == 'delete_hito':
+            try:
+                HitoEvaluacion.objects.filter(id=request.POST.get('hito_id')).delete()
+                messages.success(request, 'Hito eliminado.')
+            except Exception:
+                messages.error(request, 'No se pudo eliminar el hito.')
+            return redirect(f"{request.path}?tab=evaluaciones")
+
+        # ── Badges / insignias ──
+        elif action == 'add_badge':
+            nombre = (request.POST.get('nombre') or '').strip()[:100]
+            descripcion = (request.POST.get('descripcion') or '').strip()
+            icono = (request.POST.get('icono') or '🏆').strip()[:10]
+            tipo = (request.POST.get('tipo_otorgamiento') or 'manual').strip()
+            if tipo not in ('automatico', 'manual'):
+                tipo = 'manual'
+            if not nombre:
+                messages.error(request, 'El nombre de la insignia es obligatorio.')
+            else:
+                Badge.objects.create(
+                    nombre=nombre,
+                    descripcion=descripcion or None,
+                    icono=icono,
+                    criterio=tipo,
+                    is_active=True,
+                    created_at=timezone.now(),
+                )
+                messages.success(request, f'Insignia “{nombre}” creada.')
+            return redirect(f"{request.path}?tab=badges")
+
+        elif action == 'delete_badge':
+            try:
+                Badge.objects.filter(id=request.POST.get('badge_id')).delete()
+                messages.success(request, 'Insignia eliminada.')
+            except Exception:
+                messages.error(request, 'No se pudo eliminar la insignia.')
+            return redirect(f"{request.path}?tab=badges")
+
+    # ── GET ──
+    tab_param = (request.GET.get('tab') or active_tab).strip().lower()
+    if tab_param not in ('periodos', 'evaluaciones', 'badges'):
+        tab_param = 'periodos'
+
+    periodo = PeriodoAcademico.objects.filter(is_active=True).first()
+    periodo_label = periodo.nombre if periodo else 'Sin periodo activo'
+
+    config_eval = ConfigEvaluacionPeriodo.objects.filter(periodo=periodo).first() if periodo else None
+    porcentaje_exigencia = config_eval.umbral_bitacoras_pct if (config_eval and config_eval.umbral_bitacoras_pct) else 60
+
+    eval_labels = {'udd': 'Tutor UDD', 'empresa': 'Tutor Empresa', 'ambos': 'Ambos tutores'}
+    hitos = []
+    if periodo:
+        for h in HitoEvaluacion.objects.filter(periodo=periodo).order_by('orden', 'semana'):
+            hitos.append({
+                'id': h.id,
+                'nombre': h.nombre,
+                'semana': h.semana,
+                'evaluador': (h.evaluador or 'udd'),
+                'evaluador_label': eval_labels.get(h.evaluador or 'udd', 'Sin definir'),
+                'competencias': [
+                    {'nombre': c.nombre, 'peso': c.peso_pct}
+                    for c in h.competenciahito_set.order_by('orden', 'nombre')
+                ],
+            })
+
+    badges = [
+        {
+            'id': b.id,
+            'nombre': b.nombre,
+            'descripcion': b.descripcion or '',
+            'icono': b.icono or '🏆',
+            'tipo': (b.criterio or 'manual'),
+            'tipo_label': 'Automático por hito' if (b.criterio or '') == 'automatico' else 'Manual por tutor',
+        }
+        for b in Badge.objects.order_by('-id')
+    ]
+
+    context = {
+        'periodo_label': periodo_label,
+        'periodo': periodo,
+        'active_tab': tab_param,
+        'hitos': hitos,
+        'hitos_count': len(hitos),
+        'badges': badges,
+        'badges_count': len(badges),
+        'iconos_badge': ICONOS_BADGE,
+        'porcentaje_exigencia': porcentaje_exigencia,
+        'user_rol': user_rol,
+    }
+    return render(request, 'pages/configuracion.html', context)
+
+
 SEGMENTO_LABELS = {
     'todos': 'Todos los usuarios',
     'alumnos': 'Alumnos',
@@ -1488,14 +2230,21 @@ def _dividir_anuncio(mensaje):
     return texto.strip(), ''
 
 
-@require_roles()
+@require_roles('alumno', 'tutor_udd', 'tutor_empresa')
 def notificaciones_view(request):
     user_rol = _get_user_rol(request)
+    # is_admin para el render usa el rol efectivo (respeta la previsualización
+    # del admin); la protección del POST usa el rol REAL por seguridad.
+    is_admin = user_rol == 'admin'
+    real_rol = getattr(request.user, 'rol', None)
     _, periodo_label = _periodo_activo()
     sent_ok = False
     sent_count = 0
 
     if request.method == 'POST' and request.POST.get('action') == 'send_announcement':
+        # Solo un administrador puede emitir nuevas notificaciones masivas.
+        if real_rol != 'admin':
+            return HttpResponseForbidden('No tienes permisos para enviar notificaciones.')
         segmento = (request.POST.get('segmento') or 'todos').strip()[:50]
         titulo = (request.POST.get('titulo') or '').strip()[:255]
         mensaje = (request.POST.get('mensaje') or '').strip()
@@ -1514,33 +2263,107 @@ def notificaciones_view(request):
             enviar_anuncio_masivo_task.delay(recordatorio.pk, segmento, titulo, mensaje)
             sent_ok = True
 
-    recordatorios_qs = RecordatorioMasivo.objects.order_by('-fecha_envio')[:50]
-    campanas = []
-    for r in recordatorios_qs:
-        asunto, _cuerpo = _dividir_anuncio(r.mensaje)
-        enviado = bool(r.cantidad_envios)
-        campanas.append(
-            {
-                'fecha': r.fecha_envio,
-                'asunto': asunto or 'Anuncio sin asunto',
-                'segmento': SEGMENTO_LABELS.get(r.segmento, r.segmento or 'General'),
-                'cantidad_envios': r.cantidad_envios or 0,
-                'estado_label': 'Enviado' if enviado else 'Procesando',
-                'estado_class': 'enviado' if enviado else 'procesando',
-            }
-        )
+    if request.method == 'POST' and request.POST.get('action') == 'archivar_comunicado':
+        # Borrado lógico: el comunicado se oculta de la bandeja del admin pero el
+        # RecordatorioMasivo y las notificaciones entregadas permanecen intactos.
+        if real_rol != 'admin':
+            return HttpResponseForbidden('No tienes permisos para archivar comunicados.')
+        try:
+            recordatorio_id = int(request.POST.get('recordatorio_id') or 0)
+        except (TypeError, ValueError):
+            recordatorio_id = 0
+        if recordatorio_id:
+            RecordatorioArchivado.objects.get_or_create(
+                recordatorio_id=recordatorio_id,
+                defaults={'archivado_por': request.user},
+            )
+            messages.success(request, 'Comunicado archivado. Sigue visible para sus destinatarios.')
+        return redirect('notificaciones')
 
-    ultimo = recordatorios_qs[0].fecha_envio if recordatorios_qs else None
     context = {
         'periodo_label': periodo_label,
-        'campanas': campanas,
-        'total_campanas': RecordatorioMasivo.objects.count(),
-        'ultimo_envio': ultimo,
         'sent_ok': sent_ok,
         'sent_count': sent_count,
         'user_rol': user_rol,
+        'is_admin': is_admin,
     }
+
+    if is_admin:
+        # ── Admin: Comunicados Institucionales (campañas masivas emitidas) ──
+        # Se excluyen los comunicados archivados (borrado lógico) de la vista.
+        archivados = set(RecordatorioArchivado.objects.values_list('recordatorio_id', flat=True))
+        recordatorios_qs = list(
+            RecordatorioMasivo.objects.order_by('-fecha_envio')[:80]
+        )
+        recordatorios_visibles = [r for r in recordatorios_qs if r.pk not in archivados]
+        campanas = []
+        for r in recordatorios_visibles:
+            asunto, _cuerpo = _dividir_anuncio(r.mensaje)
+            enviado = bool(r.cantidad_envios)
+            campanas.append(
+                {
+                    'id': r.pk,
+                    'fecha': r.fecha_envio,
+                    'asunto': asunto or 'Anuncio sin asunto',
+                    'segmento': SEGMENTO_LABELS.get(r.segmento, r.segmento or 'General'),
+                    'cantidad_envios': r.cantidad_envios or 0,
+                    'estado_label': 'Enviado' if enviado else 'Procesando',
+                    'estado_class': 'enviado' if enviado else 'procesando',
+                }
+            )
+        context['campanas'] = campanas
+        context['total_campanas'] = RecordatorioMasivo.objects.exclude(id__in=archivados).count()
+        context['ultimo_envio'] = recordatorios_visibles[0].fecha_envio if recordatorios_visibles else None
+    else:
+        # ── Alumno / Tutor: Bandeja de Entrada personal ──
+        # Se separan en dos listas: pendientes (no leídas) y leídas (histórico).
+        notificaciones_qs = Notificacion.objects.filter(
+            destinatario=request.user
+        ).order_by('-fecha_envio', '-created_at')[:200]
+
+        def _a_dict(n):
+            return {
+                'id': n.pk,
+                'asunto': n.titulo or 'Mensaje sin asunto',
+                'cuerpo': n.mensaje or '',
+                'fecha': n.fecha_envio or n.created_at,
+                'leida': bool(n.leida),
+            }
+
+        mensajes_pendientes = [_a_dict(n) for n in notificaciones_qs if not n.leida]
+        mensajes_leidos = [_a_dict(n) for n in notificaciones_qs if n.leida]
+        context['mensajes_pendientes'] = mensajes_pendientes
+        context['mensajes_leidos'] = mensajes_leidos
+        context['no_leidas'] = len(mensajes_pendientes)
+
     return render(request, 'pages/notificaciones.html', context)
+
+
+@require_roles('alumno', 'tutor_udd', 'tutor_empresa')
+def notificacion_leer_view(request, notif_id):
+    """Marca como leída una notificación del usuario activo (fetch asíncrono)."""
+    if request.method != 'POST':
+        return HttpResponseForbidden('Método no permitido.')
+    notificacion = Notificacion.objects.filter(pk=notif_id, destinatario=request.user).first()
+    if notificacion is None:
+        return JsonResponse({'ok': False, 'error': 'no encontrada'}, status=404)
+    if not notificacion.leida:
+        notificacion.leida = True
+        notificacion.save(update_fields=['leida'])
+    return JsonResponse({'ok': True})
+
+
+@require_roles('alumno', 'tutor_udd', 'tutor_empresa')
+def notificaciones_limpiar_view(request):
+    """Limpia (oculta) las notificaciones ya leídas del usuario activo."""
+    if request.method != 'POST':
+        return redirect('notificaciones')
+    eliminadas, _ = Notificacion.objects.filter(destinatario=request.user, leida=True).delete()
+    if eliminadas:
+        messages.success(request, 'Se limpiaron las notificaciones leídas.')
+    else:
+        messages.info(request, 'No tienes notificaciones leídas para limpiar.')
+    return redirect('notificaciones')
 
 
 # ─── EXCEL IMPORT ────────────────────────��────────────────────────��─────────
@@ -1733,9 +2556,17 @@ def bitacora_upload_view(request):
     pp_id = request.POST.get('proyecto_periodo_id')
     semana = request.POST.get('semana')
     archivo = request.FILES.get('archivo')
+    alumno_id = request.POST.get('alumno_id', '')
+    destino = f'/bitacora/?alumno={alumno_id}&sem={semana or 1}'
 
     if not (pp_id and semana and archivo):
-        return redirect('bitacora')
+        return redirect(destino)
+
+    # Validación de extensión: solo PDF, PNG y JPG.
+    ext = archivo.name.rsplit('.', 1)[-1].lower() if '.' in archivo.name else ''
+    if ext not in ('pdf', 'png', 'jpg', 'jpeg'):
+        messages.error(request, 'Solo se aceptan archivos PDF, PNG o JPG.')
+        return redirect(destino)
 
     try:
         pp = ProyectoPeriodo.objects.get(pk=pp_id)
@@ -1745,25 +2576,204 @@ def bitacora_upload_view(request):
             semana=semana_int,
             defaults={'created_at': timezone.now()},
         )
-        uploader = Usuario.objects.filter(is_active=True).first()
-        import mimetypes
-        mime = mimetypes.guess_type(archivo.name)[0] or 'application/octet-stream'
-        tipo = 'pdf' if 'pdf' in mime else 'imagen' if mime.startswith('image') else 'archivo'
+        # Se almacena el archivo real en la nueva tabla gestionada EvidenciaBitacora.
+        EvidenciaBitacora.objects.create(bitacora=bitacora, archivo=archivo)
+        messages.success(request, 'Evidencia subida correctamente.')
+    except Exception as exc:
+        messages.error(request, f'No se pudo subir la evidencia: {exc}')
 
-        BitacoraEvidencia.objects.create(
-            bitacora=bitacora,
-            nombre_archivo=archivo.name,
-            url=f'/media/bitacora/{pp_id}/{semana}/{archivo.name}',
-            tipo_archivo=tipo,
-            tamaño_bytes=archivo.size,
-            uploaded_by=uploader,
-            created_at=timezone.now(),
-        )
-    except Exception:
-        pass
+    return redirect(destino)
 
-    alumno_id = request.POST.get('alumno_id', '')
-    return redirect(f'/bitacora/?alumno={alumno_id}&sem={semana}')
+
+# ─── CALIFICACIONES ──────────────────────────────────────────────────────────
+
+@require_roles('tutor_udd', 'tutor_empresa')
+def calificar_view(request):
+    """Pantalla del tutor para evaluar las competencias de un hito por alumno.
+
+    El tutor elige un alumno asignado y un hito; ve las competencias exigidas con
+    un input por nota (1.0–7.0). Al guardar, se persiste cada nota en
+    CalificacionCompetencia y se consolida la nota del hito (promedio ponderado
+    por peso_pct) en EvaluacionHito.
+    """
+    user_rol = _get_user_rol(request)
+    real_rol = getattr(request.user, 'rol', None)
+    tutor_tipo = 'udd' if user_rol == 'tutor_udd' else 'empresa'
+    periodo, periodo_label = _periodo_activo()
+
+    if not periodo:
+        return render(request, 'pages/calificar.html', {
+            'user_rol': user_rol, 'periodo_label': periodo_label, 'sin_datos': True,
+            'mensaje': 'No hay un período activo para evaluar.',
+        })
+
+    pps = (
+        ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False)
+        .select_related('proyecto__empresa', 'alumno__id')
+    )
+    if real_rol == 'tutor_udd':
+        pps = pps.filter(tutor_udd_id=request.user.id)
+    elif real_rol == 'tutor_empresa':
+        pps = pps.filter(tutor_empresa_id=request.user.id)
+    pps = list(pps.order_by('alumno__id__nombre', 'alumno__id__apellido'))
+
+    alumno_uid = (request.GET.get('alumno') or request.POST.get('alumno') or '').strip()
+    hito_id = (request.GET.get('hito') or request.POST.get('hito') or '').strip()
+
+    current_pp = None
+    if alumno_uid:
+        current_pp = next((pp for pp in pps if str(pp.alumno.id_id) == alumno_uid), None)
+    if current_pp is None and pps:
+        current_pp = pps[0]
+
+    # Hitos del período que evalúa este tipo de tutor (su tipo o 'ambos').
+    hitos = [
+        h for h in HitoEvaluacion.objects.filter(periodo=periodo).order_by('orden', 'semana')
+        if (h.evaluador or 'ambos').strip().lower() in (tutor_tipo, 'ambos')
+    ]
+    current_hito = None
+    if hito_id:
+        current_hito = next((h for h in hitos if str(h.pk) == hito_id), None)
+    if current_hito is None and hitos:
+        current_hito = hitos[0]
+
+    # POST: guardar notas por competencia.
+    if request.method == 'POST' and current_pp and current_hito:
+        competencias = list(CompetenciaHito.objects.filter(hito=current_hito).order_by('orden'))
+        suma_pond = 0.0
+        suma_pesos = 0
+        guardadas = 0
+        for comp in competencias:
+            raw = (request.POST.get('comp_%s' % comp.pk) or '').strip().replace(',', '.')
+            if not raw:
+                continue
+            try:
+                val = float(raw)
+            except ValueError:
+                continue
+            val = max(1.0, min(7.0, round(val, 1)))
+            CalificacionCompetencia.objects.update_or_create(
+                alumno=current_pp.alumno, competencia=comp,
+                defaults={'nota': val, 'evaluado_por': request.user},
+            )
+            suma_pond += val * (comp.peso_pct or 0)
+            suma_pesos += (comp.peso_pct or 0)
+            guardadas += 1
+        if guardadas and suma_pesos:
+            nota_hito = round(suma_pond / suma_pesos, 1)
+            EvaluacionHito.objects.update_or_create(
+                hito=current_hito, proyecto_periodo=current_pp,
+                defaults={
+                    'evaluado_por': request.user,
+                    'nota_calculada': nota_hito,
+                    'fecha_evaluacion': timezone.now(),
+                    'updated_at': timezone.now(),
+                },
+            )
+            messages.success(request, 'Evaluación guardada. Nota del hito: %s.' % nota_hito)
+        else:
+            messages.error(request, 'Ingresa al menos una nota válida (1.0 a 7.0).')
+        return redirect('%s?alumno=%s&hito=%s' % (request.path, current_pp.alumno.id_id, current_hito.pk))
+
+    # GET: armar competencias con notas previas del alumno.
+    competencias_data = []
+    if current_hito and current_pp:
+        previas = {
+            c.competencia_id: c.nota
+            for c in CalificacionCompetencia.objects.filter(
+                alumno=current_pp.alumno, competencia__hito=current_hito
+            )
+        }
+        for comp in CompetenciaHito.objects.filter(hito=current_hito).order_by('orden'):
+            competencias_data.append({
+                'id': comp.pk,
+                'nombre': comp.nombre,
+                'descripcion': comp.descripcion or '',
+                'peso_pct': comp.peso_pct or 0,
+                'nota': previas.get(comp.pk),
+            })
+
+    alumno_options = [
+        {
+            'id': str(pp.alumno.id_id),
+            'label': f"{pp.alumno.id.nombre} {pp.alumno.id.apellido}".strip(),
+            'empresa': pp.proyecto.empresa.nombre if pp.proyecto and pp.proyecto.empresa else '',
+        }
+        for pp in pps
+    ]
+    hito_options = [
+        {'id': h.pk, 'nombre': h.nombre, 'semana': h.semana, 'peso_pct': h.peso_pct}
+        for h in hitos
+    ]
+
+    student_name = ''
+    student_company = ''
+    if current_pp:
+        student_name = f"{current_pp.alumno.id.nombre} {current_pp.alumno.id.apellido}".strip()
+        student_company = current_pp.proyecto.empresa.nombre if current_pp.proyecto and current_pp.proyecto.empresa else 'Sin empresa'
+
+    context = {
+        'user_rol': user_rol,
+        'periodo_label': periodo_label,
+        'tutor_tipo': tutor_tipo,
+        'alumno_options': alumno_options,
+        'hito_options': hito_options,
+        'selected_alumno_id': str(current_pp.alumno.id_id) if current_pp else '',
+        'selected_hito_id': current_hito.pk if current_hito else '',
+        'current_hito_nombre': current_hito.nombre if current_hito else '',
+        'current_hito_semana': current_hito.semana if current_hito else '',
+        'current_hito_peso': current_hito.peso_pct if current_hito else '',
+        'competencias': competencias_data,
+        'student_name': student_name,
+        'student_company': student_company,
+        'sin_datos': not (current_pp and current_hito and competencias_data),
+    }
+    return render(request, 'pages/calificar.html', context)
+
+
+@require_roles('alumno')
+def mis_notas_view(request):
+    """Boletín de notas del alumno: nota automática de bitácoras + hitos + promedio.
+
+    El promedio final solo se muestra como número cuando no quedan hitos
+    pendientes de evaluación; en caso contrario se indica 'Promedio en cálculo'.
+    """
+    user_rol = _get_user_rol(request)
+    real_rol = getattr(request.user, 'rol', None)
+    periodo, periodo_label = _periodo_activo()
+
+    if not periodo:
+        return render(request, 'pages/mis_notas.html', {
+            'user_rol': user_rol, 'periodo_label': periodo_label, 'sin_datos': True,
+            'mensaje': 'No hay un período activo.',
+        })
+
+    pp_qs = ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False)
+    if real_rol == 'alumno':
+        pp_qs = pp_qs.filter(alumno_id=request.user.id)
+    current_pp = pp_qs.select_related('proyecto__empresa', 'alumno__id').first()
+
+    if current_pp is None:
+        return render(request, 'pages/mis_notas.html', {
+            'user_rol': user_rol, 'periodo_label': periodo_label, 'sin_datos': True,
+            'mensaje': 'No tienes un proyecto asignado en el período activo.',
+        })
+
+    rows, promedio_final, en_calculo, pendientes = _calcular_boletin(periodo, current_pp)
+
+    context = {
+        'user_rol': user_rol,
+        'periodo_label': periodo_label,
+        'sin_datos': False,
+        'student_name': f"{current_pp.alumno.id.nombre} {current_pp.alumno.id.apellido}".strip(),
+        'student_company': current_pp.proyecto.empresa.nombre if current_pp.proyecto and current_pp.proyecto.empresa else 'Sin empresa',
+        'project_name': current_pp.proyecto.titulo if current_pp.proyecto else 'Sin proyecto',
+        'rows': rows,
+        'promedio_final': promedio_final,
+        'en_calculo': en_calculo,
+        'pendientes': pendientes,
+    }
+    return render(request, 'pages/mis_notas.html', context)
 
 
 # ─── PERFIL ──────────────────────────────────────────────────────────────────
@@ -1823,10 +2833,52 @@ def perfil_view(request):
 
 # ─── EXPORTAR ────────────────────────────────────────────────────────────────
 
+def _xlsx_response(filename, sheet_title, headers, rows):
+    """Construye un archivo Excel (.xlsx) real con encabezados en negrita.
+
+    headers: lista de títulos de columna. rows: iterable de listas (una por fila).
+    Devuelve un HttpResponse listo para descargar.
+    """
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment
+    from openpyxl.utils import get_column_letter
+    from django.http import HttpResponse
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = sheet_title[:31] or 'Hoja1'
+
+    ws.append(list(headers))
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(vertical='center')
+    ws.freeze_panes = 'A2'
+
+    for row in rows:
+        ws.append(list(row))
+
+    # Ancho de columnas según el contenido más largo (acotado).
+    for idx, header in enumerate(headers, start=1):
+        largest = len(str(header))
+        for row in rows:
+            if idx <= len(row) and row[idx - 1] is not None:
+                largest = max(largest, len(str(row[idx - 1])))
+        ws.column_dimensions[get_column_letter(idx)].width = min(max(largest + 2, 12), 48)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
 @require_roles()
 def exportar_alumnos_view(request):
-    import csv
-    from django.http import HttpResponse
     from django.db.models import Max as _Max2
 
     q = (request.GET.get('q') or '').strip()
@@ -1847,21 +2899,19 @@ def exportar_alumnos_view(request):
     if sede_filter:
         qs = qs.filter(sede__nombre__icontains=sede_filter)
 
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="alumnos.csv"'
-    response.write('﻿')
-    writer = csv.writer(response)
-    writer.writerow(['Nombre', 'Email', 'Carrera', 'Sede', 'Generación', 'Empresa'])
-    for a in qs:
-        writer.writerow([
+    headers = ['Nombre', 'Email', 'Carrera', 'Sede', 'Generación', 'Empresa']
+    rows = [
+        [
             f"{a.id.nombre} {a.id.apellido}".strip(),
             a.id.email,
             a.carrera.nombre if a.carrera else '',
             a.sede.nombre if a.sede else '',
             a.generacion or '',
             a.empresa_nombre or '',
-        ])
-    return response
+        ]
+        for a in qs
+    ]
+    return _xlsx_response('alumnos.xlsx', 'Alumnos', headers, rows)
 
 
 # ─── GESTIONAR USUARIOS ───────────────────────────────────────────────────────
@@ -2008,9 +3058,6 @@ def gestionar_usuarios_view(request):
 
 @require_roles()
 def exportar_empresas_view(request):
-    import csv
-    from django.http import HttpResponse
-
     q = (request.GET.get('q') or '').strip()
     rubro_filter = (request.GET.get('rubro') or '').strip().lower()
 
@@ -2025,13 +3072,9 @@ def exportar_empresas_view(request):
     if rubro_filter:
         qs = qs.filter(rubro__icontains=rubro_filter)
 
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="empresas.csv"'
-    response.write('﻿')
-    writer = csv.writer(response)
-    writer.writerow(['Empresa', 'Rubro', 'Presencia', 'Tamaño', 'eNPS', 'Alumnos', 'Proyectos', 'Contacto', 'Email contacto'])
-    for e in qs:
-        writer.writerow([
+    headers = ['Empresa', 'Rubro', 'Presencia', 'Tamaño', 'eNPS', 'Alumnos', 'Proyectos', 'Contacto', 'Email contacto']
+    rows = [
+        [
             e.nombre or '',
             e.rubro or '',
             e.presencia or '',
@@ -2041,5 +3084,22 @@ def exportar_empresas_view(request):
             e.proyectos_count,
             e.contacto_nombre or '',
             e.contacto_email or '',
-        ])
-    return response
+        ]
+        for e in qs
+    ]
+    return _xlsx_response('empresas.xlsx', 'Empresas', headers, rows)
+
+
+@require_roles()
+def descargar_plantilla_view(request):
+    """Descarga una plantilla Excel (.xlsx) vacía con los encabezados exactos que
+    espera la importación, lista para poblar y volver a subir sin problemas de
+    formato. El tipo se elige con el parámetro tipo (alumno, tutor_udd, tutor_empresa).
+    """
+    tipo = (request.GET.get('tipo') or 'alumno').strip()
+    schema = IMPORT_SCHEMAS.get(tipo)
+    if not schema:
+        tipo = 'alumno'
+        schema = IMPORT_SCHEMAS['alumno']
+    columnas = list(schema['required']) + list(schema['optional'])
+    return _xlsx_response(f'plantilla_{tipo}.xlsx', 'Plantilla', columnas, [])

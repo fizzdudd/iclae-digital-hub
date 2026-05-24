@@ -46,16 +46,11 @@
     body.sidebar-collapsed .logo-sub,
     body.sidebar-collapsed .nav-section-label,
     body.sidebar-collapsed .nav-item span,
-    body.sidebar-collapsed .nav-badge,
-    body.sidebar-collapsed .user-name,
-    body.sidebar-collapsed .user-role,
-    body.sidebar-collapsed .sidebar-logout-text { display: none; }
+    body.sidebar-collapsed .nav-badge { display: none; }
     body.sidebar-collapsed .sidebar-head { flex-direction: column; gap: 12px; padding: 16px 0; }
     body.sidebar-collapsed .sidebar-logo { flex: none; justify-content: center; }
     body.sidebar-collapsed .nav-item { justify-content: center; }
-    body.sidebar-collapsed .sidebar-foot { flex-direction: column; align-items: stretch; }
-    body.sidebar-collapsed .sidebar-user { justify-content: center; padding: 12px 0; }
-    body.sidebar-collapsed .sidebar-logout-form { padding: 0 0 12px; display: flex; justify-content: center; }
+    body.sidebar-collapsed .sidebar-foot { align-items: center; }
     body.sidebar-collapsed .sidebar-logout { padding: 8px; }
 
     .logo-mark {
@@ -143,60 +138,15 @@
         background: rgba(96,165,250,0.2);
     }
 
-    .sidebar-user {
-        border-top: 1px solid var(--sidebar-border);
-        padding: 12px 14px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        transition: background 0.15s;
-    }
-    .sidebar-user:hover { background: var(--sidebar-hover); }
-
-    .user-avatar {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: 700;
-        background: linear-gradient(135deg, #3b82f6, #6366f1);
-        flex-shrink: 0;
-    }
-
-    .user-name { color: #fff; font-size: 13px; font-weight: 600; }
-    .user-role { color: rgba(255,255,255,0.45); font-size: 10.5px; }
-    .user-meta { min-width: 0; }
-
     .sidebar-foot {
         border-top: 1px solid var(--sidebar-border);
         display: flex;
+        flex-direction: column;
         align-items: center;
+        gap: 12px;
+        padding: 12px;
     }
-    .sidebar-foot .sidebar-user { flex: 1; border-top: none; }
-
-    .sidebar-logout-form { flex-shrink: 0; padding-right: 12px; }
-    .sidebar-logout {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px solid var(--sidebar-border);
-        background: rgba(255,255,255,0.06);
-        color: rgba(255,255,255,0.7);
-        font-size: 11.5px;
-        font-weight: 600;
-        font-family: inherit;
-        padding: 7px 12px;
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: all 0.15s;
-    }
-    .sidebar-logout:hover { background: rgba(248,113,113,0.16); border-color: rgba(248,113,113,0.4); color: #fecaca; }
-    .sidebar-logout-icon { width: 14px; height: 14px; flex-shrink: 0; }
+    .sidebar-foot .sidebar-toggle { width: 100%; }
 
     @media (max-width: 1024px) {
         .logo-sub,
@@ -204,18 +154,12 @@
         .nav-section-label,
         .nav-item span,
         .nav-badge,
-        .user-name,
-        .user-role,
-        .sidebar-toggle,
-        .sidebar-logout-text { display: none; }
+        .sidebar-toggle { display: none; }
 
         .sidebar-head { justify-content: center; padding: 18px 0 14px; }
         .sidebar-logo { flex: none; justify-content: center; }
         .nav-item { justify-content: center; }
-        .sidebar-foot { flex-direction: column; align-items: stretch; }
-        .sidebar-user { justify-content: center; padding: 12px 0; }
-        .sidebar-logout-form { padding: 0 0 12px; display: flex; justify-content: center; }
-        .sidebar-logout { padding: 8px; }
+        .sidebar-foot { align-items: center; }
     }
 
     @media (max-width: 700px) {
@@ -233,9 +177,6 @@
                 <span class="logo-sub">Digital Hub UDD</span>
             </span>
         </a>
-        <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Colapsar o expandir menú" title="Colapsar o expandir menú">
-            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm1 4a1 1 0 100 2h12a1 1 0 100-2H4z" clip-rule="evenodd"/></svg>
-        </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -293,11 +234,25 @@
         </a>
         {% endif %}
 
+        {% if rol == 'tutor_udd' or rol == 'tutor_empresa' %}
+        <a href="{% url 'calificar' %}" class="nav-item {% if request.resolver_match.url_name == 'calificar' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+            <span>Calificar</span>
+        </a>
+        {% endif %}
+
+        {% if rol == 'alumno' %}
+        <a href="{% url 'mis_notas' %}" class="nav-item {% if request.resolver_match.url_name == 'mis_notas' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 3a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h4a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+            <span>Mis Notas</span>
+        </a>
+        {% endif %}
+
         {% if rol == 'admin' %}
         <div class="nav-section-label gap">Administracion</div>
-        <a href="{% url 'hitos_config' %}" class="nav-item {% if request.resolver_match.url_name == 'hitos_config' %}active{% endif %}">
+        <a href="{% url 'configuracion' %}" class="nav-item {% if request.resolver_match.url_name == 'configuracion' or request.resolver_match.url_name == 'hitos_config' %}active{% endif %}">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17a1 1 0 00-1.98 0l-.13 1.09a5.03 5.03 0 00-1.27.73l-1-.42a1 1 0 00-1.3.54l-.77 1.8a1 1 0 00.37 1.24l.9.62a5.06 5.06 0 000 1.46l-.9.62a1 1 0 00-.37 1.24l.77 1.8a1 1 0 001.3.54l1-.42c.39.3.81.54 1.27.73l.13 1.09a1 1 0 001.98 0l.13-1.09c.46-.19.88-.43 1.27-.73l1 .42a1 1 0 001.3-.54l.77-1.8a1 1 0 00-.37-1.24l-.9-.62a5.06 5.06 0 000-1.46l.9-.62a1 1 0 00.37-1.24l-.77-1.8a1 1 0 00-1.3-.54l-1 .42a5.03 5.03 0 00-1.27-.73l-.13-1.09zM10.5 12a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-            <span>Config evaluaciones</span>
+            <span>Configuración</span>
         </a>
         {% endif %}
 
@@ -322,28 +277,9 @@
     </nav>
 
     <div class="sidebar-foot">
-        <a href="{% url 'perfil' %}" class="sidebar-user">
-            <div class="user-avatar">
-                {% with uname=user.get_full_name %}
-                {% if uname %}{{ uname|slice:":2"|upper }}{% elif rol == 'alumno' %}AL{% elif rol == 'tutor_udd' %}TU{% elif rol == 'tutor_empresa' %}TE{% else %}AD{% endif %}
-                {% endwith %}
-            </div>
-            <div class="user-meta">
-                <div class="user-name">{{ user.get_full_name|default:'Usuario ICLAE' }}</div>
-                <div class="user-role">
-                    {% if rol == 'alumno' %}Perfil alumno{% elif rol == 'tutor_udd' %}Tutor universidad{% elif rol == 'tutor_empresa' %}Tutor empresa{% else %}Perfil admin{% endif %}
-                </div>
-            </div>
-        </a>
-        {% if user.is_authenticated %}
-        <form method="post" action="{% url 'logout' %}" class="sidebar-logout-form">
-            {% csrf_token %}
-            <button type="submit" class="sidebar-logout" title="Cerrar sesión">
-                <svg class="sidebar-logout-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.293 2.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H7a1 1 0 110-2h5.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                <span class="sidebar-logout-text">Salir</span>
-            </button>
-        </form>
-        {% endif %}
+        <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Colapsar o expandir menú" title="Colapsar o expandir menú">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm1 4a1 1 0 100 2h12a1 1 0 100-2H4z" clip-rule="evenodd"/></svg>
+        </button>
     </div>
 </aside>
 {% endwith %}

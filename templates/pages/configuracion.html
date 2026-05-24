@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración{% endblock %}
+{% block page_title %}Configuración global{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cfg-wrap { max-width:960px; }
+
+    /* Pestañas */
+    .cfg-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+    .cfg-tab { appearance:none; border:none; background:none; font-family:inherit; cursor:pointer; padding:13px 18px 11px; font-size:13.5px; font-weight:700; color:var(--text-muted); border-bottom:2.5px solid transparent; margin-bottom:-1px; transition:color .15s, border-color .15s; }
+    .cfg-tab:hover { color:var(--text-secondary); }
+    .cfg-tab.active { color:var(--blue-700); border-bottom-color:var(--blue-600); }
+
+    .cfg-panel { display:none; }
+    .cfg-panel.active { display:block; }
+
+    /* Tarjetas */
+    .cfg-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:16px; }
+    .cfg-card__h { padding:14px 18px; border-bottom:1px solid var(--border); background:#f8fafc; }
+    .cfg-card__title { font-size:14px; font-weight:800; color:var(--text-primary); }
+    .cfg-card__sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .cfg-card__b { padding:18px; display:flex; flex-direction:column; gap:14px; }
+
+    .cfg-weeks-pill { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color:var(--cat-3); background:color-mix(in srgb, var(--cat-3) 12%, #fff); border-radius:999px; padding:5px 12px; }
+
+    .cfg-actions { display:flex; justify-content:flex-end; gap:8px; }
+
+    /* Competencias dinámicas */
+    .cfg-comp-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .cfg-comp-total { font-size:12.5px; font-weight:800; padding:4px 12px; border-radius:999px; background:#f1f5f9; color:var(--text-secondary); }
+    .cfg-comp-total.ok { background:var(--green-100); color:var(--green-700); }
+    .cfg-comp-total.bad { background:#fef2f2; color:#b91c1c; }
+    .cfg-comp-list { display:flex; flex-direction:column; gap:8px; }
+    .cfg-comp-row { display:grid; grid-template-columns:1fr 110px 36px; gap:8px; align-items:center; }
+    .cfg-comp-peso { position:relative; }
+    .cfg-del { width:36px; height:36px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); color:#dc2626; cursor:pointer; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .cfg-del:hover { background:#fef2f2; border-color:#fecaca; }
+    .cfg-add-link { align-self:flex-start; background:none; border:1px dashed var(--blue-200); color:var(--blue-700); font-family:inherit; font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:var(--radius-md); cursor:pointer; }
+    .cfg-add-link:hover { background:var(--blue-50); }
+
+    /* Selector de íconos */
+    .cfg-icons { display:flex; flex-wrap:wrap; gap:6px; }
+    .cfg-icon { width:42px; height:42px; border:1.5px solid var(--border); background:#fff; border-radius:var(--radius-md); font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:border-color .15s, background .15s; }
+    .cfg-icon:hover { background:#f8fafc; }
+    .cfg-icon.active { border-color:var(--blue-600); background:var(--blue-50); }
+
+    /* Segmento tipo de otorgamiento */
+    .cfg-seg { display:flex; gap:8px; flex-wrap:wrap; }
+    .cfg-seg__opt { flex:1; min-width:180px; border:1.5px solid var(--border); border-radius:var(--radius-md); padding:12px 14px; cursor:pointer; display:flex; gap:10px; align-items:flex-start; transition:border-color .15s, background .15s; }
+    .cfg-seg__opt:hover { background:#f8fafc; }
+    .cfg-seg__opt.active { border-color:var(--blue-600); background:var(--blue-50); }
+    .cfg-seg__radio { width:16px; height:16px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; margin-top:2px; position:relative; }
+    .cfg-seg__opt.active .cfg-seg__radio { border-color:var(--blue-600); }
+    .cfg-seg__opt.active .cfg-seg__radio::after { content:''; position:absolute; inset:3px; border-radius:50%; background:var(--blue-600); }
+    .cfg-seg__name { font-size:13px; font-weight:700; color:var(--text-primary); }
+    .cfg-seg__desc { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+
+    /* Listas (hitos / badges) */
+    .cfg-item { border:1px solid var(--border); border-radius:var(--radius-md); padding:13px 15px; display:flex; align-items:flex-start; gap:12px; }
+    .cfg-item + .cfg-item { margin-top:10px; }
+    .cfg-item__main { flex:1; min-width:0; }
+    .cfg-item__title { font-size:13.5px; font-weight:800; color:var(--text-primary); }
+    .cfg-item__meta { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .cfg-comp-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+    .cfg-comp-tag { font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--cat-2) 13%, #fff); color:color-mix(in srgb, var(--cat-2) 78%, #0f172a); }
+    .cfg-badge-ico { width:42px; height:42px; border-radius:var(--radius-md); background:color-mix(in srgb, var(--cat-4) 14%, #fff); display:flex; align-items:center; justify-content:center; font-size:21px; flex-shrink:0; }
+    .cfg-tipo-tag { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 9px; border-radius:999px; margin-top:5px; }
+    .cfg-tipo-tag.automatico { background:color-mix(in srgb, var(--cat-5) 14%, #fff); color:var(--green-700); }
+    .cfg-tipo-tag.manual { background:var(--blue-50); color:var(--blue-700); }
+    .cfg-empty { font-size:13px; color:var(--text-muted); padding:18px; text-align:center; }
+
+    /* Evaluación fija (bitácoras) */
+    .cfg-card--fixed { border-left:3px solid var(--blue-600); }
+    .cfg-exig-row { display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+    .cfg-exig-field { flex:0 0 180px; }
+    .cfg-exig-input { position:relative; }
+    .cfg-exig-input .nt-input { padding-right:30px; }
+    .cfg-exig-suffix { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:13px; font-weight:700; color:var(--text-muted); pointer-events:none; }
+    .cfg-help { font-size:12px; color:var(--text-muted); line-height:1.5; margin:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cfg-wrap">
+    <div class="cfg-tabs" role="tablist">
+        <button type="button" class="cfg-tab" data-tab="periodos" onclick="cfgTab('periodos')">Períodos académicos</button>
+        <button type="button" class="cfg-tab" data-tab="evaluaciones" onclick="cfgTab('evaluaciones')">Evaluaciones</button>
+        <button type="button" class="cfg-tab" data-tab="badges" onclick="cfgTab('badges')">Badges</button>
+    </div>
+
+    <!-- ════════ PESTAÑA 1: PERÍODOS ════════ -->
+    <section class="cfg-panel" data-panel="periodos">
+        <div class="cfg-card">
+            <div class="cfg-card__h">
+                <div class="cfg-card__title">Período activo</div>
+                <div class="cfg-card__sub">Define el calendario académico y el rango ICLAE de la práctica.</div>
+            </div>
+            <form method="post" class="cfg-card__b">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_periodo">
+                <input type="hidden" name="active_tab" value="periodos">
+
+                <div class="nt-field">
+                    <label class="nt-field__label" for="p-nombre">Nombre del período</label>
+                    <input class="nt-input" type="text" id="p-nombre" name="nombre" maxlength="20" placeholder="Ej: 2026-1" value="{{ periodo.nombre|default:'' }}" required>
+                </div>
+
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="p-fi">Fecha inicio académico</label>
+                        <input class="nt-input" type="date" id="p-fi" name="fecha_inicio" value="{{ periodo.fecha_inicio|date:'Y-m-d' }}" required>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="p-ff">Fecha fin académico</label>
+                        <input class="nt-input" type="date" id="p-ff" name="fecha_fin" value="{{ periodo.fecha_fin|date:'Y-m-d' }}" required>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="p-fii">Fecha inicio ICLAE</label>
+                        <input class="nt-input" type="date" id="p-fii" name="fecha_inicio_iclae" value="{{ periodo.fecha_inicio_iclae|date:'Y-m-d' }}" onchange="cfgWeeks()" required>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="p-ffi">Fecha fin ICLAE</label>
+                        <input class="nt-input" type="date" id="p-ffi" name="fecha_fin_iclae" value="{{ periodo.fecha_fin_iclae|date:'Y-m-d' }}" onchange="cfgWeeks()" required>
+                    </div>
+                </div>
+
+                <div class="nt-note">
+                    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                    <span>Las <strong>fechas ICLAE</strong> determinan el número de semanas de las bitácoras.
+                        <span class="cfg-weeks-pill" id="cfgWeeksPill">{{ periodo.total_semanas|default:'—' }} semanas</span>
+                    </span>
+                </div>
+
+                <div class="cfg-actions">
+                    <button type="submit" class="nt-btn-submit">Guardar período</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ════════ PESTAÑA 2: EVALUACIONES ════════ -->
+    <section class="cfg-panel" data-panel="evaluaciones">
+        <!-- Evaluación fija e inmutable: bitácoras (no se puede borrar) -->
+        <div class="cfg-card cfg-card--fixed">
+            <div class="cfg-card__h">
+                <div class="cfg-card__title">Evaluación Continua: Bitácoras</div>
+                <div class="cfg-card__sub">Evaluación permanente del sistema · no se puede eliminar.</div>
+            </div>
+            <form method="post" class="cfg-card__b">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_exigencia_bitacoras">
+                <input type="hidden" name="active_tab" value="evaluaciones">
+                <div class="cfg-exig-row">
+                    <div class="nt-field cfg-exig-field">
+                        <label class="nt-field__label" for="porcentaje_exigencia">Porcentaje de exigencia</label>
+                        <div class="cfg-exig-input">
+                            <input class="nt-input" type="number" id="porcentaje_exigencia" name="porcentaje_exigencia" min="1" max="99" value="{{ porcentaje_exigencia|default:60 }}">
+                            <span class="cfg-exig-suffix">%</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="nt-btn-submit">Guardar exigencia</button>
+                </div>
+                <p class="cfg-help">Este porcentaje definirá la escala de notas (1.0 a 7.0) para el cumplimiento de las bitácoras semanales.</p>
+            </form>
+        </div>
+
+        <div class="cfg-card">
+            <div class="cfg-card__h">
+                <div class="cfg-card__title">Nuevo hito de evaluación</div>
+                <div class="cfg-card__sub">Define las competencias y su ponderación. La suma debe ser 100%.</div>
+            </div>
+            <form method="post" class="cfg-card__b" id="hitoForm" onsubmit="return cfgSubmitHito()">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_hito">
+                <input type="hidden" name="active_tab" value="evaluaciones">
+                <input type="hidden" name="competencias_json" id="competenciasJson">
+
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="h-nombre">Nombre del hito</label>
+                        <input class="nt-input" type="text" id="h-nombre" name="nombre" maxlength="150" placeholder="Ej: Evaluación intermedia" required>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="h-semana">Semana</label>
+                        <input class="nt-input" type="number" id="h-semana" name="semana" min="1" max="52" value="1" required>
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="h-evaluador">Evaluador</label>
+                    <select class="nt-select" id="h-evaluador" name="evaluador">
+                        <option value="udd">Tutor UDD</option>
+                        <option value="empresa">Tutor Empresa</option>
+                        <option value="ambos">Ambos</option>
+                    </select>
+                </div>
+
+                <div class="cfg-comp-head">
+                    <label class="nt-field__label">Competencias y ponderación</label>
+                    <span class="cfg-comp-total" id="compTotal">Total: 0%</span>
+                </div>
+                <div class="cfg-comp-list" id="compList"></div>
+                <button type="button" class="cfg-add-link" onclick="cfgAddComp()">+ Agregar competencia</button>
+
+                <div class="cfg-actions">
+                    <button type="submit" class="nt-btn-submit">Crear hito</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="cfg-card">
+            <div class="cfg-card__h">
+                <div class="cfg-card__title">Hitos definidos · {{ hitos_count }}</div>
+            </div>
+            <div class="cfg-card__b">
+                {% for h in hitos %}
+                <div class="cfg-item">
+                    <div class="cfg-item__main">
+                        <div class="cfg-item__title">{{ h.nombre }}</div>
+                        <div class="cfg-item__meta">Semana {{ h.semana }} · {{ h.evaluador_label }}</div>
+                        <div class="cfg-comp-tags">
+                            {% for c in h.competencias %}<span class="cfg-comp-tag">{{ c.nombre }} · {{ c.peso }}%</span>{% endfor %}
+                        </div>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_hito">
+                        <input type="hidden" name="active_tab" value="evaluaciones">
+                        <input type="hidden" name="hito_id" value="{{ h.id }}">
+                        <button type="submit" class="cfg-del" title="Eliminar hito">×</button>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="cfg-empty">Aún no hay hitos definidos para el período activo.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════ PESTAÑA 3: BADGES ════════ -->
+    <section class="cfg-panel" data-panel="badges">
+        <div class="cfg-card">
+            <div class="cfg-card__h">
+                <div class="cfg-card__title">Nueva insignia</div>
+                <div class="cfg-card__sub">Reconocimientos que pueden otorgarse a los alumnos.</div>
+            </div>
+            <form method="post" class="cfg-card__b">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_badge">
+                <input type="hidden" name="active_tab" value="badges">
+                <input type="hidden" name="icono" id="badgeIcono" value="{{ iconos_badge.0 }}">
+                <input type="hidden" name="tipo_otorgamiento" id="badgeTipo" value="manual">
+
+                <div class="nt-field">
+                    <label class="nt-field__label" for="b-nombre">Nombre</label>
+                    <input class="nt-input" type="text" id="b-nombre" name="nombre" maxlength="100" placeholder="Ej: Mejor bitácora" required>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="b-desc">Descripción</label>
+                    <textarea class="nt-textarea" id="b-desc" name="descripcion" placeholder="¿Qué reconoce esta insignia?"></textarea>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label">Ícono</label>
+                    <div class="cfg-icons" id="iconPicker">
+                        {% for ic in iconos_badge %}
+                        <button type="button" class="cfg-icon {% if forloop.first %}active{% endif %}" data-icon="{{ ic }}" onclick="cfgIcon(this)">{{ ic }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label">Tipo de otorgamiento</label>
+                    <div class="cfg-seg" id="tipoPicker">
+                        <div class="cfg-seg__opt" data-tipo="automatico" onclick="cfgTipo(this)">
+                            <span class="cfg-seg__radio"></span>
+                            <span><span class="cfg-seg__name">Automático por hito</span><span class="cfg-seg__desc">Se otorga al cumplir un hito de evaluación.</span></span>
+                        </div>
+                        <div class="cfg-seg__opt active" data-tipo="manual" onclick="cfgTipo(this)">
+                            <span class="cfg-seg__radio"></span>
+                            <span><span class="cfg-seg__name">Manual por tutor</span><span class="cfg-seg__desc">Un tutor lo asigna de forma discrecional.</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cfg-actions">
+                    <button type="submit" class="nt-btn-submit">Crear insignia</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="cfg-card">
+            <div class="cfg-card__h">
+                <div class="cfg-card__title">Insignias creadas · {{ badges_count }}</div>
+            </div>
+            <div class="cfg-card__b">
+                {% for b in badges %}
+                <div class="cfg-item">
+                    <div class="cfg-badge-ico">{{ b.icono }}</div>
+                    <div class="cfg-item__main">
+                        <div class="cfg-item__title">{{ b.nombre }}</div>
+                        {% if b.descripcion %}<div class="cfg-item__meta">{{ b.descripcion }}</div>{% endif %}
+                        <span class="cfg-tipo-tag {{ b.tipo }}">{{ b.tipo_label }}</span>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_badge">
+                        <input type="hidden" name="active_tab" value="badges">
+                        <input type="hidden" name="badge_id" value="{{ b.id }}">
+                        <button type="submit" class="cfg-del" title="Eliminar insignia">×</button>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="cfg-empty">Aún no hay insignias creadas.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── Pestañas ──
+    function cfgTab(name) {
+        document.querySelectorAll('.cfg-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+        document.querySelectorAll('.cfg-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
+        history.replaceState(null, '', '?tab=' + name);
+    }
+
+    // ── Semanas estimadas según fechas ICLAE ──
+    function cfgWeeks() {
+        const fi = document.getElementById('p-fii').value;
+        const ff = document.getElementById('p-ffi').value;
+        const pill = document.getElementById('cfgWeeksPill');
+        if (fi && ff) {
+            const dias = (new Date(ff) - new Date(fi)) / 86400000;
+            if (dias >= 0) { pill.textContent = Math.max(1, Math.round(dias / 7)) + ' semanas'; return; }
+        }
+        pill.textContent = '— semanas';
+    }
+
+    // ── Competencias dinámicas ──
+    function cfgAddComp(nombre, peso) {
+        const list = document.getElementById('compList');
+        const row = document.createElement('div');
+        row.className = 'cfg-comp-row';
+        row.innerHTML =
+            '<input class="nt-input cfg-comp-nombre" type="text" placeholder="Nombre de la competencia" value="' + (nombre || '') + '">' +
+            '<input class="nt-input cfg-comp-peso" type="number" min="0" max="100" placeholder="%" value="' + (peso || '') + '" oninput="cfgCompTotal()">' +
+            '<button type="button" class="cfg-del" title="Quitar" onclick="this.parentElement.remove(); cfgCompTotal();">×</button>';
+        list.appendChild(row);
+        cfgCompTotal();
+    }
+    function cfgCompTotal() {
+        let total = 0;
+        document.querySelectorAll('.cfg-comp-peso').forEach(i => total += parseInt(i.value || 0, 10));
+        const el = document.getElementById('compTotal');
+        el.textContent = 'Total: ' + total + '%';
+        el.classList.toggle('ok', total === 100);
+        el.classList.toggle('bad', total !== 100 && total > 0);
+        return total;
+    }
+    function cfgSubmitHito() {
+        const comps = [];
+        document.querySelectorAll('#compList .cfg-comp-row').forEach(r => {
+            const nombre = r.querySelector('.cfg-comp-nombre').value.trim();
+            const peso = parseInt(r.querySelector('.cfg-comp-peso').value || 0, 10);
+            if (nombre) comps.push({ nombre: nombre, peso: peso });
+        });
+        if (!comps.length) { alert('Agrega al menos una competencia.'); return false; }
+        const total = comps.reduce((s, c) => s + c.peso, 0);
+        if (total !== 100) { alert('La ponderación debe sumar exactamente 100%. Suma actual: ' + total + '%.'); return false; }
+        document.getElementById('competenciasJson').value = JSON.stringify(comps);
+        return true;
+    }
+
+    // ── Selector de íconos ──
+    function cfgIcon(btn) {
+        document.querySelectorAll('#iconPicker .cfg-icon').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('badgeIcono').value = btn.dataset.icon;
+    }
+    // ── Tipo de otorgamiento ──
+    function cfgTipo(opt) {
+        document.querySelectorAll('#tipoPicker .cfg-seg__opt').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        document.getElementById('badgeTipo').value = opt.dataset.tipo;
+    }
+
+    // ── Init ──
+    (function () {
+        cfgTab('{{ active_tab }}');
+        cfgAddComp();
+        cfgAddComp();
+    })();
+</script>
+{% endblock %}
