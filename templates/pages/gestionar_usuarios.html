@@ -49,10 +49,22 @@
     .pwd-ok { background:#dcfce7; color:#166534; }
     .pwd-no { background:#fee2e2; color:#b91c1c; }
 
-    .action-btn { font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:6px; border:1.5px solid var(--border); background:#fff; color:var(--text-secondary); cursor:pointer; font-family:inherit; text-decoration:none; transition:all .12s; }
+    .action-btn { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:6px; border:1.5px solid var(--border); background:#fff; color:var(--text-secondary); cursor:pointer; font-family:inherit; text-decoration:none; transition:all .12s; }
     .action-btn:hover { border-color:#93c5fd; color:var(--blue-700); }
     .action-btn.danger:hover { border-color:#fca5a5; color:#b91c1c; }
     .action-btn.primary { border-color:var(--blue-600); color:var(--blue-700); }
+    .action-btn svg { width:13px; height:13px; flex-shrink:0; }
+
+    /* Utilidades de layout (sin estilos en línea) */
+    .gu-inline-form { display:contents; }
+    .gu-inline { display:inline; }
+    .gu-user-name { font-weight:600; }
+    .gu-user-mail { font-size:12px; color:var(--text-muted); }
+    .gu-actions-cell { display:flex; gap:6px; flex-wrap:wrap; }
+    .gu-empty-cell { text-align:center; color:var(--text-muted); padding:32px; }
+    .gu-modal-user { font-size:13px; color:var(--text-muted); margin-bottom:16px; }
+    .gu-field-spaced { margin-bottom:16px; }
+    .gu-btn-full { width:100%; }
 
     /* Create form card */
     .create-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:24px; }
@@ -132,36 +144,43 @@
             </div>
 
             <!-- Extra: alumno -->
-            <div class="form-field extra-fields" id="extraAlumno" style="display:none;">
+            <div class="form-field extra-fields" id="extraAlumno">
                 <label class="form-label">Carrera</label>
                 <select class="form-select" name="carrera_id">
                     <option value="">Sin carrera</option>
                     {% for c in carreras %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="form-field extra-fields" id="extraSede" style="display:none;">
+            <div class="form-field extra-fields" id="extraSede">
                 <label class="form-label">Sede</label>
                 <select class="form-select" name="sede_id">
                     <option value="">Sin sede</option>
                     {% for s in sedes %}<option value="{{ s.id }}">{{ s.nombre }}</option>{% endfor %}
                 </select>
             </div>
+            <div class="form-field extra-fields" id="extraEmpresaAlumno">
+                <label class="form-label">Empresa *</label>
+                <select class="form-select" name="empresa_selector">
+                    <option value="">Selecciona empresa</option>
+                    {% for e in empresas %}<option value="{{ e.id }}">{{ e.nombre }}</option>{% endfor %}
+                </select>
+            </div>
 
             <!-- Extra: tutor UDD -->
-            <div class="form-field extra-fields" id="extraDepto" style="display:none;">
+            <div class="form-field extra-fields" id="extraDepto">
                 <label class="form-label">Departamento</label>
                 <input class="form-input" type="text" name="departamento" placeholder="Ej: Ingeniería">
             </div>
 
             <!-- Extra: tutor empresa -->
-            <div class="form-field extra-fields" id="extraEmpresa" style="display:none;">
+            <div class="form-field extra-fields" id="extraEmpresa">
                 <label class="form-label">Empresa</label>
                 <select class="form-select" name="empresa_id">
                     <option value="">Sin empresa</option>
                     {% for e in empresas %}<option value="{{ e.id }}">{{ e.nombre }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="form-field extra-fields" id="extraCargo" style="display:none;">
+            <div class="form-field extra-fields" id="extraCargo">
                 <label class="form-label">Cargo</label>
                 <input class="form-input" type="text" name="cargo" placeholder="Ej: Jefe de área">
             </div>
@@ -172,7 +191,7 @@
 
 <!-- Filtros -->
 <div class="gu-filter-row">
-    <form method="get" style="display:contents;">
+    <form method="get" class="gu-inline-form">
         <input class="gu-search" type="search" name="q" value="{{ filters.q }}" placeholder="Buscar por nombre o correo...">
         <input type="hidden" name="rol_f" value="{{ filters.rol }}">
         <button type="submit" class="action-btn primary">Buscar</button>
@@ -202,8 +221,8 @@
             {% for u in usuarios %}
             <tr>
                 <td>
-                    <div style="font-weight:600;">{{ u.nombre }}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">{{ u.email }}</div>
+                    <div class="gu-user-name">{{ u.nombre }}</div>
+                    <div class="gu-user-mail">{{ u.email }}</div>
                 </td>
                 <td><span class="rol-badge rol-{{ u.rol }}">{{ u.rol|title }}</span></td>
                 <td>
@@ -217,11 +236,12 @@
                     <span class="pwd-badge pwd-no">Sin contraseña</span>
                     {% endif %}
                 </td>
-                <td style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="action-btn primary" onclick="openPwdModal('{{ u.id }}','{{ u.nombre }}')">
-                        {% if u.has_password %}Cambiar pwd{% else %}Asignar pwd{% endif %}
+                <td class="gu-actions-cell">
+                    <button class="action-btn primary" onclick="openPwdModal('{{ u.id }}','{{ u.nombre }}')" title="{% if u.has_password %}Cambiar contraseña{% else %}Asignar contraseña{% endif %}">
+                        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>
+                        Contraseña
                     </button>
-                    <form method="post" style="display:inline;" onsubmit="return confirm('{% if u.is_active %}¿Desactivar esta cuenta?{% else %}¿Activar esta cuenta?{% endif %}');">
+                    <form method="post" class="gu-inline" onsubmit="return confirm('{% if u.is_active %}¿Desactivar esta cuenta?{% else %}¿Activar esta cuenta?{% endif %}');">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="toggle_activo">
                         <input type="hidden" name="usuario_id" value="{{ u.id }}">
@@ -232,7 +252,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">No hay usuarios que coincidan.</td></tr>
+            <tr><td colspan="5" class="gu-empty-cell">No hay usuarios que coincidan.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -245,16 +265,16 @@
     <div class="modal-box">
         <button class="modal-close" onclick="closePwdModal()">×</button>
         <div class="modal-title">Cambiar contraseña</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" id="pwdModalUser"></div>
+        <div class="gu-modal-user" id="pwdModalUser"></div>
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="cambiar_password">
             <input type="hidden" name="usuario_id" id="pwdUserId">
-            <div class="form-field" style="margin-bottom:16px;">
+            <div class="form-field gu-field-spaced">
                 <label class="form-label">Nueva contraseña</label>
                 <input class="form-input" type="password" name="new_password" id="pwdInput" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn-create" style="width:100%;">Guardar contraseña</button>
+            <button type="submit" class="btn-create gu-btn-full">Guardar contraseña</button>
         </form>
     </div>
 </div>
@@ -263,11 +283,12 @@
 {% block extra_js %}
 <script>
 function updateExtraFields(rol) {
-    const ids = ['extraAlumno','extraSede','extraDepto','extraEmpresa','extraCargo'];
+    const ids = ['extraAlumno','extraSede','extraDepto','extraEmpresa','extraCargo','extraEmpresaAlumno'];
     ids.forEach(id => document.getElementById(id).style.display = 'none');
     if (rol === 'alumno') {
         document.getElementById('extraAlumno').style.display = 'flex';
         document.getElementById('extraSede').style.display = 'flex';
+        document.getElementById('extraEmpresaAlumno').style.display = 'flex';
     } else if (rol === 'tutor_udd') {
         document.getElementById('extraDepto').style.display = 'flex';
         document.getElementById('extraSede').style.display = 'flex';

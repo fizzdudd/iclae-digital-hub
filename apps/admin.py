@@ -76,7 +76,7 @@ class UsuarioAdmin(UserAdmin):
 @admin.register(Alumno)
 class AlumnoAdmin(admin.ModelAdmin):
     list_display = ('id', 'carrera', 'sede', 'generacion')
-    search_fields = ('id__email', 'id__nombre', 'id__apellido', 'numero_alumno')
+    search_fields = ('id__email', 'id__nombre', 'id__apellido', 'matricula')
     list_filter = ('carrera', 'sede')
     raw_id_fields = ('id',)
 

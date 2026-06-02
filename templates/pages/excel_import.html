@@ -113,7 +113,7 @@
                     <span class="imp-cols-label">Columnas del archivo</span>
                     <div class="imp-cols" data-cols="alumno">
                         {% for col in expected_cols %}
-                        <span class="imp-col {% if col == 'generacion' or col == 'numero_alumno' %}opt{% endif %}">{{ col }}</span>
+                        <span class="imp-col {% if col == 'generacion' or col == 'matricula' %}opt{% endif %}">{{ col }}</span>
                         {% endfor %}
                     </div>
                     <div class="imp-cols is-hidden" data-cols="tutor_udd">

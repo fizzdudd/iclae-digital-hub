@@ -47,8 +47,8 @@
                 <p class="text-gray-900 font-semibold">{% if perfil.carrera %}{{ perfil.carrera.nombre }}{% else %}No asignada{% endif %}</p>
             </div>
             <div>
-                <p class="text-gray-600">Número de Alumno:</p>
-                <p class="text-gray-900 font-semibold">{{ perfil.numero_alumno|default:"No asignado" }}</p>
+                <p class="text-gray-600">Matrícula:</p>
+                <p class="text-gray-900 font-semibold">{{ perfil.matricula|default:"No asignado" }}</p>
             </div>
         </div>
     </div>

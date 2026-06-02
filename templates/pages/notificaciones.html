@@ -7,7 +7,7 @@
 <style>
     /* Barra de acciones */
     .nt-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
-    .nt-toolbar__txt { font-size:12.5px; color:var(--text-muted); }
+    .nt-toolbar__txt { font-size:12.5px; color:var(--text-secondary); font-weight:600; }
     .nt-toolbar__actions { display:flex; align-items:center; gap:10px; }
     .nt-clear-btn { height:34px; padding:0 14px; border:1px solid var(--border); background:#fff; color:var(--text-secondary); border-radius:var(--radius-md); font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
     .nt-clear-btn:hover { border-color:#93c5fd; color:var(--blue-700); background:var(--blue-50); }
@@ -19,9 +19,10 @@
     .nt-cols { grid-template-columns:150px 1fr 150px 110px 110px; }
     .nt-archive-btn { height:30px; padding:0 12px; border:1px solid var(--border); background:#fff; color:var(--text-secondary); border-radius:var(--radius-md); font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; }
     .nt-archive-btn:hover { border-color:#fca5a5; color:#b91c1c; background:#fef2f2; }
-    .nt-state { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; display:inline-block; }
-    .nt-state.enviado { background:var(--green-100); color:var(--green-700); }
-    .nt-state.procesando { background:color-mix(in srgb, var(--cat-4) 16%, #fff); color:color-mix(in srgb, var(--cat-4) 80%, #0f172a); }
+    .nt-state { font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; display:inline-block; }
+    .nt-state.enviado { background:var(--green-100); color:var(--green-800); }
+    .nt-state.procesando { background:color-mix(in srgb, var(--cat-4) 16%, #fff); color:color-mix(in srgb, var(--cat-4) 88%, #0f172a); }
+    .nt-state.fallido { background:#fef2f2; color:#b91c1c; }
 
     /* Bandeja (alumno/tutor): indicador · Asunto · Fecha */
     .nt-inbox-cols { grid-template-columns:30px 1fr 150px; }
@@ -34,7 +35,7 @@
     .nt-msg:not(.nt-unread) .iv-cell-main { font-weight:500; color:var(--text-secondary); }
 
     /* Cuerpo del modal de lectura */
-    .nt-read-date { font-size:12px; color:var(--text-muted); }
+    .nt-read-date { font-size:12px; color:var(--text-secondary); font-weight:600; }
     .nt-read-body { font-size:14px; line-height:1.7; color:var(--text-primary); white-space:pre-wrap; }
 
     /* Pestañas estilo bandeja (Gmail) */
@@ -45,18 +46,30 @@
     .nt-tab-count { font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; background:var(--blue-50); color:var(--blue-700); }
     .nt-panel { display:none; }
     .nt-panel.is-active { display:block; }
+
+    /* Bloque 2 · Tarjetas de estadísticas: dos columnas exactamente iguales y de
+       igual altura, sin importar la cantidad de texto que contengan. */
+    .iv-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); align-items:stretch; }
+    .iv-kpis .iv-kpi { height:100%; }
+
+    /* Bloque 3 · Contraste y legibilidad de textos secundarios sobre fondo blanco:
+       grises más oscuros y un poco más de peso en las etiquetas pequeñas. */
+    .iv-kpi__label { color:var(--text-secondary); }
+    .iv-kpi__sub { color:var(--text-secondary); font-weight:600; }
+    .iv-cell-sub { color:var(--text-secondary); font-weight:600; }
+    .iv-badge.cat-carrera { font-weight:700; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="nt-toolbar">
     {% if is_admin %}
-    <div class="nt-toolbar__txt">Comunicados institucionales emitidos a la comunidad ICLAE.</div>
+    <div class="nt-toolbar__txt"></div>
     <div class="nt-toolbar__actions">
         <button type="button" class="nt-new-btn" onclick="abrirAnuncioModal()">+ Nuevo Anuncio</button>
     </div>
     {% else %}
-    <div class="nt-toolbar__txt">Tus mensajes y avisos de la comunidad ICLAE.{% if no_leidas %} · {{ no_leidas }} sin leer{% endif %}</div>
+    <div class="nt-toolbar__txt">{% if no_leidas %}{{ no_leidas }} sin leer{% endif %}</div>
     <div class="nt-toolbar__actions">
         <form method="post" action="{% url 'notificaciones_limpiar' %}">
             {% csrf_token %}

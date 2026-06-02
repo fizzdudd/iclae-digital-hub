@@ -29,11 +29,7 @@ class ManejadorUsuario(BaseUserManager):
 
 
 class Usuario(AbstractUser):
-    """
-    Usuario central de la plataforma. Hereda de AbstractUser para integración
-    nativa con el panel de administración y el sistema de permisos de Django.
-    El identificador de acceso es el email (no hay username).
-    """
+    """Usuario central (AbstractUser), autenticado por email sin username."""
     ROL_CHOICES = [
         ('admin', 'Administrador'),
         ('alumno', 'Alumno'),
@@ -92,7 +88,7 @@ class Alumno(models.Model):
     carrera = models.ForeignKey('Carrera', models.DO_NOTHING, blank=True, null=True)
     sede = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     generacion = models.IntegerField(blank=True, null=True)
-    numero_alumno = models.CharField(unique=True, max_length=30, blank=True, null=True)
+    matricula = models.CharField(unique=True, max_length=30, blank=True, null=True)
     url_linkedin = models.TextField(blank=True, null=True)
     url_cv = models.TextField(blank=True, null=True)
     url_youtube = models.TextField(blank=True, null=True)
@@ -181,11 +177,7 @@ def evidencia_bitacora_path(instance, filename):
 
 
 class EvidenciaBitacora(models.Model):
-    """Nueva tabla de evidencias gestionada por Django con archivo real (FileField).
-
-    Acepta únicamente PDF, PNG y JPG. A diferencia de BitacoraEvidencia (legado,
-    managed=False, solo URL), esta sí almacena el archivo subido.
-    """
+    """Evidencias gestionadas por Django (FileField). Acepta PDF, PNG y JPG."""
     bitacora = models.ForeignKey(Bitacora, models.CASCADE, related_name='evidencias')
     archivo = models.FileField(
         upload_to=evidencia_bitacora_path,
@@ -251,11 +243,9 @@ class ConfigEvaluacionPeriodo(models.Model):
 class Empresa(models.Model):
     nombre = models.CharField(max_length=255)
     rubro = models.CharField(max_length=150, blank=True, null=True)
-    tamano = models.TextField(blank=True, null=True)  # This field type is a guess.
     presencia = models.TextField(blank=True, null=True)  # This field type is a guess.
     empleados_aprox = models.CharField(max_length=50, blank=True, null=True)
     ubicacion = models.CharField(max_length=255, blank=True, null=True)
-    campus = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     is_active = models.BooleanField(blank=True, null=True)
     enps_score = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
     descripcion = models.TextField(blank=True, null=True)
@@ -372,8 +362,18 @@ class ProyectoPeriodo(models.Model):
     proyecto = models.ForeignKey(Proyecto, models.DO_NOTHING)
     periodo = models.ForeignKey(PeriodoAcademico, models.DO_NOTHING)
     alumno = models.ForeignKey(Alumno, models.DO_NOTHING, blank=True, null=True)
-    tutor_udd = models.ForeignKey('TutorUdd', models.DO_NOTHING, blank=True, null=True)
-    tutor_empresa = models.ForeignKey('TutorEmpresa', models.DO_NOTHING, blank=True, null=True)
+    tutores_udd = models.ManyToManyField(
+        'TutorUdd',
+        through='ProyectoPeriodoTutorUdd',
+        related_name='proyecto_periodos',
+        blank=True,
+    )
+    tutores_empresa = models.ManyToManyField(
+        'TutorEmpresa',
+        through='ProyectoPeriodoTutorEmpresa',
+        related_name='proyecto_periodos',
+        blank=True,
+    )
     sede = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     estado = models.TextField(blank=True, null=True)  # This field type is a guess.
     semana_actual = models.IntegerField(blank=True, null=True)
@@ -389,6 +389,26 @@ class ProyectoPeriodo(models.Model):
         unique_together = (('proyecto', 'periodo', 'alumno'),)
 
 
+class ProyectoPeriodoTutorUdd(models.Model):
+    """Puente ProyectoPeriodo–TutorUdd (managed). Permite hasta dos tutores UDD."""
+    proyecto_periodo = models.ForeignKey('ProyectoPeriodo', models.CASCADE)
+    tutor_udd = models.ForeignKey('TutorUdd', models.CASCADE)
+
+    class Meta:
+        db_table = 'proyecto_periodo_tutor_udd'
+        unique_together = (('proyecto_periodo', 'tutor_udd'),)
+
+
+class ProyectoPeriodoTutorEmpresa(models.Model):
+    """Puente ProyectoPeriodo–TutorEmpresa (managed). Permite hasta dos tutores."""
+    proyecto_periodo = models.ForeignKey('ProyectoPeriodo', models.CASCADE)
+    tutor_empresa = models.ForeignKey('TutorEmpresa', models.CASCADE)
+
+    class Meta:
+        db_table = 'proyecto_periodo_tutor_empresa'
+        unique_together = (('proyecto_periodo', 'tutor_empresa'),)
+
+
 class PuntajeCompetencia(models.Model):
     evaluacion = models.ForeignKey(EvaluacionHito, models.DO_NOTHING)
     competencia = models.ForeignKey(CompetenciaHito, models.DO_NOTHING)
@@ -401,12 +421,7 @@ class PuntajeCompetencia(models.Model):
 
 
 class CalificacionCompetencia(models.Model):
-    """Nota de un alumno en una competencia específica de un hito configurado.
-
-    Tabla gestionada por Django. Conecta al Alumno con la CompetenciaHito (las
-    competencias exigidas de las evaluaciones configuradas) y guarda la nota en
-    escala chilena (1.0 a 7.0).
-    """
+    """Nota (1.0–7.0) de un alumno en una competencia de un hito. Managed."""
     alumno = models.ForeignKey(Alumno, models.CASCADE, related_name='calificaciones_competencia')
     competencia = models.ForeignKey(CompetenciaHito, models.CASCADE, related_name='calificaciones')
     nota = models.DecimalField(
@@ -426,11 +441,7 @@ class CalificacionCompetencia(models.Model):
 
 
 class EvaluacionEmpresa(models.Model):
-    """Evaluación de la experiencia del alumno con su empresa en un período.
-
-    Tabla gestionada por Django. La puntuación (1 a 10) alimenta el cálculo
-    dinámico del eNPS por empresa y período activo.
-    """
+    """Evaluación alumno→empresa por período (1–10). Alimenta el eNPS. Managed."""
     alumno = models.ForeignKey(Alumno, models.CASCADE, related_name='evaluaciones_empresa')
     empresa = models.ForeignKey(Empresa, models.CASCADE, related_name='evaluaciones')
     periodo = models.ForeignKey('PeriodoAcademico', models.CASCADE, related_name='evaluaciones_empresa')
@@ -461,12 +472,10 @@ class RecordatorioMasivo(models.Model):
 
 
 class RecordatorioArchivado(models.Model):
-    """Borrado lógico de un comunicado masivo para la bandeja del administrador.
+    """Archivado (borrado lógico) de un comunicado en la bandeja del admin.
 
-    La tabla recordatorio_masivo es externa (managed=False) y no puede recibir
-    columnas nuevas; por eso el archivado se registra aquí. Ocultar un comunicado
-    para el admin NO elimina el RecordatorioMasivo ni las notificaciones ya
-    entregadas a los destinatarios, que siguen leyéndolas en su bandeja.
+    recordatorio_masivo es externa (managed=False); el archivado se registra aquí
+    sin borrar el comunicado ni las notificaciones ya entregadas.
     """
     recordatorio_id = models.IntegerField(unique=True)
     archivado_por = models.ForeignKey('Usuario', models.SET_NULL, blank=True, null=True, related_name='+')
@@ -518,4 +527,19 @@ class Universidad(models.Model):
     class Meta:
         managed = False
         db_table = 'universidad'
+
+
+class RegistroAuditoria(models.Model):
+    """Historial de períodos eliminados. Guarda nombre e id (no FK) tras el borrado."""
+    administrador = models.ForeignKey('Usuario', models.SET_NULL, blank=True, null=True, related_name='+')
+    periodo_id = models.IntegerField(blank=True, null=True)
+    periodo_nombre = models.CharField(max_length=20)
+    eliminado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'registro_auditoria'
+        ordering = ['-eliminado_en']
+
+    def __str__(self):
+        return f"{self.periodo_nombre} eliminado ({self.eliminado_en:%Y-%m-%d %H:%M})"
 

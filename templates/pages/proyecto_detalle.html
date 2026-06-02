@@ -27,6 +27,7 @@
 
     .ph-role-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:8px; }
     .ph-role-label.spaced { margin-top:18px; }
+    .ph-role-count { color:var(--blue-700); font-weight:800; }
 
     .ph-person { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-md); }
     .ph-avatar { width:38px; height:38px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; }
@@ -99,52 +100,62 @@
             <div class="ph-title">Equipo de Tutores</div>
         </div>
 
-        <div class="ph-role-label">Tutor UDD</div>
-        {% if tutor_udd %}
-        <div class="ph-person">
-            <span class="ph-avatar ph-avatar--udd">{{ tutor_udd.iniciales }}</span>
-            <div class="ph-person__info">
-                <div class="ph-person__name">{{ tutor_udd.nombre }}</div>
-                <div class="ph-person__meta">{{ tutor_udd.detalle }}</div>
+        <div class="ph-role-label">Tutores UDD <span class="ph-role-count">{{ tutores_udd_asignados|length }}/2</span></div>
+        {% if tutores_udd_asignados %}
+        <div class="ph-list">
+            {% for t in tutores_udd_asignados %}
+            <div class="ph-person">
+                <span class="ph-avatar ph-avatar--udd">{{ t.iniciales }}</span>
+                <div class="ph-person__info">
+                    <div class="ph-person__name">{{ t.nombre }}</div>
+                    <div class="ph-person__meta">{{ t.detalle }}</div>
+                </div>
+                <div class="ph-person__actions">
+                    <form method="post" class="ph-inline-form" onsubmit="return confirm('¿Desvincular a {{ t.nombre|escapejs }} del proyecto?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="desvincular_tutor">
+                        <input type="hidden" name="tipo" value="udd">
+                        <input type="hidden" name="tutor_id" value="{{ t.id }}">
+                        <button type="submit" class="ph-mini ph-mini--danger">Desvincular</button>
+                    </form>
+                </div>
             </div>
-            <div class="ph-person__actions">
-                <button type="button" class="ph-mini" onclick="abrirModal('modalTutorUdd')">Reasignar</button>
-                <form method="post" class="ph-inline-form" onsubmit="return confirm('¿Desvincular al tutor UDD de este proyecto?');">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="desvincular_tutor">
-                    <input type="hidden" name="tipo" value="udd">
-                    <button type="submit" class="ph-mini ph-mini--danger">Desvincular</button>
-                </form>
-            </div>
+            {% endfor %}
         </div>
-        {% else %}
+        {% endif %}
+        {% if not tutor_udd_lleno %}
         <div class="ph-empty">
-            <span class="ph-empty__txt">Aún no hay un tutor UDD asignado a este proyecto.</span>
+            {% if not tutores_udd_asignados %}<span class="ph-empty__txt">Aún no hay un tutor UDD asignado a este proyecto.</span>{% endif %}
             <button type="button" class="ph-mini ph-mini--primary" onclick="abrirModal('modalTutorUdd')">+ Asignar Tutor UDD</button>
         </div>
         {% endif %}
 
-        <div class="ph-role-label spaced">Tutor Empresa</div>
-        {% if tutor_empresa %}
-        <div class="ph-person">
-            <span class="ph-avatar ph-avatar--emp">{{ tutor_empresa.iniciales }}</span>
-            <div class="ph-person__info">
-                <div class="ph-person__name">{{ tutor_empresa.nombre }}</div>
-                <div class="ph-person__meta">{{ tutor_empresa.detalle }}</div>
+        <div class="ph-role-label spaced">Tutores Empresa <span class="ph-role-count">{{ tutores_empresa_asignados|length }}/2</span></div>
+        {% if tutores_empresa_asignados %}
+        <div class="ph-list">
+            {% for t in tutores_empresa_asignados %}
+            <div class="ph-person">
+                <span class="ph-avatar ph-avatar--emp">{{ t.iniciales }}</span>
+                <div class="ph-person__info">
+                    <div class="ph-person__name">{{ t.nombre }}</div>
+                    <div class="ph-person__meta">{{ t.detalle }}</div>
+                </div>
+                <div class="ph-person__actions">
+                    <form method="post" class="ph-inline-form" onsubmit="return confirm('¿Desvincular a {{ t.nombre|escapejs }} del proyecto?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="desvincular_tutor">
+                        <input type="hidden" name="tipo" value="empresa">
+                        <input type="hidden" name="tutor_id" value="{{ t.id }}">
+                        <button type="submit" class="ph-mini ph-mini--danger">Desvincular</button>
+                    </form>
+                </div>
             </div>
-            <div class="ph-person__actions">
-                <button type="button" class="ph-mini" onclick="abrirModal('modalTutorEmpresa')">Reasignar</button>
-                <form method="post" class="ph-inline-form" onsubmit="return confirm('¿Desvincular al tutor empresa de este proyecto?');">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="desvincular_tutor">
-                    <input type="hidden" name="tipo" value="empresa">
-                    <button type="submit" class="ph-mini ph-mini--danger">Desvincular</button>
-                </form>
-            </div>
+            {% endfor %}
         </div>
-        {% else %}
+        {% endif %}
+        {% if not tutor_empresa_lleno %}
         <div class="ph-empty">
-            <span class="ph-empty__txt">Aún no hay un tutor empresa asignado a este proyecto.</span>
+            {% if not tutores_empresa_asignados %}<span class="ph-empty__txt">Aún no hay un tutor empresa asignado a este proyecto.</span>{% endif %}
             <button type="button" class="ph-mini ph-mini--primary" onclick="abrirModal('modalTutorEmpresa')">+ Asignar Tutor Empresa</button>
         </div>
         {% endif %}
@@ -212,6 +223,7 @@
             <input type="hidden" name="action" value="asignar_alumno">
             <input type="hidden" name="alumno_id" id="alElegidoId">
             <div class="nt-modal__body">
+                {% include 'layout/audit_banner.html' %}
                 {% if disponibles %}
                 <div class="nt-field">
                     <label class="nt-field__label" for="alBuscador">Buscar alumno</label>

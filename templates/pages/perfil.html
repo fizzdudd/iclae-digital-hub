@@ -28,6 +28,10 @@
 
     .pf-empty-block { font-size:13px; color:var(--text-muted); }
 
+    /* Formulario de enlaces de empleabilidad */
+    .pf-form { display:flex; flex-direction:column; gap:16px; }
+    .pf-form-actions { display:flex; justify-content:flex-end; }
+
     @media (max-width:760px) {
         .pf-grid { grid-template-columns:1fr; }
     }
@@ -87,6 +91,41 @@
             </div>
         </div>
     </div>
+
+    {% if enlaces_form %}
+    <!-- Enlaces de empleabilidad (editables por el alumno) -->
+    <div class="pf-card">
+        <div class="pf-card-h">Enlaces de empleabilidad</div>
+        <div class="pf-card-b">
+            <form method="post" class="pf-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="guardar_enlaces">
+
+                <div class="nt-field {% if enlaces_form.url_linkedin.errors %}nt-field--invalid{% endif %}">
+                    <label class="nt-field__label" for="{{ enlaces_form.url_linkedin.id_for_label }}">LinkedIn</label>
+                    {{ enlaces_form.url_linkedin }}
+                    {% for error in enlaces_form.url_linkedin.errors %}<span class="nt-field__error">{{ error }}</span>{% endfor %}
+                </div>
+
+                <div class="nt-field {% if enlaces_form.url_cv.errors %}nt-field--invalid{% endif %}">
+                    <label class="nt-field__label" for="{{ enlaces_form.url_cv.id_for_label }}">Currículum (CV)</label>
+                    {{ enlaces_form.url_cv }}
+                    {% for error in enlaces_form.url_cv.errors %}<span class="nt-field__error">{{ error }}</span>{% endfor %}
+                </div>
+
+                <div class="nt-field {% if enlaces_form.url_youtube.errors %}nt-field--invalid{% endif %}">
+                    <label class="nt-field__label" for="{{ enlaces_form.url_youtube.id_for_label }}">Video de presentación (YouTube)</label>
+                    {{ enlaces_form.url_youtube }}
+                    {% for error in enlaces_form.url_youtube.errors %}<span class="nt-field__error">{{ error }}</span>{% endfor %}
+                </div>
+
+                <div class="pf-form-actions">
+                    <button type="submit" class="nt-btn-submit">Guardar enlaces</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 {% endblock %}

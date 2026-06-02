@@ -1,11 +1,16 @@
+import unicodedata
 from functools import wraps
 
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
-from django.db.models import Avg, Count, Max, Min, Q
+from django.urls import reverse
+from django.db import IntegrityError, transaction
+from django.db.models import Avg, Count, Max, Min, Prefetch, Q
 from django.utils import timezone
+from .forms import AlumnoEnlacesForm, AsignacionBadgeForm, PeriodoAcademicoForm, UsuarioCreacionForm
 from .models import (
     Alumno,
     AlumnoBadge,
@@ -29,9 +34,11 @@ from .models import (
     PuntajeCompetencia,
     RecordatorioArchivado,
     RecordatorioMasivo,
+    RegistroAuditoria,
     Sede,
     TutorEmpresa,
     TutorUdd,
+    Universidad,
     Usuario,
 )
 
@@ -56,6 +63,72 @@ def _periodo_activo():
     if periodo:
         return periodo, periodo.nombre
     return None, 'Sin periodo activo'
+
+
+def _periodo_contextual(request):
+    """Período para crear/editar respetando el Modo Auditoría. Devuelve (periodo, etiqueta)."""
+    user = getattr(request, 'user', None)
+    es_admin = bool(user and user.is_authenticated and getattr(user, 'rol', None) == 'admin')
+    if es_admin:
+        audit_id = request.session.get('audit_period_id')
+        if audit_id:
+            periodo = PeriodoAcademico.objects.filter(pk=audit_id).first()
+            if periodo:
+                return periodo, periodo.nombre
+    return _periodo_activo()
+
+
+def _normalizar_texto(texto):
+    """Cadena en minúsculas, sin acentos ni espacios extremos, para comparar nombres."""
+    if texto is None:
+        return ''
+    descompuesto = unicodedata.normalize('NFKD', str(texto))
+    sin_acentos = ''.join(c for c in descompuesto if not unicodedata.combining(c))
+    return sin_acentos.strip().lower()
+
+
+def _separar_nombre_completo(nombre_completo):
+    """Separa un nombre completo en (nombres, apellidos) respetando apellidos compuestos."""
+    # Conectores y prefijos de apellidos compuestos.
+    CONECTORES = (
+        'de', 'del', 'la', 'las', 'los', 'san', 'santa',
+        'mac', 'mc', 'van', 'von', 'y', 'da', 'do', 'dos', 'di', 'le',
+    )
+
+    palabras = (nombre_completo or '').split()
+    if not palabras:
+        return '', ''
+
+    # Agrupa cada conector con la palabra que lo cierra (encadena consecutivos).
+    bloques = []
+    i = 0
+    total = len(palabras)
+    while i < total:
+        if palabras[i].lower() in CONECTORES and i + 1 < total:
+            grupo = [palabras[i]]
+            i += 1
+            while i < total and palabras[i].lower() in CONECTORES and i + 1 < total:
+                grupo.append(palabras[i])
+                i += 1
+            grupo.append(palabras[i])
+            i += 1
+            bloques.append(' '.join(grupo))
+        else:
+            bloques.append(palabras[i])
+            i += 1
+
+    # Los dos últimos bloques son apellidos; el resto, nombres.
+    if len(bloques) >= 3:
+        nombres, apellidos = bloques[:-2], bloques[-2:]
+    elif len(bloques) == 2:
+        nombres, apellidos = bloques[:1], bloques[1:]
+    else:
+        nombres, apellidos = bloques, []
+
+    def _titulo(partes):
+        return ' '.join(palabra.capitalize() for parte in partes for palabra in parte.split())
+
+    return _titulo(nombres), _titulo(apellidos)
 
 
 def _rubro_class(nombre):
@@ -120,12 +193,7 @@ def _get_user_rol(request):
 
 
 def require_roles(*roles):
-    """Restringe una vista a determinados roles. El admin siempre tiene acceso.
-
-    Se evalúa el rol REAL del usuario autenticado (no la previsualización de
-    demo), de modo que un alumno no pueda entrar a secciones de tutor/admin.
-    Si no está autorizado, redirige al Dashboard con un mensaje de error.
-    """
+    """Restringe la vista a ciertos roles (evalúa el rol real, no la previsualización)."""
     allowed = set(roles)
 
     def decorator(view_func):
@@ -168,17 +236,7 @@ def _bitacora_estado_class(estado):
 
 
 def calcular_nota_bitacoras(semanas_aprobadas, total_semanas, porcentaje_exigencia=60):
-    """Calcula la nota final de bitácoras en escala universitaria chilena (1.0 a 7.0).
-
-    El puntaje máximo es el total de semanas del período y el puntaje obtenido
-    son las semanas en estado aprobado. La exigencia ingresada por el admin
-    (ej. 60) se transforma a un factor decimal (0.6).
-
-    - Si el cumplimiento es menor a la exigencia:
-        nota = 1.0 + 3.0 * (cumplimiento / exigencia)
-    - Si el cumplimiento es mayor o igual:
-        nota = 4.0 + 3.0 * ((cumplimiento - exigencia) / (1.0 - exigencia))
-    """
+    """Nota de bitácoras (1.0–7.0) según cumplimiento de semanas y exigencia del admin."""
     if not total_semanas or total_semanas <= 0:
         return 1.0
 
@@ -200,13 +258,7 @@ def calcular_nota_bitacoras(semanas_aprobadas, total_semanas, porcentaje_exigenc
 
 
 def _render_buscador_alumno(request, periodo, periodo_label, user_rol, titulo, accion_label):
-    """Panel de búsqueda de alumnos para el administrador (Bitácoras / Evaluaciones).
-
-    Cuando el admin no ha seleccionado a nadie se muestra esta lista filtrable por
-    nombre/correo y por carrera, con el diseño corporativo de Gestión de Usuarios.
-    Al elegir un alumno se navega a la misma vista con ?alumno=<uid> para ver el
-    detalle de su bitácora o de su evaluación.
-    """
+    """Lista filtrable de alumnos (nombre/correo y carrera) para que el admin elija uno."""
     q = (request.GET.get('q') or '').strip()
     carrera_filter = (request.GET.get('carrera') or '').strip().lower()
 
@@ -257,12 +309,7 @@ def _render_buscador_alumno(request, periodo, periodo_label, user_rol, titulo, a
 
 
 def _calcular_boletin(periodo, current_pp):
-    """Construye el boletín de notas de un alumno en el período activo.
-
-    Devuelve (rows, promedio_final, en_calculo, pendientes): la fila automática de
-    bitácoras más una fila por hito, con el promedio ponderado por peso_pct. El
-    promedio solo es definitivo cuando no quedan hitos pendientes de evaluación.
-    """
+    """Boletín del alumno: devuelve (rows, promedio_final, en_calculo, pendientes)."""
     total_semanas = periodo.total_semanas or 13
     config = ConfigEvaluacionPeriodo.objects.filter(periodo=periodo).first()
     peso_bitacoras = config.peso_bitacoras_pct if config else 0
@@ -313,12 +360,7 @@ def _calcular_boletin(periodo, current_pp):
 
 
 def _render_dashboard_tutor(request, periodo, periodo_label, user_rol, tutor_tipo, project_periods):
-    """Panel del tutor: lista de alumnos asignados con su porcentaje de avance.
-
-    El avance es el porcentaje de semanas aprobadas (ambos tutores) sobre el
-    total del período. Se incluye además cuántas semanas están pendientes de la
-    revisión de este tutor para que pueda priorizar.
-    """
+    """Alumnos asignados al tutor con su avance y semanas pendientes de su revisión."""
     total_weeks = periodo.total_semanas or 13
     pps = list(project_periods)
     pp_ids = [pp.pk for pp in pps]
@@ -365,7 +407,8 @@ def _render_dashboard_tutor(request, periodo, periodo_label, user_rol, tutor_tip
 @require_roles('alumno', 'tutor_udd', 'tutor_empresa')
 def bitacora_view(request):
     user_rol = _get_user_rol(request)
-    periodo, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     if not periodo:
         return render(
@@ -391,7 +434,8 @@ def bitacora_view(request):
 
     project_periods = (
         ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False)
-        .select_related('proyecto__empresa', 'alumno__id', 'tutor_udd__id', 'tutor_empresa__id', 'sede')
+        .select_related('proyecto__empresa', 'alumno__id', 'sede')
+        .prefetch_related('tutores_udd__id', 'tutores_empresa__id')
         .order_by('alumno__id__nombre', 'alumno__id__apellido', 'proyecto__titulo')
     )
 
@@ -402,9 +446,9 @@ def bitacora_view(request):
         project_periods = project_periods.filter(alumno_id=user.id)
         alumno_uid = str(user.id)
     elif real_rol == 'tutor_udd':
-        project_periods = project_periods.filter(tutor_udd_id=user.id)
+        project_periods = project_periods.filter(tutores_udd=user.id)
     elif real_rol == 'tutor_empresa':
-        project_periods = project_periods.filter(tutor_empresa_id=user.id)
+        project_periods = project_periods.filter(tutores_empresa=user.id)
 
     # ── Bifurcación por rol ──
     # Un tutor que entra sin un alumno seleccionado ve su panel (dashboard) con
@@ -617,19 +661,13 @@ def bitacora_view(request):
         progress_total = max(total_weeks, 1)
         progress_pct = int((approved / progress_total) * 100)
 
-        # Tutor info for selected week
-        tutor_empresa_nombre = 'Sin tutor empresa'
-        tutor_empresa_initials = 'TE'
-        tutor_udd_nombre = 'Sin tutor UDD'
-        tutor_udd_initials = 'TU'
-        if current_pp.tutor_empresa and current_pp.tutor_empresa.id:
-            te = current_pp.tutor_empresa.id
-            tutor_empresa_nombre = f"{te.nombre} {te.apellido}".strip()
-            tutor_empresa_initials = ''.join(p[0] for p in tutor_empresa_nombre.split()[:2]).upper() or 'TE'
-        if current_pp.tutor_udd and current_pp.tutor_udd.id:
-            tu = current_pp.tutor_udd.id
-            tutor_udd_nombre = f"{tu.nombre} {tu.apellido}".strip()
-            tutor_udd_initials = ''.join(p[0] for p in tutor_udd_nombre.split()[:2]).upper() or 'TU'
+        # Tutor info for selected week (hasta 2 tutores por tipo).
+        emp_users = [t.id for t in current_pp.tutores_empresa.all()]
+        udd_users = [t.id for t in current_pp.tutores_udd.all()]
+        tutor_empresa_nombre = ', '.join(f"{u.nombre} {u.apellido}".strip() for u in emp_users) or 'Sin tutor empresa'
+        tutor_udd_nombre = ', '.join(f"{u.nombre} {u.apellido}".strip() for u in udd_users) or 'Sin tutor UDD'
+        tutor_empresa_initials = (''.join(p[0] for p in f"{emp_users[0].nombre} {emp_users[0].apellido}".split()[:2]).upper() or 'TE') if emp_users else 'TE'
+        tutor_udd_initials = (''.join(p[0] for p in f"{udd_users[0].nombre} {udd_users[0].apellido}".split()[:2]).upper() or 'TU') if udd_users else 'TU'
 
         selected_estado_emp = _bitacora_estado_label(selected_bitacora.estado_emp if selected_bitacora else None)
         selected_estado_udd = _bitacora_estado_label(selected_bitacora.estado_udd if selected_bitacora else None)
@@ -753,7 +791,8 @@ def dashboard_view(request):
     practicas_activas = ProyectoPeriodo.objects.filter(estado='en_curso').count()
     tutores_empresa_count = TutorEmpresa.objects.count()
     tutores_udd_count = TutorUdd.objects.count()
-    periodo_activo, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo_activo, periodo_label = _periodo_contextual(request)
 
     # Funnel (unique alumnos to avoid counting multiple applications per student)
     postulantes_count = Postulacion.objects.values('alumno').distinct().count()
@@ -772,7 +811,10 @@ def dashboard_view(request):
         Empresa.objects.annotate(
             total_practicantes=Count(
                 'proyecto__proyectoperiodo',
-                filter=Q(proyecto__proyectoperiodo__alumno__isnull=False),
+                filter=Q(
+                    proyecto__proyectoperiodo__alumno__isnull=False,
+                    proyecto__proyectoperiodo__periodo=periodo_activo,
+                ),
             ),
             total_proyectos=Count('proyecto', distinct=True),
         ).order_by('-total_practicantes')[:6]
@@ -924,12 +966,21 @@ def dashboard_view(request):
         1,
     )
 
-    # Perfil digital
-    linkedin_completo = Alumno.objects.exclude(url_linkedin__isnull=True).exclude(url_linkedin='').count()
-    cv_completo = Alumno.objects.exclude(url_cv__isnull=True).exclude(url_cv='').count()
-    video_completo = Alumno.objects.exclude(url_youtube__isnull=True).exclude(url_youtube='').count()
+    # ── Empleabilidad digital: solo alumnos activos del período contextual ──
+    if periodo_activo is not None:
+        alumnos_activos_qs = Alumno.objects.filter(proyectoperiodo__periodo=periodo_activo).distinct()
+    else:
+        alumnos_activos_qs = Alumno.objects.none()
+    alumnos_activos_count = alumnos_activos_qs.count()
+    base_activos = alumnos_activos_count or 1
+
+    # Totales por enlace (alumno con el campo correspondiente lleno).
+    linkedin_completo = alumnos_activos_qs.exclude(url_linkedin__isnull=True).exclude(url_linkedin='').count()
+    cv_completo = alumnos_activos_qs.exclude(url_cv__isnull=True).exclude(url_cv='').count()
+    video_completo = alumnos_activos_qs.exclude(url_youtube__isnull=True).exclude(url_youtube='').count()
+    # Perfil 100% completo: los tres enlaces llenos a la vez.
     profile_completo_count = (
-        Alumno.objects.exclude(url_linkedin__isnull=True)
+        alumnos_activos_qs.exclude(url_linkedin__isnull=True)
         .exclude(url_linkedin='')
         .exclude(url_cv__isnull=True)
         .exclude(url_cv='')
@@ -937,33 +988,38 @@ def dashboard_view(request):
         .exclude(url_youtube='')
         .count()
     )
-    profile_completo_pct = int((profile_completo_count / total_alumnos) * 100)
-    sin_perfil_completo = alumnos_count - profile_completo_count
+
+    # Porcentajes exactos respecto a los alumnos activos.
+    linkedin_pct = int((linkedin_completo / base_activos) * 100)
+    cv_pct = int((cv_completo / base_activos) * 100)
+    video_pct = int((video_completo / base_activos) * 100)
+    profile_completo_pct = int((profile_completo_count / base_activos) * 100)
+    sin_perfil_completo = alumnos_activos_count - profile_completo_count
 
     profile_data = [
         {
             'label': 'LinkedIn',
             'count': linkedin_completo,
-            'total': alumnos_count,
-            'pct': int((linkedin_completo / total_alumnos) * 100),
+            'total': alumnos_activos_count,
+            'pct': linkedin_pct,
             'stroke': '#2563eb',
-            'offset': round(188.5 - (188.5 * int((linkedin_completo / total_alumnos) * 100) / 100), 1),
+            'offset': round(188.5 - (188.5 * linkedin_pct / 100), 1),
         },
         {
             'label': 'CV subido',
             'count': cv_completo,
-            'total': alumnos_count,
-            'pct': int((cv_completo / total_alumnos) * 100),
+            'total': alumnos_activos_count,
+            'pct': cv_pct,
             'stroke': '#16a34a',
-            'offset': round(188.5 - (188.5 * int((cv_completo / total_alumnos) * 100) / 100), 1),
+            'offset': round(188.5 - (188.5 * cv_pct / 100), 1),
         },
         {
             'label': 'Video YouTube',
             'count': video_completo,
-            'total': alumnos_count,
-            'pct': int((video_completo / total_alumnos) * 100),
+            'total': alumnos_activos_count,
+            'pct': video_pct,
             'stroke': '#dc2626',
-            'offset': round(188.5 - (188.5 * int((video_completo / total_alumnos) * 100) / 100), 1),
+            'offset': round(188.5 - (188.5 * video_pct / 100), 1),
         },
     ]
 
@@ -1006,6 +1062,13 @@ def dashboard_view(request):
         'rubros': rubros,
         'modalidad_data': modalidad_data,
         'profile_data': profile_data,
+        'alumnos_activos_count': alumnos_activos_count,
+        'linkedin_completo': linkedin_completo,
+        'cv_completo': cv_completo,
+        'video_completo': video_completo,
+        'linkedin_pct': linkedin_pct,
+        'cv_pct': cv_pct,
+        'video_pct': video_pct,
         'profile_completo_count': profile_completo_count,
         'profile_completo_pct': profile_completo_pct,
         'sin_perfil_completo': sin_perfil_completo,
@@ -1023,7 +1086,8 @@ def dashboard_view(request):
 
 def proyectos_view(request):
     user_rol = _get_user_rol(request)
-    _, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     real_rol = getattr(request.user, 'rol', None)
     es_tutor_empresa = real_rol == 'tutor_empresa'
@@ -1094,10 +1158,16 @@ def proyectos_view(request):
     base_qs = (
         Proyecto.objects.select_related('empresa', 'carrera')
         .annotate(
-            postulaciones_count=Count('postulacion', distinct=True),
+            # Conteos aislados al período contextual: no se mezclan registros de
+            # otros semestres en la vista del tutor ni del administrador.
+            postulaciones_count=Count(
+                'postulacion',
+                filter=Q(postulacion__periodo=periodo),
+                distinct=True,
+            ),
             asignados_count=Count(
                 'proyectoperiodo',
-                filter=Q(proyectoperiodo__alumno__isnull=False),
+                filter=Q(proyectoperiodo__alumno__isnull=False, proyectoperiodo__periodo=periodo),
                 distinct=True,
             ),
         )
@@ -1161,6 +1231,11 @@ def proyectos_view(request):
                 'postulaciones': p.postulaciones_count,
                 'is_active': bool(p.is_active),
                 'estado': 'Abierto' if p.is_active else 'Cerrado',
+                # Valores crudos para prellenar el modal de edición.
+                'empresa_id': p.empresa_id,
+                'carrera_id': p.carrera_id or '',
+                'modalidad_raw': p.modalidad or '',
+                'descripcion_full': p.descripcion or '',
             }
         )
 
@@ -1215,15 +1290,11 @@ def _alumno_dict(alumno, pp_id=None):
 
 @require_roles()
 def proyecto_detalle_view(request, proyecto_id):
-    """Hub de orquestación del proyecto: información base, equipo de tutores y
-    alumnos asignados, con asignación/desvinculación/reasignación dinámica.
-
-    Las asignaciones operan sobre ProyectoPeriodo del período activo: cada alumno
-    asignado es una fila (proyecto, periodo, alumno) y los tutores del proyecto se
-    replican en todas sus filas para que los paneles de tutor los reconozcan.
-    """
+    """Hub del proyecto: datos base, tutores y alumnos, con asignación dinámica sobre ProyectoPeriodo."""
     user_rol = _get_user_rol(request)
-    periodo, periodo_label = _periodo_activo()
+    # Respeta el Modo Auditoría: si el admin previsualiza un período histórico, las
+    # asignaciones (ProyectoPeriodo) se crean y editan sobre ESE período.
+    periodo, periodo_label = _periodo_contextual(request)
     proyecto = Proyecto.objects.select_related('empresa', 'carrera').filter(id=proyecto_id).first()
     if proyecto is None:
         messages.error(request, 'El proyecto solicitado no existe.')
@@ -1267,19 +1338,22 @@ def proyecto_detalle_view(request, proyecto_id):
                 placeholder.updated_at = ahora
                 placeholder.save()
             else:
-                tu = ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo, tutor_udd__isnull=False).first()
-                te = ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo, tutor_empresa__isnull=False).first()
-                ProyectoPeriodo.objects.create(
+                nueva = ProyectoPeriodo.objects.create(
                     proyecto=proyecto,
                     periodo=periodo,
                     alumno=alumno,
-                    tutor_udd=tu.tutor_udd if tu else None,
-                    tutor_empresa=te.tutor_empresa if te else None,
                     estado='en_curso',
                     semana_actual=1,
                     created_at=ahora,
                     updated_at=ahora,
                 )
+                # Hereda el equipo de tutores del proyecto (otra fila del período).
+                equipo = ProyectoPeriodo.objects.filter(
+                    proyecto=proyecto, periodo=periodo
+                ).exclude(pk=nueva.pk).first()
+                if equipo:
+                    nueva.tutores_udd.set(equipo.tutores_udd.all())
+                    nueva.tutores_empresa.set(equipo.tutores_empresa.all())
             messages.success(request, 'Alumno añadido al proyecto.')
             return destino
 
@@ -1299,13 +1373,18 @@ def proyecto_detalle_view(request, proyecto_id):
                 messages.error(request, 'El proyecto de destino no tiene cupos disponibles.')
                 return destino
             # Al trasladar al alumno, adopta el equipo de tutores del proyecto destino.
-            tu = ProyectoPeriodo.objects.filter(proyecto=destino_proy, periodo=periodo, tutor_udd__isnull=False).first()
-            te = ProyectoPeriodo.objects.filter(proyecto=destino_proy, periodo=periodo, tutor_empresa__isnull=False).first()
+            equipo_destino = ProyectoPeriodo.objects.filter(
+                proyecto=destino_proy, periodo=periodo
+            ).exclude(pk=pp.pk).first()
             pp.proyecto = destino_proy
-            pp.tutor_udd = tu.tutor_udd if tu else None
-            pp.tutor_empresa = te.tutor_empresa if te else None
             pp.updated_at = timezone.now()
             pp.save()
+            if equipo_destino:
+                pp.tutores_udd.set(equipo_destino.tutores_udd.all())
+                pp.tutores_empresa.set(equipo_destino.tutores_empresa.all())
+            else:
+                pp.tutores_udd.clear()
+                pp.tutores_empresa.clear()
             messages.success(request, 'Alumno trasladado a “%s”.' % destino_proy.titulo)
             return destino
 
@@ -1326,42 +1405,58 @@ def proyecto_detalle_view(request, proyecto_id):
             if tipo not in ('udd', 'empresa'):
                 messages.error(request, 'Tipo de tutor no válido.')
                 return destino
-            tutor = None
-            if action == 'asignar_tutor':
-                tutor_id = (request.POST.get('tutor_id') or '').strip()
-                if tipo == 'udd':
-                    tutor = TutorUdd.objects.filter(pk=tutor_id).first()
-                else:
-                    tutor = TutorEmpresa.objects.filter(pk=tutor_id, empresa=proyecto.empresa).first()
-                if tutor is None:
-                    messages.error(request, 'Selecciona un tutor válido.')
-                    return destino
+
+            etiqueta = 'UDD' if tipo == 'udd' else 'Empresa'
+            tutor_id = (request.POST.get('tutor_id') or '').strip()
+            if tipo == 'udd':
+                tutor = TutorUdd.objects.filter(pk=tutor_id).first()
+            else:
+                tutor = TutorEmpresa.objects.filter(pk=tutor_id, empresa=proyecto.empresa).first()
+            if tutor is None:
+                messages.error(request, 'Selecciona un tutor válido.')
+                return destino
 
             filas = list(ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo))
             ahora = timezone.now()
-            if not filas:
-                # Sin filas aún: se crea una fila contenedora (sin alumno) del equipo.
-                ProyectoPeriodo.objects.create(
-                    proyecto=proyecto,
-                    periodo=periodo,
-                    tutor_udd=tutor if tipo == 'udd' else None,
-                    tutor_empresa=tutor if tipo == 'empresa' else None,
-                    estado='en_curso',
-                    created_at=ahora,
-                    updated_at=ahora,
-                )
-            else:
+
+            # Equipo actual del tipo en el proyecto-período. Todas las filas comparten
+            # el mismo equipo, pero se calcula la unión por robustez.
+            asignados = set()
+            for fila in filas:
+                relacion = fila.tutores_udd if tipo == 'udd' else fila.tutores_empresa
+                asignados.update(relacion.values_list('pk', flat=True))
+
+            if action == 'asignar_tutor':
+                # ── Control de capacidad: máximo 2 tutores por tipo y proyecto ──
+                if tutor.pk in asignados:
+                    messages.error(request, 'Ese tutor %s ya está asignado a este proyecto.' % etiqueta)
+                    return destino
+                if len(asignados) >= 2:
+                    messages.error(
+                        request,
+                        'No se puede asignar: se alcanzó el límite máximo de 2 tutores %s para este proyecto.' % etiqueta,
+                    )
+                    return destino
+                if not filas:
+                    # Sin filas aún: se crea una fila contenedora (sin alumno) del equipo.
+                    filas = [ProyectoPeriodo.objects.create(
+                        proyecto=proyecto, periodo=periodo,
+                        estado='en_curso', created_at=ahora, updated_at=ahora,
+                    )]
                 for fila in filas:
-                    if tipo == 'udd':
-                        fila.tutor_udd = tutor
-                    else:
-                        fila.tutor_empresa = tutor
+                    relacion = fila.tutores_udd if tipo == 'udd' else fila.tutores_empresa
+                    relacion.add(tutor)
                     fila.updated_at = ahora
                     fila.save()
-            if action == 'asignar_tutor':
-                messages.success(request, 'Tutor asignado al proyecto.')
+                messages.success(request, 'Tutor %s asignado al proyecto.' % etiqueta)
             else:
-                messages.success(request, 'Tutor desvinculado del proyecto.')
+                # desvincular_tutor: quita ese tutor de todas las filas del proyecto.
+                for fila in filas:
+                    relacion = fila.tutores_udd if tipo == 'udd' else fila.tutores_empresa
+                    relacion.remove(tutor)
+                    fila.updated_at = ahora
+                    fila.save()
+                messages.success(request, 'Tutor %s desvinculado del proyecto.' % etiqueta)
             return destino
 
         messages.error(request, 'Acción no reconocida.')
@@ -1370,32 +1465,45 @@ def proyecto_detalle_view(request, proyecto_id):
     # ── GET: armado del Hub ──
     filas = list(
         ProyectoPeriodo.objects.filter(proyecto=proyecto, periodo=periodo)
-        .select_related('alumno__id', 'alumno__carrera', 'tutor_udd__id', 'tutor_empresa__id')
+        .select_related('alumno__id', 'alumno__carrera')
+        .prefetch_related('tutores_udd__id', 'tutores_empresa__id')
     )
     alumnos = [_alumno_dict(f.alumno, pp_id=f.pk) for f in filas if f.alumno_id]
     alumnos.sort(key=lambda a: a['nombre'])
 
-    tutor_udd = None
-    tutor_empresa = None
+    # Equipo de tutores del proyecto (hasta 2 por tipo). Las filas comparten equipo;
+    # se deduplica por si alguna quedó desincronizada.
+    tutores_udd_asignados = []
+    tutores_empresa_asignados = []
+    udd_vistos = set()
+    emp_vistos = set()
     for f in filas:
-        if tutor_udd is None and f.tutor_udd_id and f.tutor_udd and f.tutor_udd.id:
-            u = f.tutor_udd.id
+        for t in f.tutores_udd.all():
+            if t.pk in udd_vistos:
+                continue
+            udd_vistos.add(t.pk)
+            u = t.id
             nombre = f"{u.nombre} {u.apellido}".strip()
-            tutor_udd = {
+            tutores_udd_asignados.append({
+                'id': str(t.pk),
                 'nombre': nombre,
                 'email': u.email or '',
                 'iniciales': (''.join(p[0] for p in nombre.split()[:2]).upper() or 'TU'),
-                'detalle': f.tutor_udd.departamento or 'Tutor UDD',
-            }
-        if tutor_empresa is None and f.tutor_empresa_id and f.tutor_empresa and f.tutor_empresa.id:
-            u = f.tutor_empresa.id
+                'detalle': t.departamento or 'Tutor UDD',
+            })
+        for t in f.tutores_empresa.all():
+            if t.pk in emp_vistos:
+                continue
+            emp_vistos.add(t.pk)
+            u = t.id
             nombre = f"{u.nombre} {u.apellido}".strip()
-            tutor_empresa = {
+            tutores_empresa_asignados.append({
+                'id': str(t.pk),
                 'nombre': nombre,
                 'email': u.email or '',
                 'iniciales': (''.join(p[0] for p in nombre.split()[:2]).upper() or 'TE'),
-                'detalle': f.tutor_empresa.cargo or 'Tutor empresa',
-            }
+                'detalle': t.cargo or 'Tutor empresa',
+            })
 
     # Alumnos activos sin proyecto en el período (para añadir / reasignar).
     asignados_ids = set(
@@ -1446,8 +1554,10 @@ def proyecto_detalle_view(request, proyecto_id):
         'alumnos': alumnos,
         'alumnos_count': len(alumnos),
         'cupos_llenos': len(alumnos) >= (proyecto.vacantes or 0),
-        'tutor_udd': tutor_udd,
-        'tutor_empresa': tutor_empresa,
+        'tutores_udd_asignados': tutores_udd_asignados,
+        'tutores_empresa_asignados': tutores_empresa_asignados,
+        'tutor_udd_lleno': len(tutores_udd_asignados) >= 2,
+        'tutor_empresa_lleno': len(tutores_empresa_asignados) >= 2,
         'disponibles': disponibles,
         'proyectos_destino': proyectos_destino,
         'tutores_udd': tutores_udd,
@@ -1458,7 +1568,8 @@ def proyecto_detalle_view(request, proyecto_id):
 
 def empresas_view(request):
     user_rol = _get_user_rol(request)
-    periodo, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     if request.method == 'POST' and request.POST.get('action') == 'create_empresa':
         # Solo el administrador puede crear empresas.
@@ -1468,9 +1579,6 @@ def empresas_view(request):
         if not nombre:
             messages.error(request, 'El nombre de la empresa es obligatorio.')
         else:
-            tamano = (request.POST.get('tamano') or '').strip().lower() or None
-            if tamano not in (None, 'pequeña', 'mediana', 'grande'):
-                tamano = None
             presencia = (request.POST.get('presencia') or '').strip().lower() or None
             if presencia not in (None, 'chile', 'multinacional'):
                 presencia = None
@@ -1479,7 +1587,6 @@ def empresas_view(request):
                     nombre=nombre,
                     rubro=(request.POST.get('rubro') or '').strip()[:150] or None,
                     ubicacion=(request.POST.get('ubicacion') or '').strip()[:255] or None,
-                    tamano=tamano,
                     presencia=presencia,
                     descripcion=(request.POST.get('descripcion') or '').strip() or None,
                     contacto_nombre=(request.POST.get('contacto_nombre') or '').strip()[:150] or None,
@@ -1494,26 +1601,44 @@ def empresas_view(request):
     q = (request.GET.get('q') or '').strip()
     rubro_filter = (request.GET.get('rubro') or '').strip().lower()
     presencia_filter = (request.GET.get('presencia') or '').strip().lower()
-    tamano_filter = (request.GET.get('tamano') or '').strip().lower()
-    campus_filter = (request.GET.get('campus') or '').strip().lower()
     sort_filter = (request.GET.get('sort') or 'practicantes').strip().lower()
 
+    # Proyectos de la empresa con asignación en el período contextual, pre-buscados
+    # con Prefetch para que el panel de detalle itere esta relación ya filtrada y no
+    # dispare consultas extra ni muestre proyectos de otros semestres.
+    proyectos_periodo_qs = (
+        Proyecto.objects.filter(
+            proyectoperiodo__periodo=periodo,
+            proyectoperiodo__alumno__isnull=False,
+        )
+        .distinct()
+        .order_by('-is_active', 'titulo')
+    )
     base_qs = (
         Empresa.objects.annotate(
-            proyectos_count=Count('proyecto', distinct=True),
+            proyectos_count=Count(
+                'proyecto',
+                filter=Q(proyecto__proyectoperiodo__periodo=periodo),
+                distinct=True,
+            ),
             practicantes_count=Count(
                 'proyecto__proyectoperiodo',
-                filter=Q(proyecto__proyectoperiodo__alumno__isnull=False),
+                filter=Q(
+                    proyecto__proyectoperiodo__alumno__isnull=False,
+                    proyecto__proyectoperiodo__periodo=periodo,
+                ),
                 distinct=True,
             ),
             tutores_count=Count('tutorempresa', distinct=True),
+        )
+        .prefetch_related(
+            Prefetch('proyecto_set', queryset=proyectos_periodo_qs, to_attr='proyectos_periodo')
         )
         .order_by('-practicantes_count', 'nombre')
     )
 
     rubro_options = _build_filter_options(base_qs.values_list('rubro', flat=True).distinct())
     presencia_options = _build_filter_options(base_qs.values_list('presencia', flat=True).distinct())
-    tamano_options = _build_filter_options(base_qs.values_list('tamano', flat=True).distinct())
     empresas_qs = base_qs
 
     if q:
@@ -1524,10 +1649,6 @@ def empresas_view(request):
         empresas_qs = empresas_qs.filter(rubro__icontains=rubro_filter)
     if presencia_filter:
         empresas_qs = empresas_qs.filter(presencia__icontains=presencia_filter)
-    if tamano_filter:
-        empresas_qs = empresas_qs.filter(tamano__icontains=tamano_filter)
-    if campus_filter:
-        empresas_qs = empresas_qs.filter(campus__nombre__icontains=campus_filter)
 
     if sort_filter == 'nombre':
         empresas_qs = empresas_qs.order_by('nombre')
@@ -1564,14 +1685,21 @@ def empresas_view(request):
                 'initials': initials,
                 'logo_style': _empresa_logo_style(nombre),
                 'rubro': rubro,
+                'rubro_raw': e.rubro or '',
                 'rubro_class': _rubro_class(rubro),
                 'presencia': (e.presencia or 'Sin definir').title(),
-                'tamano': (e.tamano or 'Sin definir').title(),
-                'campus': e.campus.nombre if e.campus else 'Sin sede',
-                'enps': enps_map.get(e.id, 0),
+                'presencia_raw': e.presencia or '',
+                # None cuando no hay evaluaciones, para distinguir en la plantilla
+                # "sin datos" de un eNPS real de 0.
+                'enps': enps_map.get(e.id),
                 'proyectos': e.proyectos_count,
                 'practicantes': e.practicantes_count,
                 'tutores': e.tutores_count,
+                # Itera la relación ya pre-filtrada por período (Prefetch).
+                'proyectos_list': [
+                    {'id': pr.id, 'titulo': pr.titulo, 'is_active': bool(pr.is_active)}
+                    for pr in e.proyectos_periodo
+                ],
                 'descripcion': e.descripcion or '',
                 'contacto_nombre': e.contacto_nombre or '',
                 'contacto_email': e.contacto_email or '',
@@ -1581,8 +1709,9 @@ def empresas_view(request):
         )
 
     # Promedio de eNPS solo sobre empresas con evaluaciones reales en el período.
+    # Sin evaluaciones -> None, para mostrar un estado neutro ("—") en vez de 0.
     enps_evaluadas = [enps_map[k] for k in enps_map]
-    enps_avg = round(sum(enps_evaluadas) / len(enps_evaluadas), 1) if enps_evaluadas else 0
+    enps_avg = round(sum(enps_evaluadas) / len(enps_evaluadas), 1) if enps_evaluadas else None
 
     paginator = Paginator(empresas, 25)
     page_obj = paginator.get_page(request.GET.get('page', 1))
@@ -1599,17 +1728,10 @@ def empresas_view(request):
             'cargo': te.cargo or '',
             'email': u.email or '',
         })
-    # Proyectos asociados (resumen) para el panel de detalle de la página actual.
-    proyectos_map = {}
-    for pr in Proyecto.objects.filter(empresa_id__in=page_ids).order_by('-is_active', 'titulo'):
-        proyectos_map.setdefault(pr.empresa_id, []).append({
-            'id': pr.id,
-            'titulo': pr.titulo,
-            'is_active': bool(pr.is_active),
-        })
+    # Los proyectos del período ya vienen pre-buscados (Prefetch) en cada empresa;
+    # aquí solo resta enlazar los tutores (relación por FK, no dependiente de período).
     for e in page_obj.object_list:
         e['tutores_list'] = tutores_map.get(e['id'], [])
-        e['proyectos_list'] = proyectos_map.get(e['id'], [])
 
     context = {
         'periodo_label': periodo_label,
@@ -1621,23 +1743,278 @@ def empresas_view(request):
             'q': q,
             'rubro': rubro_filter,
             'presencia': presencia_filter,
-            'tamano': tamano_filter,
-            'campus': campus_filter,
             'sort': sort_filter,
         },
         'filter_options': {
             'rubro': rubro_options,
             'presencia': presencia_options,
-            'tamano': tamano_options,
         },
         'user_rol': user_rol,
     }
     return render(request, 'pages/empresas.html', context)
 
 
+def empresa_editar_view(request):
+    """Actualiza los datos de una empresa existente (solo administrador)."""
+    if request.method != 'POST':
+        return redirect('empresas')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para editar empresas.')
+
+    empresa = Empresa.objects.filter(pk=(request.POST.get('empresa_id') or '').strip()).first()
+    if empresa is None:
+        messages.error(request, 'La empresa que intentas editar no existe.')
+        return redirect('empresas')
+
+    nombre = (request.POST.get('nombre') or '').strip()[:255]
+    if not nombre:
+        messages.error(request, 'El nombre de la empresa es obligatorio.')
+        return redirect('empresas')
+
+    presencia = (request.POST.get('presencia') or '').strip().lower() or None
+    if presencia not in (None, 'chile', 'multinacional'):
+        presencia = None
+
+    try:
+        empresa.nombre = nombre
+        empresa.rubro = (request.POST.get('rubro') or '').strip()[:150] or None
+        empresa.ubicacion = (request.POST.get('ubicacion') or '').strip()[:255] or None
+        empresa.presencia = presencia
+        empresa.descripcion = (request.POST.get('descripcion') or '').strip() or None
+        empresa.contacto_nombre = (request.POST.get('contacto_nombre') or '').strip()[:150] or None
+        empresa.contacto_email = (request.POST.get('contacto_email') or '').strip()[:254] or None
+        empresa.updated_at = timezone.now()
+        empresa.save()
+        messages.success(request, f'Empresa “{nombre}” actualizada correctamente.')
+    except Exception as exc:
+        messages.error(request, f'No se pudo actualizar la empresa: {exc}')
+    return redirect('empresas')
+
+
+def empresa_eliminar_view(request):
+    """Elimina una empresa solo si no tiene proyectos, practicantes ni tutores."""
+    if request.method != 'POST':
+        return redirect('empresas')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para eliminar empresas.')
+
+    empresa = Empresa.objects.filter(pk=(request.POST.get('empresa_id') or '').strip()).first()
+    if empresa is None:
+        messages.error(request, 'La empresa que intentas eliminar no existe.')
+        return redirect('empresas')
+
+    nombre = empresa.nombre or 'la empresa'
+    proyectos_count = Proyecto.objects.filter(empresa=empresa).count()
+    practicantes_count = ProyectoPeriodo.objects.filter(
+        proyecto__empresa=empresa, alumno__isnull=False
+    ).count()
+    tutores_count = TutorEmpresa.objects.filter(empresa=empresa).count()
+
+    if proyectos_count or practicantes_count or tutores_count:
+        messages.error(
+            request,
+            'No se puede eliminar “%s”: tiene %d proyecto(s), %d practicante(s) y %d tutor(es) '
+            'asociados. Desvincula o reasigna esos registros antes de eliminarla.'
+            % (nombre, proyectos_count, practicantes_count, tutores_count),
+        )
+        return redirect('empresas')
+
+    try:
+        empresa.delete()
+        messages.success(request, f'Empresa “{nombre}” eliminada correctamente.')
+    except IntegrityError:
+        messages.error(
+            request,
+            'No se pudo eliminar “%s” porque conserva información asociada en otras tablas.' % nombre,
+        )
+    return redirect('empresas')
+
+
+def proyecto_editar_view(request):
+    """Actualiza un proyecto existente (solo administrador)."""
+    if request.method != 'POST':
+        return redirect('proyectos')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para editar proyectos.')
+
+    proyecto = Proyecto.objects.filter(pk=(request.POST.get('proyecto_id') or '').strip()).first()
+    if proyecto is None:
+        messages.error(request, 'El proyecto que intentas editar no existe.')
+        return redirect('proyectos')
+
+    titulo = (request.POST.get('titulo') or '').strip()[:255]
+    if not titulo:
+        messages.error(request, 'El título del proyecto es obligatorio.')
+        return redirect('proyectos')
+
+    empresa = Empresa.objects.filter(pk=(request.POST.get('empresa_id') or '').strip()).first()
+    if empresa is None:
+        messages.error(request, 'Selecciona una empresa válida para el proyecto.')
+        return redirect('proyectos')
+
+    carrera = Carrera.objects.filter(pk=(request.POST.get('carrera_id') or '').strip()).first()
+    modalidad = (request.POST.get('modalidad') or '').strip().lower() or None
+    if modalidad not in (None, 'presencial', 'hibrido', 'remoto'):
+        modalidad = None
+    try:
+        vacantes = int(request.POST.get('vacantes') or 0)
+    except (TypeError, ValueError):
+        vacantes = 0
+    vacantes = max(0, min(vacantes, 99))
+
+    try:
+        proyecto.titulo = titulo
+        proyecto.empresa = empresa
+        proyecto.carrera = carrera
+        proyecto.modalidad = modalidad
+        proyecto.vacantes = vacantes
+        proyecto.descripcion = (request.POST.get('descripcion') or '').strip() or None
+        proyecto.is_active = request.POST.get('is_active') == 'on'
+        proyecto.updated_at = timezone.now()
+        proyecto.save()
+        messages.success(request, f'Proyecto “{titulo}” actualizado correctamente.')
+    except Exception as exc:
+        messages.error(request, f'No se pudo actualizar el proyecto: {exc}')
+    return redirect('proyectos')
+
+
+def proyecto_eliminar_view(request):
+    """Elimina un proyecto solo si no tiene postulaciones ni asignaciones de período."""
+    if request.method != 'POST':
+        return redirect('proyectos')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para eliminar proyectos.')
+
+    proyecto = Proyecto.objects.filter(pk=(request.POST.get('proyecto_id') or '').strip()).first()
+    if proyecto is None:
+        messages.error(request, 'El proyecto que intentas eliminar no existe.')
+        return redirect('proyectos')
+
+    titulo = proyecto.titulo or 'el proyecto'
+    postulaciones_count = Postulacion.objects.filter(proyecto=proyecto).count()
+    periodos_count = ProyectoPeriodo.objects.filter(proyecto=proyecto).count()
+
+    if postulaciones_count or periodos_count:
+        messages.error(
+            request,
+            'No se puede eliminar “%s”: tiene %d postulación(es) y %d asignación(es) de período '
+            'asociadas. Cierra o reasigna esos registros antes de eliminarlo.'
+            % (titulo, postulaciones_count, periodos_count),
+        )
+        return redirect('proyectos')
+
+    try:
+        proyecto.delete()
+        messages.success(request, f'Proyecto “{titulo}” eliminado correctamente.')
+    except IntegrityError:
+        messages.error(
+            request,
+            'No se pudo eliminar “%s” porque conserva información asociada en otras tablas.' % titulo,
+        )
+    return redirect('proyectos')
+
+
+def alumno_editar_view(request):
+    """Actualiza el perfil de un alumno y su usuario asociado (solo administrador)."""
+    if request.method != 'POST':
+        return redirect('alumnos')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para editar alumnos.')
+
+    alumno = Alumno.objects.select_related('id').filter(pk=(request.POST.get('alumno_id') or '').strip()).first()
+    if alumno is None:
+        messages.error(request, 'El alumno que intentas editar no existe.')
+        return redirect('alumnos')
+
+    nombre = (request.POST.get('nombre') or '').strip()[:150]
+    apellido = (request.POST.get('apellido') or '').strip()[:150]
+    email = (request.POST.get('email') or '').strip()[:254]
+    if not nombre or not email:
+        messages.error(request, 'El nombre y el email del alumno son obligatorios.')
+        return redirect('alumnos')
+    if Usuario.objects.filter(email=email).exclude(pk=alumno.id_id).exists():
+        messages.error(request, 'Ya existe otro usuario registrado con ese email.')
+        return redirect('alumnos')
+
+    carrera = Carrera.objects.filter(pk=(request.POST.get('carrera_id') or '').strip()).first()
+    sede = Sede.objects.filter(pk=(request.POST.get('sede_id') or '').strip()).first()
+    generacion = (request.POST.get('generacion') or '').strip()
+    try:
+        generacion = int(generacion) if generacion else None
+    except ValueError:
+        generacion = None
+
+    nombre_full = f"{nombre} {apellido}".strip()
+    try:
+        usuario = alumno.id
+        usuario.nombre = nombre
+        usuario.apellido = apellido
+        usuario.email = email
+        usuario.updated_at = timezone.now()
+        usuario.save()
+
+        alumno.carrera = carrera
+        alumno.sede = sede
+        alumno.generacion = generacion
+        alumno.matricula = (request.POST.get('matricula') or '').strip()[:30] or None
+        alumno.updated_at = timezone.now()
+        alumno.save()
+        messages.success(request, f'Alumno “{nombre_full}” actualizado correctamente.')
+    except Exception as exc:
+        messages.error(request, f'No se pudo actualizar el alumno: {exc}')
+    return redirect('alumnos')
+
+
+def alumno_eliminar_view(request):
+    """Elimina el perfil de un alumno solo si no tiene registros académicos; conserva el Usuario."""
+    if request.method != 'POST':
+        return redirect('alumnos')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para eliminar alumnos.')
+
+    alumno = Alumno.objects.select_related('id').filter(pk=(request.POST.get('alumno_id') or '').strip()).first()
+    if alumno is None:
+        messages.error(request, 'El alumno que intentas eliminar no existe.')
+        return redirect('alumnos')
+
+    nombre = f"{alumno.id.nombre} {alumno.id.apellido}".strip() or 'el alumno'
+    bitacoras_count = Bitacora.objects.filter(proyecto_periodo__alumno=alumno).count()
+    postulaciones_count = Postulacion.objects.filter(alumno=alumno).count()
+    periodos_count = ProyectoPeriodo.objects.filter(alumno=alumno).count()
+    dependientes = (
+        bitacoras_count
+        + postulaciones_count
+        + periodos_count
+        + AlumnoBadge.objects.filter(alumno=alumno).count()
+        + CalificacionCompetencia.objects.filter(alumno=alumno).count()
+        + EvaluacionEmpresa.objects.filter(alumno=alumno).count()
+    )
+
+    if dependientes:
+        messages.error(
+            request,
+            'No se puede eliminar a “%s”: tiene %d bitácora(s), %d postulación(es) y %d '
+            'asignación(es) de período, además de otros registros académicos. Depura esos '
+            'datos antes de eliminar al alumno.'
+            % (nombre, bitacoras_count, postulaciones_count, periodos_count),
+        )
+        return redirect('alumnos')
+
+    try:
+        alumno.delete()
+        messages.success(request, f'Alumno “{nombre}” eliminado correctamente.')
+    except IntegrityError:
+        messages.error(
+            request,
+            'No se pudo eliminar a “%s” porque conserva información asociada en otras tablas.' % nombre,
+        )
+    return redirect('alumnos')
+
+
 def postulaciones_view(request):
     user_rol = _get_user_rol(request)
-    _, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     q = (request.GET.get('q') or '').strip()
     modalidad_filter = (request.GET.get('modalidad') or '').strip().lower()
@@ -1646,7 +2023,11 @@ def postulaciones_view(request):
 
     base_vacantes = (
         Proyecto.objects.select_related('empresa', 'carrera')
-        .annotate(postulaciones_count=Count('postulacion', distinct=True))
+        .annotate(postulaciones_count=Count(
+            'postulacion',
+            filter=Q(postulacion__periodo=periodo),
+            distinct=True,
+        ))
         .order_by('-is_active', '-created_at', 'titulo')
     )
 
@@ -1691,7 +2072,7 @@ def postulaciones_view(request):
     if alumno_ref:
         mis_qs = (
             Postulacion.objects.select_related('proyecto__empresa', 'periodo')
-            .filter(alumno=alumno_ref)
+            .filter(alumno=alumno_ref, periodo=periodo)
             .order_by('-fecha_postulacion')
         )
         for p in mis_qs:
@@ -1747,7 +2128,7 @@ def postular_view(request):
     if request.method != 'POST':
         return redirect('postulaciones')
     proyecto_id = request.POST.get('proyecto_id')
-    periodo, _ = _periodo_activo()
+    periodo, _ = _periodo_contextual(request)
     alumno_ref = Alumno.objects.order_by('pk').first()
     if proyecto_id and periodo and alumno_ref:
         try:
@@ -1770,7 +2151,8 @@ def postular_view(request):
 @require_roles()
 def alumnos_view(request):
     user_rol = _get_user_rol(request)
-    _, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     q = (request.GET.get('q') or '').strip()
     carrera_filter = (request.GET.get('carrera') or '').strip().lower()
@@ -1778,13 +2160,26 @@ def alumnos_view(request):
     perfil_min_filter = request.GET.get('perfil_min')
 
     from django.db.models import Max as _Max
+    # La participación del alumno (proyecto, empresa y bitácoras) se cuenta solo
+    # dentro del período contextual; los badges son logros históricos y no se acotan.
     base_qs = (
         Alumno.objects.select_related('id', 'carrera', 'sede')
         .annotate(
             badges_count=Count('alumnobadge', distinct=True),
-            proyectos_count=Count('proyectoperiodo', distinct=True),
-            bitacoras_count=Count('proyectoperiodo__bitacora', distinct=True),
-            empresa_nombre=_Max('proyectoperiodo__proyecto__empresa__nombre'),
+            proyectos_count=Count(
+                'proyectoperiodo',
+                filter=Q(proyectoperiodo__periodo=periodo),
+                distinct=True,
+            ),
+            bitacoras_count=Count(
+                'proyectoperiodo__bitacora',
+                filter=Q(proyectoperiodo__periodo=periodo),
+                distinct=True,
+            ),
+            empresa_nombre=_Max(
+                'proyectoperiodo__proyecto__empresa__nombre',
+                filter=Q(proyectoperiodo__periodo=periodo),
+            ),
         )
         .order_by('id__nombre', 'id__apellido')
     )
@@ -1804,6 +2199,25 @@ def alumnos_view(request):
         alumnos_qs = alumnos_qs.filter(carrera__nombre__icontains=carrera_filter)
     if sede_filter:
         alumnos_qs = alumnos_qs.filter(sede__nombre__icontains=sede_filter)
+
+    # ── Filtro por estado de asignación en el período contextual ──
+    estado_filter = (request.GET.get('estado') or '').strip().lower()
+    if estado_filter not in ('asignados', 'sin_asignar'):
+        estado_filter = ''
+
+    # Conteo de alumnos sin asignación (respeta la búsqueda y filtros vigentes) para
+    # el indicador de la pestaña Sin Asignar.
+    if periodo is not None:
+        sin_asignar_count = alumnos_qs.exclude(proyectoperiodo__periodo=periodo).count()
+    else:
+        sin_asignar_count = alumnos_qs.count()
+
+    if estado_filter == 'sin_asignar':
+        # exclude: alumnos SIN ningún registro intermedio en el período activo.
+        alumnos_qs = alumnos_qs.exclude(proyectoperiodo__periodo=periodo) if periodo is not None else alumnos_qs
+    elif estado_filter == 'asignados':
+        # filter: alumnos CON al menos un registro intermedio en el período activo.
+        alumnos_qs = alumnos_qs.filter(proyectoperiodo__periodo=periodo).distinct() if periodo is not None else alumnos_qs.none()
 
     alumnos = []
     for a in alumnos_qs:
@@ -1831,6 +2245,13 @@ def alumnos_view(request):
                 'proyectos_count': a.proyectos_count,
                 'bitacoras_count': a.bitacoras_count,
                 'empresa': a.empresa_nombre or '',
+                # Valores crudos para prellenar el modal de edición.
+                'nombre_pila': a.id.nombre or '',
+                'apellido': a.id.apellido or '',
+                'carrera_id': a.carrera_id or '',
+                'sede_id': a.sede_id or '',
+                'generacion_raw': a.generacion or '',
+                'matricula': a.matricula or '',
             }
         )
 
@@ -1857,12 +2278,16 @@ def alumnos_view(request):
             'carrera': carrera_filter,
             'sede': sede_filter,
             'perfil_min': perfil_min_filter or '',
+            'estado': estado_filter,
         },
+        'sin_asignar_count': sin_asignar_count,
         'filter_options': {
             'carrera': carrera_options,
             'sede': sede_options,
             'perfil_min': perfil_min_options,
         },
+        'carreras_select': list(Carrera.objects.order_by('nombre').values('id', 'nombre')),
+        'sedes_select': list(Sede.objects.order_by('nombre').values('id', 'nombre')),
         'user_rol': user_rol,
     }
     return render(request, 'pages/alumnos.html', context)
@@ -1886,7 +2311,8 @@ def _semana_estado_combinado(estado_emp, estado_udd, has_sent):
 @require_roles('tutor_udd', 'tutor_empresa')
 def bitacoras_view(request):
     user_rol = _get_user_rol(request)
-    periodo, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     if not periodo:
         return render(request, 'pages/bitacoras.html', {
@@ -1898,7 +2324,8 @@ def bitacoras_view(request):
 
     project_periods = (
         ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False)
-        .select_related('proyecto__empresa', 'alumno__id', 'tutor_empresa__id', 'tutor_udd__id')
+        .select_related('proyecto__empresa', 'alumno__id')
+        .prefetch_related('tutores_empresa__id', 'tutores_udd__id')
         .order_by('alumno__id__nombre', 'alumno__id__apellido')
     )
 
@@ -1966,14 +2393,10 @@ def bitacoras_view(request):
     def _initials(nombre):
         return ''.join(p[0] for p in nombre.split()[:2]).upper() or '--'
 
-    tutor_empresa_nombre = 'Sin asignar'
-    tutor_udd_nombre = 'Sin asignar'
-    if current_pp.tutor_empresa and current_pp.tutor_empresa.id:
-        te = current_pp.tutor_empresa.id
-        tutor_empresa_nombre = f"{te.nombre} {te.apellido}".strip()
-    if current_pp.tutor_udd and current_pp.tutor_udd.id:
-        tu = current_pp.tutor_udd.id
-        tutor_udd_nombre = f"{tu.nombre} {tu.apellido}".strip()
+    emp_users = [t.id for t in current_pp.tutores_empresa.all()]
+    udd_users = [t.id for t in current_pp.tutores_udd.all()]
+    tutor_empresa_nombre = ', '.join(f"{u.nombre} {u.apellido}".strip() for u in emp_users) or 'Sin asignar'
+    tutor_udd_nombre = ', '.join(f"{u.nombre} {u.apellido}".strip() for u in udd_users) or 'Sin asignar'
 
     context = {
         'periodo_label': periodo_label,
@@ -2000,12 +2423,10 @@ def bitacoras_view(request):
 
 @require_roles('tutor_udd', 'tutor_empresa')
 def evaluaciones_view(request):
-    """Gestor de Hitos: lista las configuraciones de evaluación del período activo
-    (Diagnóstico, Intermedia, Final) con métricas agregadas por hito: cantidad de
-    rúbricas contestadas y promedio global del hito.
-    """
+    """Gestor de Hitos del período con métricas por hito (rúbricas contestadas y promedio)."""
     user_rol = _get_user_rol(request)
-    periodo, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría.
+    periodo, periodo_label = _periodo_contextual(request)
 
     # ── Administrador: buscador de alumnos → detalle (boletín) por alumno ──
     # Sin alumno seleccionado se muestra el panel de búsqueda; al elegir uno se
@@ -2100,7 +2521,9 @@ def evaluaciones_view(request):
 @require_roles()
 def hitos_config_view(request):
     user_rol = _get_user_rol(request)
-    periodo, periodo_label = _periodo_activo()
+    # Respeta el Modo Auditoría: los hitos y la configuración de evaluación se crean
+    # y editan sobre el período histórico que el admin esté previsualizando.
+    periodo, periodo_label = _periodo_contextual(request)
     saved_ok = False
 
     if request.method == 'POST' and periodo:
@@ -2279,50 +2702,39 @@ def configuracion_view(request):
 
     user_rol = _get_user_rol(request)
     active_tab = 'periodos'
+    # Formulario de alta de período: queda enlazado solo si un POST de creación
+    # falla la validación, para repintar los errores junto a los campos.
+    periodo_form = None
 
     if request.method == 'POST':
         action = request.POST.get('action', '')
         active_tab = request.POST.get('active_tab', 'periodos')
 
-        # ── Período académico: nombre + 4 fechas diferenciadas ──
+        # ── Período académico: ALTA de un nuevo registro (nunca actualiza) ──
         if action == 'save_periodo':
-            nombre = (request.POST.get('nombre') or '').strip()[:20]
-
-            def _parse(name):
-                raw = (request.POST.get(name) or '').strip()
-                return _dt.strptime(raw, '%Y-%m-%d').date() if raw else None
-
-            try:
-                fi_acad = _parse('fecha_inicio')
-                ff_acad = _parse('fecha_fin')
-                fi_iclae = _parse('fecha_inicio_iclae')
-                ff_iclae = _parse('fecha_fin_iclae')
-            except ValueError:
-                messages.error(request, 'Formato de fecha inválido.')
-                return redirect(f"{request.path}?tab=periodos")
-
-            if not nombre or not fi_acad or not ff_acad or not fi_iclae or not ff_iclae:
-                messages.error(request, 'Completa el nombre y las cuatro fechas.')
-            elif fi_acad > ff_acad or fi_iclae > ff_iclae:
-                messages.error(request, 'Las fechas de inicio no pueden ser posteriores a las de fin.')
-            else:
+            # Instancia en blanco (sin pasar el período activo): fuerza un INSERT.
+            form = PeriodoAcademicoForm(request.POST)
+            if form.is_valid():
+                periodo = form.save(commit=False)
                 # Las fechas ICLAE determinan el número de semanas de bitácora.
-                total_semanas = max(1, round((ff_iclae - fi_iclae).days / 7))
-                periodo = PeriodoAcademico.objects.filter(is_active=True).first()
-                if periodo is None:
-                    periodo = PeriodoAcademico.objects.filter(nombre=nombre).first()
-                if periodo is None:
-                    periodo = PeriodoAcademico(created_at=timezone.now())
-                periodo.nombre = nombre
-                periodo.fecha_inicio = fi_acad
-                periodo.fecha_fin = ff_acad
-                periodo.fecha_inicio_iclae = fi_iclae
-                periodo.fecha_fin_iclae = ff_iclae
-                periodo.total_semanas = total_semanas
-                periodo.is_active = True
+                periodo.total_semanas = max(1, round(
+                    (periodo.fecha_fin_iclae - periodo.fecha_inicio_iclae).days / 7
+                ))
+                periodo.is_active = False
+                periodo.created_at = timezone.now()
                 periodo.save()
-                messages.success(request, f'Período “{nombre}” guardado. Las bitácoras tendrán {total_semanas} semanas.')
-            return redirect(f"{request.path}?tab=periodos")
+                messages.success(
+                    request,
+                    f'Período “{periodo.nombre}” creado con {periodo.total_semanas} semanas. '
+                    'Actívalo desde la tabla cuando corresponda.'
+                )
+                # PRG: redirige tras el éxito para limpiar el formulario y evitar
+                # el reenvío al recargar la página.
+                return redirect(f"{request.path}?tab=periodos")
+            # Validación fallida: conserva el formulario enlazado y cae al render
+            # del GET para mostrar los errores sin perder lo que el usuario escribió.
+            periodo_form = form
+            active_tab = 'periodos'
 
         # ── Evaluación continua (bitácoras): porcentaje de exigencia fijo ──
         elif action == 'save_exigencia_bitacoras':
@@ -2438,7 +2850,7 @@ def configuracion_view(request):
 
     # ── GET ──
     tab_param = (request.GET.get('tab') or active_tab).strip().lower()
-    if tab_param not in ('periodos', 'evaluaciones', 'badges'):
+    if tab_param not in ('institucion', 'periodos', 'evaluaciones', 'badges'):
         tab_param = 'periodos'
 
     periodo = PeriodoAcademico.objects.filter(is_active=True).first()
@@ -2475,6 +2887,26 @@ def configuracion_view(request):
         for b in Badge.objects.order_by('-id')
     ]
 
+    # ── Institución: sedes y carreras (formulario ultrasimplificado: solo nombre) ──
+    sedes = [{'id': s.id, 'nombre': s.nombre} for s in Sede.objects.order_by('nombre')]
+    carreras = [{'id': c.id, 'nombre': c.nombre} for c in Carrera.objects.order_by('nombre')]
+
+    # ── Períodos académicos: listado completo para la tabla CRUD ──
+    periodos = [
+        {
+            'id': p.id,
+            'nombre': p.nombre,
+            'fecha_inicio': p.fecha_inicio.strftime('%Y-%m-%d') if p.fecha_inicio else '',
+            'fecha_fin': p.fecha_fin.strftime('%Y-%m-%d') if p.fecha_fin else '',
+            'fecha_inicio_iclae': p.fecha_inicio_iclae.strftime('%Y-%m-%d') if p.fecha_inicio_iclae else '',
+            'fecha_fin_iclae': p.fecha_fin_iclae.strftime('%Y-%m-%d') if p.fecha_fin_iclae else '',
+            'total_semanas': p.total_semanas,
+            'is_active': bool(p.is_active),
+        }
+        # Historial completo: todos los períodos, del más reciente al más antiguo.
+        for p in PeriodoAcademico.objects.all().order_by('-fecha_inicio')
+    ]
+
     context = {
         'periodo_label': periodo_label,
         'periodo': periodo,
@@ -2485,9 +2917,291 @@ def configuracion_view(request):
         'badges_count': len(badges),
         'iconos_badge': ICONOS_BADGE,
         'porcentaje_exigencia': porcentaje_exigencia,
+        'sedes': sedes,
+        'sedes_count': len(sedes),
+        'carreras': carreras,
+        'carreras_count': len(carreras),
+        'periodos': periodos,
+        'periodos_count': len(periodos),
+        'periodo_form': periodo_form or PeriodoAcademicoForm(),
         'user_rol': user_rol,
     }
     return render(request, 'pages/configuracion.html', context)
+
+
+def _universidad_por_defecto():
+    """Universidad para la FK obligatoria de Sede/Carrera: la primera, o una mínima si no hay."""
+    universidad = Universidad.objects.order_by('pk').first()
+    if universidad is None:
+        universidad = Universidad.objects.create(nombre='Universidad del Desarrollo', codigo='UDD')
+    return universidad
+
+
+def sede_guardar_view(request):
+    """Crea o actualiza una Sede (solo nombre) desde Configuración. Solo admin."""
+    if request.method != 'POST':
+        return redirect('configuracion')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para gestionar sedes.')
+
+    destino = f"{reverse('configuracion')}?tab=institucion"
+    nombre = (request.POST.get('nombre') or '').strip()[:150]
+    if not nombre:
+        messages.error(request, 'El nombre de la sede es obligatorio.')
+        return redirect(destino)
+
+    sede_id = (request.POST.get('sede_id') or '').strip()
+    sede = Sede.objects.filter(pk=sede_id).first() if sede_id else Sede()
+    if sede_id and sede is None:
+        messages.error(request, 'La sede que intentas editar no existe.')
+        return redirect(destino)
+
+    try:
+        sede.nombre = nombre
+        # FK obligatoria por diseño previo: se completa por defecto si falta.
+        if sede.universidad_id is None:
+            sede.universidad = _universidad_por_defecto()
+        sede.save()
+        messages.success(request, f'Sede “{nombre}” guardada correctamente.')
+    except Exception as exc:
+        messages.error(request, f'No se pudo guardar la sede: {exc}')
+    return redirect(destino)
+
+
+def sede_eliminar_view(request):
+    """Elimina una Sede solo si no tiene alumnos, tutores ni proyectos vinculados."""
+    if request.method != 'POST':
+        return redirect('configuracion')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para eliminar sedes.')
+
+    destino = f"{reverse('configuracion')}?tab=institucion"
+    sede = Sede.objects.filter(pk=(request.POST.get('sede_id') or '').strip()).first()
+    if sede is None:
+        messages.error(request, 'La sede que intentas eliminar no existe.')
+        return redirect(destino)
+
+    nombre = sede.nombre or 'la sede'
+    alumnos_count = Alumno.objects.filter(sede=sede).count()
+    tutores_count = TutorUdd.objects.filter(sede=sede).count()
+    periodos_count = ProyectoPeriodo.objects.filter(sede=sede).count()
+
+    if alumnos_count or tutores_count or periodos_count:
+        messages.error(
+            request,
+            'No se puede eliminar “%s”: tiene %d alumno(s), %d tutor(es) UDD y %d '
+            'asignación(es) de período vinculadas. Reasigna esos registros antes de eliminarla.'
+            % (nombre, alumnos_count, tutores_count, periodos_count),
+        )
+        return redirect(destino)
+
+    try:
+        sede.delete()
+        messages.success(request, f'Sede “{nombre}” eliminada correctamente.')
+    except IntegrityError:
+        messages.error(request, 'No se pudo eliminar “%s” porque conserva información asociada en otras tablas.' % nombre)
+    return redirect(destino)
+
+
+def carrera_guardar_view(request):
+    """Crea o actualiza una Carrera (solo nombre) desde Configuración. Solo admin."""
+    if request.method != 'POST':
+        return redirect('configuracion')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para gestionar carreras.')
+
+    destino = f"{reverse('configuracion')}?tab=institucion"
+    nombre = (request.POST.get('nombre') or '').strip()[:255]
+    if not nombre:
+        messages.error(request, 'El nombre de la carrera es obligatorio.')
+        return redirect(destino)
+
+    carrera_id = (request.POST.get('carrera_id') or '').strip()
+    carrera = Carrera.objects.filter(pk=carrera_id).first() if carrera_id else Carrera()
+    if carrera_id and carrera is None:
+        messages.error(request, 'La carrera que intentas editar no existe.')
+        return redirect(destino)
+
+    try:
+        carrera.nombre = nombre
+        # FK obligatoria por diseño previo: se completa por defecto si falta.
+        if carrera.universidad_id is None:
+            carrera.universidad = _universidad_por_defecto()
+        carrera.save()
+        messages.success(request, f'Carrera “{nombre}” guardada correctamente.')
+    except Exception as exc:
+        messages.error(request, f'No se pudo guardar la carrera: {exc}')
+    return redirect(destino)
+
+
+def carrera_eliminar_view(request):
+    """Elimina una Carrera solo si no tiene alumnos ni proyectos vinculados."""
+    if request.method != 'POST':
+        return redirect('configuracion')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para eliminar carreras.')
+
+    destino = f"{reverse('configuracion')}?tab=institucion"
+    carrera = Carrera.objects.filter(pk=(request.POST.get('carrera_id') or '').strip()).first()
+    if carrera is None:
+        messages.error(request, 'La carrera que intentas eliminar no existe.')
+        return redirect(destino)
+
+    nombre = carrera.nombre or 'la carrera'
+    alumnos_count = Alumno.objects.filter(carrera=carrera).count()
+    proyectos_count = Proyecto.objects.filter(carrera=carrera).count()
+
+    if alumnos_count or proyectos_count:
+        messages.error(
+            request,
+            'No se puede eliminar “%s”: tiene %d alumno(s) y %d proyecto(s) vinculados. '
+            'Reasigna esos registros antes de eliminarla.'
+            % (nombre, alumnos_count, proyectos_count),
+        )
+        return redirect(destino)
+
+    try:
+        carrera.delete()
+        messages.success(request, f'Carrera “{nombre}” eliminada correctamente.')
+    except IntegrityError:
+        messages.error(request, 'No se pudo eliminar “%s” porque conserva información asociada en otras tablas.' % nombre)
+    return redirect(destino)
+
+
+def periodo_editar_view(request):
+    """Edita un PeriodoAcademico (nombre y fechas, recalcula total_semanas). Solo admin."""
+    if request.method != 'POST':
+        return redirect('configuracion')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para editar períodos.')
+
+    from datetime import datetime as _dt
+
+    destino = f"{reverse('configuracion')}?tab=periodos"
+    periodo = PeriodoAcademico.objects.filter(pk=(request.POST.get('periodo_id') or '').strip()).first()
+    if periodo is None:
+        messages.error(request, 'El período que intentas editar no existe.')
+        return redirect(destino)
+
+    nombre = (request.POST.get('nombre') or '').strip()[:20]
+
+    def _parse(name):
+        raw = (request.POST.get(name) or '').strip()
+        return _dt.strptime(raw, '%Y-%m-%d').date() if raw else None
+
+    try:
+        fi_acad = _parse('fecha_inicio')
+        ff_acad = _parse('fecha_fin')
+        fi_iclae = _parse('fecha_inicio_iclae')
+        ff_iclae = _parse('fecha_fin_iclae')
+    except ValueError:
+        messages.error(request, 'Formato de fecha inválido.')
+        return redirect(destino)
+
+    if not nombre or not fi_acad or not ff_acad or not fi_iclae or not ff_iclae:
+        messages.error(request, 'Completa el nombre y las cuatro fechas.')
+        return redirect(destino)
+    if fi_acad > ff_acad or fi_iclae > ff_iclae:
+        messages.error(request, 'Las fechas de inicio no pueden ser posteriores a las de fin.')
+        return redirect(destino)
+
+    try:
+        periodo.nombre = nombre
+        periodo.fecha_inicio = fi_acad
+        periodo.fecha_fin = ff_acad
+        periodo.fecha_inicio_iclae = fi_iclae
+        periodo.fecha_fin_iclae = ff_iclae
+        periodo.total_semanas = max(1, round((ff_iclae - fi_iclae).days / 7))
+        periodo.save()
+        messages.success(request, f'Período “{nombre}” actualizado correctamente.')
+    except Exception as exc:
+        messages.error(request, f'No se pudo actualizar el período: {exc}')
+    return redirect(destino)
+
+
+def periodo_eliminar_view(request):
+    """Elimina un PeriodoAcademico revalidando identidad (nombre, correo, contraseña) y deja auditoría."""
+    if request.method != 'POST':
+        return redirect('configuracion')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para eliminar períodos.')
+
+    destino = f"{reverse('configuracion')}?tab=periodos"
+    periodo = PeriodoAcademico.objects.filter(pk=(request.POST.get('periodo_id') or '').strip()).first()
+    if periodo is None:
+        messages.error(request, 'El período que intentas eliminar no existe.')
+        return redirect(destino)
+
+    nombre_in = (request.POST.get('nombre') or '').strip()
+    correo_in = (request.POST.get('correo') or '').strip()
+    password_in = request.POST.get('contrasena') or ''
+
+    admin = request.user
+    nombre_ok = bool(nombre_in) and nombre_in.casefold() == (admin.get_full_name() or '').strip().casefold()
+    correo_ok = bool(correo_in) and correo_in.casefold() == (admin.email or '').strip().casefold()
+    password_ok = bool(password_in) and admin.check_password(password_in)
+
+    if not (nombre_ok and correo_ok and password_ok):
+        messages.error(request, 'Verificación de seguridad fallida: nombre, correo o contraseña no coinciden. La eliminación fue rechazada.')
+        return redirect(destino)
+
+    periodo_nombre = periodo.nombre
+    periodo_pk = periodo.pk
+    try:
+        periodo.delete()
+    except IntegrityError:
+        messages.error(
+            request,
+            'No se puede eliminar “%s” porque tiene información académica vinculada (evaluaciones, '
+            'postulaciones o asignaciones de período). Depura esos registros antes de eliminarlo.'
+            % periodo_nombre,
+        )
+        return redirect(destino)
+
+    RegistroAuditoria.objects.create(
+        administrador=admin,
+        periodo_id=periodo_pk,
+        periodo_nombre=periodo_nombre,
+    )
+    messages.success(request, f'Período “{periodo_nombre}” eliminado. La acción quedó registrada en auditoría.')
+    return redirect(destino)
+
+
+def periodo_activar_view(request):
+    """Activa globalmente un período (desactiva el resto). Afecta a todos los usuarios."""
+    if request.method != 'POST':
+        return redirect('configuracion')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('No tienes permisos para activar períodos.')
+
+    destino = f"{reverse('configuracion')}?tab=periodos"
+    periodo = PeriodoAcademico.objects.filter(pk=(request.POST.get('periodo_id') or '').strip()).first()
+    if periodo is None:
+        messages.error(request, 'El período que intentas activar no existe.')
+        return redirect(destino)
+
+    PeriodoAcademico.objects.filter(is_active=True).exclude(pk=periodo.pk).update(is_active=False)
+    periodo.is_active = True
+    periodo.save(update_fields=['is_active'])
+    messages.success(request, f'Período “{periodo.nombre}” activado globalmente. La vista de toda la plataforma se actualizó.')
+    return redirect(destino)
+
+
+def audit_periodo_view(request):
+    """Modo Auditoría: guarda en sesión el período a previsualizar, sin tocar la BD."""
+    if request.method != 'POST':
+        return redirect(request.META.get('HTTP_REFERER') or 'dashboard')
+    if getattr(request.user, 'rol', None) != 'admin':
+        return HttpResponseForbidden('Solo un administrador puede usar el modo auditoría.')
+
+    seleccion = (request.POST.get('audit_period_id') or '').strip()
+    if not seleccion or seleccion == 'global':
+        request.session.pop('audit_period_id', None)
+    elif PeriodoAcademico.objects.filter(pk=seleccion).exists():
+        request.session['audit_period_id'] = seleccion
+
+    destino = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('dashboard')
+    return redirect(destino)
 
 
 SEGMENTO_LABELS = {
@@ -2496,6 +3210,12 @@ SEGMENTO_LABELS = {
     'tutores_empresa': 'Tutores empresa',
     'tutores_udd': 'Tutores UDD',
 }
+
+# La tabla recordatorio_masivo es externa (managed=False) y no tiene columna de
+# estado; el estado se infiere de cantidad_envios. Se usa este centinela negativo
+# para marcar un envío Fallido sin alterar el esquema externo: None/0 = procesado,
+# valor positivo = enviados reales, valor negativo = fallo del servidor de correo.
+RECORDATORIO_FALLIDO = -1
 
 
 def _dividir_anuncio(mensaje):
@@ -2526,7 +3246,7 @@ def notificaciones_view(request):
         titulo = (request.POST.get('titulo') or '').strip()[:255]
         mensaje = (request.POST.get('mensaje') or '').strip()
         if titulo and mensaje:
-            # 1) Se registra la campaña en estado "Procesando" (cantidad_envios=0).
+            # 1) Se registra la campaña (cantidad_envios=0 = "Procesando").
             recordatorio = RecordatorioMasivo.objects.create(
                 enviado_por=request.user,
                 segmento=segmento,
@@ -2534,11 +3254,34 @@ def notificaciones_view(request):
                 cantidad_envios=0,
                 fecha_envio=timezone.now(),
             )
-            # 2) El envío real se delega a Celery; la respuesta vuelve al instante.
+            # 2) Envío sincrónico: delegarlo a un worker inexistente dejaba la
+            #    campaña en "Procesando" para siempre con 0 destinatarios. Se procesa
+            #    aquí mismo y se captura cualquier fallo del servidor de correo.
             from .tasks import enviar_anuncio_masivo_task
 
-            enviar_anuncio_masivo_task.delay(recordatorio.pk, segmento, titulo, mensaje)
-            sent_ok = True
+            try:
+                enviados = enviar_anuncio_masivo_task(recordatorio.pk, segmento, titulo, mensaje)
+                if enviados:
+                    messages.success(request, f'Comunicado enviado con éxito a {enviados} destinatario(s).')
+                else:
+                    messages.warning(
+                        request,
+                        'El comunicado se procesó, pero no hay destinatarios con participación '
+                        'en el período en curso para ese segmento.'
+                    )
+                sent_ok = True
+                sent_count = enviados
+            except Exception as exc:
+                # Se imprime en consola para depuración y la campaña queda en estado
+                # "Fallido" en vez de quedar bloqueada en "Procesando".
+                print(f'[Comunicados] Fallo al enviar el comunicado {recordatorio.pk}: {exc}')
+                RecordatorioMasivo.objects.filter(pk=recordatorio.pk).update(
+                    cantidad_envios=RECORDATORIO_FALLIDO
+                )
+                messages.error(request, 'Error al enviar el comunicado. Revisa la configuración del servidor.')
+        else:
+            messages.error(request, 'Completa el asunto y el mensaje del comunicado.')
+        return redirect('notificaciones')
 
     if request.method == 'POST' and request.POST.get('action') == 'archivar_comunicado':
         # Borrado lógico: el comunicado se oculta de la bandeja del admin pero el
@@ -2576,16 +3319,23 @@ def notificaciones_view(request):
         campanas = []
         for r in recordatorios_visibles:
             asunto, _cuerpo = _dividir_anuncio(r.mensaje)
-            enviado = bool(r.cantidad_envios)
+            cantidad = r.cantidad_envios
+            if cantidad is not None and cantidad < 0:
+                # Centinela negativo: el envío falló (ver RECORDATORIO_FALLIDO).
+                estado_label, estado_class, cantidad_envios = 'Fallido', 'fallido', 0
+            elif cantidad is None:
+                estado_label, estado_class, cantidad_envios = 'Procesando', 'procesando', 0
+            else:
+                estado_label, estado_class, cantidad_envios = 'Enviado', 'enviado', cantidad
             campanas.append(
                 {
                     'id': r.pk,
                     'fecha': r.fecha_envio,
                     'asunto': asunto or 'Anuncio sin asunto',
                     'segmento': SEGMENTO_LABELS.get(r.segmento, r.segmento or 'General'),
-                    'cantidad_envios': r.cantidad_envios or 0,
-                    'estado_label': 'Enviado' if enviado else 'Procesando',
-                    'estado_class': 'enviado' if enviado else 'procesando',
+                    'cantidad_envios': cantidad_envios,
+                    'estado_label': estado_label,
+                    'estado_class': estado_class,
                 }
             )
         context['campanas'] = campanas
@@ -2649,7 +3399,7 @@ def notificaciones_limpiar_view(request):
 IMPORT_SCHEMAS = {
     'alumno': {
         'required': ['nombre', 'apellido', 'email'],
-        'optional': ['carrera', 'sede', 'generacion', 'numero_alumno'],
+        'optional': ['carrera', 'sede', 'generacion', 'matricula', 'empresa'],
     },
     'tutor_udd': {
         'required': ['nombre', 'apellido', 'email'],
@@ -2677,7 +3427,7 @@ def _crear_perfil_importado(tipo, usuario, datos):
             carrera=carrera,
             sede=sede,
             generacion=int(generacion) if generacion.isdigit() else None,
-            numero_alumno=datos.get('numero_alumno') or None,
+            matricula=datos.get('matricula') or None,
             created_at=timezone.now(),
             updated_at=timezone.now(),
         )
@@ -2707,7 +3457,8 @@ def excel_import_view(request):
     import openpyxl
     from django.db import transaction
 
-    _, periodo_label = _periodo_activo()
+    # Período al que se asignarán los alumnos importados (respeta el Modo Auditoría).
+    periodo, periodo_label = _periodo_contextual(request)
     results = None
     error = None
 
@@ -2744,6 +3495,14 @@ def excel_import_view(request):
                         all_cols = schema['required'] + schema['optional']
                         created = skipped = errors_list = 0
                         detail = []
+                        # Asignación a empresa por período (solo alumnos).
+                        asignados = 0
+                        sin_asignar = []
+                        empresas_norm = {}
+                        if tipo == 'alumno':
+                            # Mapa nombre normalizado → empresa, calculado una sola vez.
+                            for emp in Empresa.objects.all():
+                                empresas_norm.setdefault(_normalizar_texto(emp.nombre), emp)
 
                         for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
                             # Fila completamente vacía: se ignora silenciosamente.
@@ -2790,12 +3549,69 @@ def excel_import_view(request):
                                     motivo = _crear_perfil_importado(tipo, usuario, datos)
                                     if motivo:
                                         raise ValueError(motivo)
+
+                                    # ── Bloque 1 + 2: resolución de empresa con enfoque
+                                    # "Sala de Espera". El alumno SIEMPRE queda creado;
+                                    # la asignación al período solo ocurre si la empresa
+                                    # ya existe en el catálogo. Nunca se crea una empresa
+                                    # nueva de forma automática (sin get_or_create).
+                                    fila_asignada = False
+                                    empresa_no_existe = False
+                                    if tipo == 'alumno' and periodo is not None:
+                                        empresa_norm = _normalizar_texto(datos.get('empresa'))
+                                        if empresa_norm:
+                                            try:
+                                                # Búsqueda segura por nombre normalizado: una
+                                                # ausencia se trata como ObjectDoesNotExist.
+                                                empresa_match = empresas_norm.get(empresa_norm)
+                                                if empresa_match is None:
+                                                    raise ObjectDoesNotExist
+                                                alumno_obj = Alumno.objects.get(pk=usuario.pk)
+                                                ProyectoPeriodo.objects.create(
+                                                    proyecto=_proyecto_para_empresa(empresa_match, usuario),
+                                                    periodo=periodo,
+                                                    alumno=alumno_obj,
+                                                    sede=alumno_obj.sede,
+                                                    created_at=timezone.now(),
+                                                    updated_at=timezone.now(),
+                                                )
+                                                fila_asignada = True
+                                            except ObjectDoesNotExist:
+                                                # Sala de espera: la empresa no existe en el
+                                                # registro. El alumno permanece creado y se
+                                                # omite el modelo intermedio de asignación.
+                                                empresa_no_existe = True
                             except Exception as exc:
                                 errors_list += 1
                                 detail.append({'row': row_num, 'status': 'error', 'msg': f'Fila {row_num}: {exc}'})
                             else:
                                 created += 1
                                 detail.append({'row': row_num, 'status': 'ok', 'msg': f'Fila {row_num}: {nombre} {apellido} ({email}) creado'})
+                                if tipo == 'alumno':
+                                    if fila_asignada:
+                                        asignados += 1
+                                    elif empresa_no_existe:
+                                        # ── Bloque 3: alumno huérfano por empresa inexistente. ──
+                                        sin_asignar.append(f"{nombre} {apellido}".strip() or email)
+
+                        # ── Feedback al administrador (mensajes de Django) ──
+                        if created:
+                            if tipo == 'alumno':
+                                messages.success(
+                                    request,
+                                    f'{created} alumno(s) creado(s); {asignados} asignado(s) a una '
+                                    f'empresa en el período {periodo_label}.'
+                                )
+                            else:
+                                messages.success(request, f'{created} {rol_labels[tipo]}(s) creado(s) correctamente.')
+                        if sin_asignar:
+                            messages.warning(
+                                request,
+                                'Los siguientes alumnos fueron creados pero quedaron sin empresa '
+                                'asignada porque la empresa no existe en el registro: '
+                                + ', '.join(sin_asignar)
+                                + '. Por favor, asígnelos manualmente.'
+                            )
 
                         results = {
                             'created': created,
@@ -2876,7 +3692,8 @@ def calificar_view(request):
     user_rol = _get_user_rol(request)
     real_rol = getattr(request.user, 'rol', None)
     tutor_tipo = 'udd' if user_rol == 'tutor_udd' else 'empresa'
-    periodo, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     if not periodo:
         return render(request, 'pages/calificar.html', {
@@ -2889,9 +3706,9 @@ def calificar_view(request):
         .select_related('proyecto__empresa', 'alumno__id')
     )
     if real_rol == 'tutor_udd':
-        pps = pps.filter(tutor_udd_id=request.user.id)
+        pps = pps.filter(tutores_udd=request.user.id)
     elif real_rol == 'tutor_empresa':
-        pps = pps.filter(tutor_empresa_id=request.user.id)
+        pps = pps.filter(tutores_empresa=request.user.id)
     pps = list(pps.order_by('alumno__id__nombre', 'alumno__id__apellido'))
 
     alumno_uid = (request.GET.get('alumno') or request.POST.get('alumno') or '').strip()
@@ -3017,7 +3834,8 @@ def mis_notas_view(request):
     """
     user_rol = _get_user_rol(request)
     real_rol = getattr(request.user, 'rol', None)
-    periodo, periodo_label = _periodo_activo()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, periodo_label = _periodo_contextual(request)
 
     if not periodo:
         return render(request, 'pages/mis_notas.html', {
@@ -3073,9 +3891,20 @@ def perfil_view(request):
     iniciales = f"{(user.nombre or '')[:1]}{(user.apellido or '')[:1]}".upper() or user.email[:2].upper()
 
     datos_rol = []
+    enlaces_form = None
     if rol == 'alumno':
         alumno = Alumno.objects.select_related('carrera', 'sede').filter(pk=user.pk).first()
         if alumno:
+            # El alumno edita sus tres enlaces de empleabilidad desde el perfil.
+            if request.method == 'POST' and request.POST.get('action') == 'guardar_enlaces':
+                enlaces_form = AlumnoEnlacesForm(request.POST, instance=alumno)
+                if enlaces_form.is_valid():
+                    enlaces_form.save()
+                    messages.success(request, 'Tus enlaces se guardaron correctamente.')
+                    return redirect('perfil')
+                messages.error(request, 'Revisa los enlaces ingresados.')
+            else:
+                enlaces_form = AlumnoEnlacesForm(instance=alumno)
             datos_rol = [
                 {'label': 'Carrera', 'value': alumno.carrera.nombre if alumno.carrera else ''},
                 {'label': 'Sede', 'value': alumno.sede.nombre if alumno.sede else ''},
@@ -3104,8 +3933,70 @@ def perfil_view(request):
         'perfil_iniciales': iniciales,
         'rol_label': rol_labels.get(rol, 'Usuario'),
         'datos_rol': datos_rol,
+        'enlaces_form': enlaces_form,
     }
     return render(request, 'pages/perfil.html', context)
+
+
+@require_roles('tutor_empresa', 'tutor_udd')
+def asignar_badge_view(request):
+    """Otorga una insignia del catálogo a un alumno; registra al tutor en otorgado_por."""
+    periodo, periodo_label = _periodo_contextual(request)
+    rol = getattr(request.user, 'rol', None)
+
+    # Alumnos elegibles: los que el tutor acompaña en el período (admin ve todos los activos).
+    if periodo is None:
+        alumnos_qs = Alumno.objects.none()
+    elif rol == 'tutor_empresa':
+        alumnos_qs = Alumno.objects.filter(
+            proyectoperiodo__periodo=periodo,
+            proyectoperiodo__tutores_empresa__pk=request.user.pk,
+        ).distinct()
+    elif rol == 'tutor_udd':
+        alumnos_qs = Alumno.objects.filter(
+            proyectoperiodo__periodo=periodo,
+            proyectoperiodo__tutores_udd__pk=request.user.pk,
+        ).distinct()
+    else:  # admin
+        alumnos_qs = Alumno.objects.filter(proyectoperiodo__periodo=periodo).distinct()
+    alumnos_qs = alumnos_qs.select_related('id').order_by('id__nombre', 'id__apellido')
+
+    if request.method == 'POST':
+        form = AsignacionBadgeForm(request.POST, alumnos_qs=alumnos_qs)
+        if form.is_valid():
+            alumno = form.cleaned_data['alumno']
+            badge = form.cleaned_data['badge']
+            # unique_together (alumno, badge, periodo): get_or_create evita duplicar.
+            _, creado = AlumnoBadge.objects.get_or_create(
+                alumno=alumno,
+                badge=badge,
+                periodo=periodo,
+                defaults={
+                    'motivo': form.cleaned_data.get('motivo') or None,
+                    'otorgado_por': request.user,
+                    'fecha_logro': timezone.now(),
+                },
+            )
+            if creado:
+                messages.success(request, 'Insignia otorgada a %s.' % alumno.id.get_full_name())
+            else:
+                messages.info(request, 'Ese alumno ya tenía esa insignia en el período actual.')
+            return redirect('asignar_badge')
+        messages.error(request, 'No se pudo otorgar la insignia. Revisa los datos ingresados.')
+    else:
+        form = AsignacionBadgeForm(alumnos_qs=alumnos_qs)
+
+    context = {
+        'periodo_label': periodo_label,
+        'user_rol': 'admin' if rol == 'admin' else rol,
+        'form': form,
+        'badges_recientes': (
+            AlumnoBadge.objects.filter(otorgado_por=request.user)
+            .select_related('alumno__id', 'badge')
+            .order_by('-fecha_logro')[:10]
+        ),
+    }
+    return render(request, 'pages/asignar_badge.html', context)
 
 
 # ─── EXPORTAR ────────────────────────────────────────────────────────────────
@@ -3161,10 +4052,15 @@ def exportar_alumnos_view(request):
     q = (request.GET.get('q') or '').strip()
     carrera_filter = (request.GET.get('carrera') or '').strip().lower()
     sede_filter = (request.GET.get('sede') or '').strip().lower()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, _ = _periodo_contextual(request)
 
     qs = (
         Alumno.objects.select_related('id', 'carrera', 'sede')
-        .annotate(empresa_nombre=_Max2('proyectoperiodo__proyecto__empresa__nombre'))
+        .annotate(empresa_nombre=_Max2(
+            'proyectoperiodo__proyecto__empresa__nombre',
+            filter=Q(proyectoperiodo__periodo=periodo),
+        ))
         .order_by('id__nombre', 'id__apellido')
     )
     if q:
@@ -3193,6 +4089,30 @@ def exportar_alumnos_view(request):
 
 # ─── GESTIONAR USUARIOS ───────────────────────────────────────────────────────
 
+def _proyecto_para_empresa(empresa, creador):
+    """Devuelve un Proyecto de la empresa para enlazar al alumno (Opción B).
+
+    El modelo intermedio ProyectoPeriodo exige un Proyecto, así que se reutiliza
+    uno existente de la empresa (preferentemente activo) y, solo si la empresa no
+    tiene ninguno, se crea uno mínimo para soportar la asignación. Así el enlace
+    alumno ↔ empresa ↔ período nunca falla por ausencia de proyecto.
+    """
+    proyecto = (
+        Proyecto.objects.filter(empresa=empresa, is_active=True).order_by('-created_at').first()
+        or Proyecto.objects.filter(empresa=empresa).order_by('-created_at').first()
+    )
+    if proyecto is None:
+        proyecto = Proyecto.objects.create(
+            empresa=empresa,
+            titulo=f'Asignación {empresa.nombre}'[:255],
+            is_active=True,
+            created_by=creador,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+        )
+    return proyecto
+
+
 @require_roles()
 def gestionar_usuarios_view(request):
     user_rol = _get_user_rol(request)
@@ -3207,61 +4127,85 @@ def gestionar_usuarios_view(request):
         action = request.POST.get('action', '')
 
         if action == 'crear_usuario':
-            nombre = request.POST.get('nombre', '').strip()
-            apellido = request.POST.get('apellido', '').strip()
-            email = request.POST.get('email', '').strip().lower()
-            password = request.POST.get('password', '').strip()
-            rol = request.POST.get('rol', 'alumno').strip()
-
-            if not all([nombre, email, password, rol]):
-                error = 'Completa todos los campos requeridos.'
-            elif Usuario.objects.filter(email__iexact=email).exists():
-                error = f'Ya existe una cuenta con el correo {email}.'
+            form = UsuarioCreacionForm(request.POST)
+            if not form.is_valid():
+                # Validación fallida (incluye empresa obligatoria para tutor empresa):
+                # se muestra el mensaje amigable y no se toca la base de datos.
+                error = ' '.join(e for errores in form.errors.values() for e in errores)
             else:
-                try:
-                    nuevo = Usuario.objects.create_user(
-                        email=email,
-                        password=password,
-                        rol=rol,
-                        nombre=nombre,
-                        apellido=apellido,
-                        is_active=True,
-                        created_at=timezone.now(),
-                        updated_at=timezone.now(),
+                cd = form.cleaned_data
+                rol = cd['rol']
+                # El enlace del alumno con su empresa usa el período contextual
+                # (auditoría en sesión o período global activo).
+                periodo_enlace, _ = _periodo_contextual(request)
+                if rol == 'alumno' and periodo_enlace is None:
+                    messages.error(
+                        request,
+                        'No hay un período activo para enlazar al alumno con su empresa. '
+                        'Activa un período e inténtalo de nuevo.'
                     )
-                    if rol == 'alumno':
-                        carrera_id = request.POST.get('carrera_id')
-                        sede_id = request.POST.get('sede_id')
-                        carrera_obj = Carrera.objects.filter(id=carrera_id).first() if carrera_id else None
-                        sede_obj = Sede.objects.filter(id=sede_id).first() if sede_id else None
-                        Alumno.objects.create(
-                            id=nuevo,
-                            carrera=carrera_obj,
-                            sede=sede_obj,
+                    return redirect('gestionar_usuarios')
+                try:
+                    # Todo o nada: si la creación del perfil específico o del enlace
+                    # falla, el usuario base se revierte y no queda nada huérfano.
+                    with transaction.atomic():
+                        nuevo = Usuario.objects.create_user(
+                            email=cd['email'],
+                            password=cd['password'],
+                            rol=rol,
+                            nombre=cd['nombre'],
+                            apellido=cd['apellido'],
+                            is_active=True,
                             created_at=timezone.now(),
                             updated_at=timezone.now(),
                         )
-                    elif rol == 'tutor_udd':
-                        sede_id = request.POST.get('sede_id')
-                        sede_obj = Sede.objects.filter(id=sede_id).first() if sede_id else None
-                        TutorUdd.objects.create(
-                            id=nuevo,
-                            sede=sede_obj,
-                            departamento=request.POST.get('departamento', '').strip() or None,
-                            created_at=timezone.now(),
-                        )
-                    elif rol == 'tutor_empresa':
-                        empresa_id = request.POST.get('empresa_id')
-                        empresa_obj = Empresa.objects.filter(id=empresa_id).first() if empresa_id else None
-                        TutorEmpresa.objects.create(
-                            id=nuevo,
-                            empresa=empresa_obj,
-                            cargo=request.POST.get('cargo', '').strip() or None,
-                            created_at=timezone.now(),
-                        )
+                        if rol == 'alumno':
+                            carrera_obj = Carrera.objects.filter(id=cd['carrera_id']).first() if cd['carrera_id'] else None
+                            sede_obj = Sede.objects.filter(id=cd['sede_id']).first() if cd['sede_id'] else None
+                            alumno = Alumno.objects.create(
+                                id=nuevo,
+                                carrera=carrera_obj,
+                                sede=sede_obj,
+                                created_at=timezone.now(),
+                                updated_at=timezone.now(),
+                            )
+                            # Opción B: enlace alumno ↔ empresa ↔ período mediante el
+                            # modelo intermedio ProyectoPeriodo, en la misma transacción.
+                            empresa_enlace = cd['empresa_selector']
+                            proyecto_enlace = _proyecto_para_empresa(empresa_enlace, nuevo)
+                            ProyectoPeriodo.objects.create(
+                                proyecto=proyecto_enlace,
+                                periodo=periodo_enlace,
+                                alumno=alumno,
+                                sede=sede_obj,
+                                created_at=timezone.now(),
+                                updated_at=timezone.now(),
+                            )
+                        elif rol == 'tutor_udd':
+                            sede_obj = Sede.objects.filter(id=cd['sede_id']).first() if cd['sede_id'] else None
+                            TutorUdd.objects.create(
+                                id=nuevo,
+                                sede=sede_obj,
+                                departamento=cd['departamento'] or None,
+                                created_at=timezone.now(),
+                            )
+                        elif rol == 'tutor_empresa':
+                            empresa_obj = Empresa.objects.filter(id=cd['empresa_id']).first()
+                            TutorEmpresa.objects.create(
+                                id=nuevo,
+                                empresa=empresa_obj,
+                                cargo=cd['cargo'] or None,
+                                created_at=timezone.now(),
+                            )
                     saved_ok = True
-                except Exception as exc:
-                    error = f'Error al crear usuario: {exc}'
+                except IntegrityError:
+                    # La transacción ya hizo rollback: la plataforma sigue estable.
+                    messages.error(
+                        request,
+                        'No se pudo crear el usuario: faltan datos obligatorios del perfil o se '
+                        'produjo un conflicto de integridad. No se guardó ningún registro.'
+                    )
+                    return redirect('gestionar_usuarios')
 
         elif action == 'cambiar_password':
             usuario_id = request.POST.get('usuario_id', '').strip()
@@ -3337,11 +4281,13 @@ def gestionar_usuarios_view(request):
 def exportar_empresas_view(request):
     q = (request.GET.get('q') or '').strip()
     rubro_filter = (request.GET.get('rubro') or '').strip().lower()
+    # Aislamiento de período respetando el Modo Auditoría del administrador.
+    periodo, _ = _periodo_contextual(request)
 
     qs = (
         Empresa.objects.annotate(
-            practicantes_count=Count('proyecto__proyectoperiodo', filter=Q(proyecto__proyectoperiodo__alumno__isnull=False), distinct=True),
-            proyectos_count=Count('proyecto', distinct=True),
+            practicantes_count=Count('proyecto__proyectoperiodo', filter=Q(proyecto__proyectoperiodo__alumno__isnull=False, proyecto__proyectoperiodo__periodo=periodo), distinct=True),
+            proyectos_count=Count('proyecto', filter=Q(proyecto__proyectoperiodo__periodo=periodo), distinct=True),
         ).order_by('nombre')
     )
     if q:
@@ -3349,13 +4295,12 @@ def exportar_empresas_view(request):
     if rubro_filter:
         qs = qs.filter(rubro__icontains=rubro_filter)
 
-    headers = ['Empresa', 'Rubro', 'Presencia', 'Tamaño', 'eNPS', 'Alumnos', 'Proyectos', 'Contacto', 'Email contacto']
+    headers = ['Empresa', 'Rubro', 'Presencia', 'eNPS', 'Alumnos', 'Proyectos', 'Contacto', 'Email contacto']
     rows = [
         [
             e.nombre or '',
             e.rubro or '',
             e.presencia or '',
-            e.tamano or '',
             e.enps_score or '',
             e.practicantes_count,
             e.proyectos_count,
@@ -3365,6 +4310,183 @@ def exportar_empresas_view(request):
         for e in qs
     ]
     return _xlsx_response('empresas.xlsx', 'Empresas', headers, rows)
+
+
+# Perfilamiento progresivo de la carga de empresas. Obligatorias: no pueden ir
+# vacías (se valida fila a fila). Opcionales: pueden quedar en blanco (se guardan
+# como nulo). En la plantilla, las opcionales llevan el sufijo "(opcional)" en el
+# encabezado; la importación lo normaliza al leer.
+EMPRESA_IMPORT_OBLIGATORIAS = ['nombre', 'rubro', 'ubicacion', 'contacto_nombre', 'contacto_email']
+EMPRESA_IMPORT_OPCIONALES = ['presencia', 'descripcion']
+
+
+def empresas_plantilla_view(request):
+    """Descarga una plantilla Excel (.xlsx) vacía con los encabezados de Empresa.
+
+    La primera fila trae los encabezados exactos que espera la importación: los
+    obligatorios tal cual (nombre, rubro, ubicacion, contacto_nombre,
+    contacto_email) y los dos opcionales rotulados como presencia (opcional) y
+    descripcion (opcional).
+    """
+    encabezados = list(EMPRESA_IMPORT_OBLIGATORIAS) + [f'{col} (opcional)' for col in EMPRESA_IMPORT_OPCIONALES]
+    return _xlsx_response('plantilla_empresas.xlsx', 'Empresas', encabezados, [])
+
+
+def empresas_import_view(request):
+    """Importación masiva de empresas desde un archivo Excel (.xlsx).
+
+    Perfilamiento progresivo: si falta cualquier campo obligatorio en una fila, esa
+    fila se omite y suma a los errores de validación; presencia y descripcion pueden
+    venir vacías y la fila se procesa igual (se guardan como nulo). Valida el formato
+    con cuidado, descarta duplicados por nombre o correo con un set por campo e
+    inserta en bloque con bulk_create. Termina en Empresas con un resumen detallado.
+    """
+    import openpyxl
+
+    user_rol = _get_user_rol(request)
+    _, periodo_label = _periodo_activo()
+
+    if request.method == 'POST':
+        if getattr(request.user, 'rol', None) != 'admin':
+            return HttpResponseForbidden('No tienes permisos para importar empresas.')
+
+        archivo = request.FILES.get('archivo')
+        if archivo is None:
+            messages.error(request, 'Selecciona un archivo Excel (.xlsx) para importar.')
+            return redirect('empresas_import')
+        if not archivo.name.lower().endswith('.xlsx'):
+            messages.error(request, 'El archivo debe tener formato Excel (.xlsx). Sube el archivo original sin convertirlo.')
+            return redirect('empresas_import')
+
+        try:
+            wb = openpyxl.load_workbook(archivo, data_only=True, read_only=True)
+            ws = wb.active
+        except Exception:
+            messages.error(request, 'No se pudo leer el archivo: parece dañado o no es un Excel válido. Revísalo e inténtalo de nuevo.')
+            return redirect('empresas_import')
+
+        header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), None)
+        if not header_row or all(c is None for c in header_row):
+            messages.error(request, 'El archivo está vacío o no tiene encabezados en la primera fila.')
+            return redirect('empresas_import')
+
+        # Normaliza encabezados: minúsculas, sin espacios y sin el sufijo "(opcional)"
+        # de la plantilla, de modo que "presencia (opcional)" mapee a presencia.
+        headers = [str(c or '').strip().lower().replace('(opcional)', '').strip() for c in header_row]
+        col_idx = {h: i for i, h in enumerate(headers) if h}
+        faltan_columnas = [col for col in EMPRESA_IMPORT_OBLIGATORIAS if col not in col_idx]
+        if faltan_columnas:
+            messages.error(
+                request,
+                'Faltan columnas obligatorias en la primera fila: %s. Descarga la plantilla y úsala como base.'
+                % ', '.join(faltan_columnas),
+            )
+            return redirect('empresas_import')
+
+        # Deduplicación eficiente: un set por campo, cargados con una sola consulta.
+        nombres_existentes = {n.strip().lower() for n in Empresa.objects.values_list('nombre', flat=True) if n}
+        correos_existentes = {c.strip().lower() for c in Empresa.objects.values_list('contacto_email', flat=True) if c}
+        nombres_vistos = set()
+        correos_vistos = set()
+
+        presencias_validas = ('chile', 'multinacional')
+
+        def cell(row, name):
+            idx = col_idx.get(name)
+            if idx is None or idx >= len(row):
+                return ''
+            value = row[idx]
+            return str(value).strip() if value is not None else ''
+
+        def limpiar_opcional(valor):
+            """Saneo de campos opcionales: cadena vacía, solo espacios o nan -> None;
+            si hay valor real, se devuelve sin espacios a los extremos."""
+            texto = (valor or '').strip()
+            if not texto or texto.lower() == 'nan':
+                return None
+            return texto
+
+        nuevas = []
+        omitidas_invalidas = 0
+        omitidas_duplicadas = 0
+
+        try:
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row is None or all(c is None or str(c).strip() == '' for c in row):
+                    continue
+
+                # ── Validación estricta: todo campo obligatorio debe venir con valor ──
+                if any(not cell(row, col) for col in EMPRESA_IMPORT_OBLIGATORIAS):
+                    omitidas_invalidas += 1
+                    continue
+
+                nombre = cell(row, 'nombre')
+                correo = cell(row, 'contacto_email').lower()
+                clave_nombre = nombre.lower()
+                es_duplicado = (
+                    clave_nombre in nombres_existentes or clave_nombre in nombres_vistos
+                    or correo in correos_existentes or correo in correos_vistos
+                )
+                if es_duplicado:
+                    omitidas_duplicadas += 1
+                    continue
+                nombres_vistos.add(clave_nombre)
+                correos_vistos.add(correo)
+
+                # ── Saneamiento de los opcionales antes de insertar ──
+                # Una cadena vacía, de solo espacios o un nan se transforma
+                # estrictamente a None. Es imprescindible para presencia, que en
+                # PostgreSQL es un tipo enumerado (presencia_empresa) y rechaza ''
+                # por no ser una etiqueta válida; solo acepta None o uno de sus valores.
+                presencia = limpiar_opcional(cell(row, 'presencia'))
+                if presencia is not None:
+                    presencia = presencia.lower()
+                    if presencia not in presencias_validas:
+                        presencia = None
+                descripcion = limpiar_opcional(cell(row, 'descripcion'))
+
+                nuevas.append(Empresa(
+                    nombre=nombre[:255],
+                    rubro=cell(row, 'rubro')[:150],
+                    ubicacion=cell(row, 'ubicacion')[:255],
+                    presencia=presencia,
+                    descripcion=descripcion,
+                    contacto_nombre=cell(row, 'contacto_nombre')[:150],
+                    contacto_email=cell(row, 'contacto_email')[:254],
+                    is_active=True,
+                ))
+        except Exception:
+            messages.error(request, 'El archivo tiene un formato inesperado y no se pudo procesar por completo. Revísalo con la plantilla oficial.')
+            return redirect('empresas_import')
+
+        # Inserción fila a fila (no en bloque). bulk_create con varias filas usa un
+        # camino con UNNEST que tipa la columna como text[], incompatible con el tipo
+        # enumerado presencia_empresa de PostgreSQL; el insert individual sí lo acepta.
+        # Cada fila va en su propio savepoint para que un error aislado no tumbe el lote.
+        creadas = 0
+        fallidas = 0
+        for empresa_obj in nuevas:
+            try:
+                with transaction.atomic():
+                    empresa_obj.save(force_insert=True)
+                creadas += 1
+            except Exception:
+                fallidas += 1
+
+        resumen = (
+            'Importación finalizada. %d empresa(s) creada(s), %d omitida(s) por duplicidad y '
+            '%d omitida(s) por campos obligatorios vacíos.'
+            % (creadas, omitidas_duplicadas, omitidas_invalidas)
+        )
+        if fallidas:
+            resumen += ' %d fila(s) no se pudieron guardar por un error de datos.' % fallidas
+        messages.success(request, resumen)
+        return redirect('empresas')
+
+    return render(request, 'pages/empresas_import.html', {
+        'user_rol': user_rol,
+        'periodo_label': periodo_label,
+    })
 
 
 @require_roles()

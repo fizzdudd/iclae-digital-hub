@@ -23,6 +23,11 @@
             width: 100%;
             max-width: 420px;
             overflow: hidden;
+            /* Capa de composición propia: el recorte de las esquinas se renderiza
+               suavizado y desaparece el aserrado en pantallas de alta densidad. */
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
         }
 
         .login-header {
@@ -31,6 +36,10 @@
             display: flex;
             align-items: center;
             gap: 14px;
+            /* Las esquinas superiores redondean en el propio encabezado para que su
+               degradado llene el vértice y no asome el blanco de la tarjeta detrás. */
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
         }
         .logo-mark {
             width: 44px;

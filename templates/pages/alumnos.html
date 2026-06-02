@@ -8,9 +8,26 @@
 <style>
     .iv-topbar-export { text-decoration:none; display:flex; align-items:center; gap:5px; }
     .iv-export-icon { width:12px; height:12px; }
-    /* Columnas específicas de la tabla de alumnos */
-    .cols-alumnos { grid-template-columns:40px 1fr 190px 180px 110px; }
+    /* Columnas específicas de la tabla de alumnos (última columna: acciones) */
+    .cols-alumnos { grid-template-columns:40px 1fr 190px 180px 110px 84px; }
     @media (max-width:1080px) { .cols-alumnos { grid-template-columns:40px 1fr; } }
+    /* Con el filtro Sin Asignar activo, la columna de acciones se ensancha para el
+       botón de acción rápida y se mantiene siempre visible. */
+    .cols-alumnos--asignar { grid-template-columns:40px 1fr 190px 180px 110px 150px; }
+    @media (max-width:1080px) { .cols-alumnos--asignar { grid-template-columns:40px 1fr; } }
+    .cols-alumnos--asignar .iv-actions { opacity:1; }
+
+    /* Pestañas por estado de asignación */
+    .al-tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+    .al-tab { display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:999px; border:1.5px solid var(--border); background:#fff; font-size:12.5px; font-weight:700; color:var(--text-secondary); text-decoration:none; transition:background .15s, border-color .15s, color .15s; }
+    .al-tab:hover { border-color:#93c5fd; color:var(--blue-700); }
+    .al-tab.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+    .al-tab__badge { font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:999px; background:var(--amber-100); color:var(--amber-700); }
+    .al-tab.active .al-tab__badge { background:rgba(255,255,255,0.25); color:#fff; }
+
+    /* Botón de acción rápida: Asignar empresa */
+    .al-assign-btn { height:30px; padding:0 12px; border:none; border-radius:var(--radius-md); background:var(--blue-600); color:#fff; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+    .al-assign-btn:hover { background:var(--blue-700); }
 </style>
 {% endblock %}
 
@@ -64,18 +81,26 @@
     </div>
 </form>
 
+<!-- 2b) Pestañas por estado de asignación en el período -->
+<div class="al-tabs">
+    <a class="al-tab {% if not filters.estado %}active{% endif %}" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}">Todos</a>
+    <a class="al-tab {% if filters.estado == 'asignados' %}active{% endif %}" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&estado=asignados">Con Empresa</a>
+    <a class="al-tab {% if filters.estado == 'sin_asignar' %}active{% endif %}" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&estado=sin_asignar">Sin Asignar{% if sin_asignar_count %}<span class="al-tab__badge">{{ sin_asignar_count }}</span>{% endif %}</a>
+</div>
+
 <!-- 3) Tabla de resultados -->
 <div class="iv-table">
-    <div class="iv-thead cols-alumnos">
+    <div class="iv-thead cols-alumnos {% if filters.estado == 'sin_asignar' %}cols-alumnos--asignar{% endif %}">
         <div></div>
         <div class="iv-th">Alumno</div>
         <div class="iv-th">Carrera</div>
         <div class="iv-th">Sede · Empresa</div>
         <div class="iv-th">Perfil</div>
+        <div class="iv-th right">Acciones</div>
     </div>
 
     {% for a in alumnos %}
-    <div class="iv-row cols-alumnos clickable" onclick="openDetail('{{ a.id }}')">
+    <div class="iv-row cols-alumnos {% if filters.estado == 'sin_asignar' %}cols-alumnos--asignar{% endif %} clickable" onclick="openDetail('{{ a.id }}')">
         <div class="iv-logo {% cycle 'c1' 'c2' 'c3' 'c4' 'c5' %}">{{ a.initials }}</div>
         <div class="iv-cell-title">
             <div class="iv-cell-main">{{ a.nombre }}</div>
@@ -84,11 +109,28 @@
         <div><span class="iv-badge cat-carrera">{{ a.carrera }}</span></div>
         <div class="iv-stack">
             <span class="iv-badge neutral">{{ a.sede }}</span>
-            {% if a.empresa %}<span class="iv-badge success">{{ a.empresa }}</span>{% else %}<span class="iv-cell-muted">Sin empresa</span>{% endif %}
+            {% if a.empresa %}<span class="iv-badge success">{{ a.empresa }}</span>{% else %}<span class="iv-cell-muted">Sin asignar</span>{% endif %}
         </div>
         <div>
             <div class="iv-progress"><div class="iv-progress__fill" style="--pct:{{ a.profile_pct }}%"></div></div>
             <div class="iv-cell-muted">{{ a.profile_pct }}%</div>
+        </div>
+        <div class="iv-actions" onclick="event.stopPropagation()">
+            {% if user_rol == 'admin' %}
+            {% if filters.estado == 'sin_asignar' %}
+            <button type="button" class="al-assign-btn" onclick="abrirAlumnoEditar('{{ a.id }}')">Asignar Empresa</button>
+            {% endif %}
+            <button type="button" class="iv-act-btn iv-act-btn--edit" title="Editar" aria-label="Editar alumno" onclick="abrirAlumnoEditar('{{ a.id }}')">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+            </button>
+            <form method="post" action="{% url 'alumno_eliminar' %}" onsubmit="return confirm('¿Eliminar al alumno {{ a.nombre|escapejs }}? Esta acción no se puede deshacer.');">
+                {% csrf_token %}
+                <input type="hidden" name="alumno_id" value="{{ a.id }}">
+                <button type="submit" class="iv-act-btn iv-act-btn--del" title="Eliminar" aria-label="Eliminar alumno">
+                    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
     {% empty %}
@@ -98,9 +140,9 @@
 
 {% if page_obj and page_obj.paginator.num_pages > 1 %}
 <div class="iv-pagination">
-    {% if page_obj.has_previous %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.previous_page_number }}">‹</a>{% endif %}
-    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="iv-page current">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ num }}">{{ num }}</a>{% endif %}{% endfor %}
-    {% if page_obj.has_next %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&page={{ page_obj.next_page_number }}">›</a>{% endif %}
+    {% if page_obj.has_previous %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&estado={{ filters.estado }}&page={{ page_obj.previous_page_number }}">‹</a>{% endif %}
+    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="iv-page current">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&estado={{ filters.estado }}&page={{ num }}">{{ num }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a class="iv-page" href="?q={{ filters.q }}&carrera={{ filters.carrera }}&sede={{ filters.sede }}&estado={{ filters.estado }}&page={{ page_obj.next_page_number }}">›</a>{% endif %}
     <span class="iv-page-info">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ alumnos_count }}</span>
 </div>
 {% endif %}
@@ -113,6 +155,65 @@
         <button class="iv-detail__close" onclick="closeDetail()">×</button>
     </div>
     <div id="detailContent" class="iv-detail__body"></div>
+</div>
+
+<!-- Modal: Editar Alumno -->
+<div class="nt-modal" id="alumnoEditModal">
+    <div class="nt-modal__backdrop" onclick="cerrarAlumnoEditar()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="alumnoEditTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="alumnoEditTitle">Editar alumno</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarAlumnoEditar()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="{% url 'alumno_editar' %}">
+            {% csrf_token %}
+            <input type="hidden" name="alumno_id" id="ae-id">
+            <div class="nt-modal__body">
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ae-nombre">Nombre</label>
+                        <input class="nt-input" type="text" id="ae-nombre" name="nombre" maxlength="150" required>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ae-apellido">Apellido</label>
+                        <input class="nt-input" type="text" id="ae-apellido" name="apellido" maxlength="150">
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ae-email">Email</label>
+                    <input class="nt-input" type="email" id="ae-email" name="email" maxlength="254" required>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ae-carrera">Carrera</label>
+                        <select class="nt-select" id="ae-carrera" name="carrera_id">
+                            <option value="">Sin carrera</option>
+                            {% for ca in carreras_select %}<option value="{{ ca.id }}">{{ ca.nombre }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ae-sede">Sede</label>
+                        <select class="nt-select" id="ae-sede" name="sede_id">
+                            <option value="">Sin sede</option>
+                            {% for se in sedes_select %}<option value="{{ se.id }}">{{ se.nombre }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ae-generacion">Generación</label>
+                        <input class="nt-input" type="number" id="ae-generacion" name="generacion" min="2000" max="2100">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ae-matricula">Matrícula</label>
+                        <input class="nt-input" type="text" id="ae-matricula" name="matricula" maxlength="30">
+                    </div>
+                </div>
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarAlumnoEditar()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
@@ -128,6 +229,12 @@ const _alumnosData = {
         sede: "{{ a.sede|escapejs }}",
         empresa: "{{ a.empresa|escapejs }}",
         generacion: "{{ a.generacion|escapejs }}",
+        nombrePila: "{{ a.nombre_pila|escapejs }}",
+        apellido: "{{ a.apellido|escapejs }}",
+        carreraId: "{{ a.carrera_id }}",
+        sedeId: "{{ a.sede_id }}",
+        generacionRaw: "{{ a.generacion_raw }}",
+        matricula: "{{ a.matricula|escapejs }}",
         profilePct: {{ a.profile_pct }},
         linkedin: {{ a.linkedin_ok|lower }},
         cv: {{ a.cv_ok|lower }},
@@ -182,6 +289,22 @@ function _row(label, value) {
     return `<div class="iv-d-row"><span class="iv-d-row__k">${label}</span><span class="iv-d-row__v">${value}</span></div>`;
 }
 
+// ── Modal Editar Alumno ──
+function abrirAlumnoEditar(id) {
+    const a = _alumnosData[id];
+    if (!a) return;
+    document.getElementById('ae-id').value = id;
+    document.getElementById('ae-nombre').value = a.nombrePila || '';
+    document.getElementById('ae-apellido').value = a.apellido || '';
+    document.getElementById('ae-email').value = a.email || '';
+    document.getElementById('ae-carrera').value = a.carreraId || '';
+    document.getElementById('ae-sede').value = a.sedeId || '';
+    document.getElementById('ae-generacion').value = a.generacionRaw || '';
+    document.getElementById('ae-matricula').value = a.matricula || '';
+    document.getElementById('alumnoEditModal').classList.add('open');
+}
+function cerrarAlumnoEditar() { document.getElementById('alumnoEditModal').classList.remove('open'); }
+
 function submitFilters() { document.getElementById('filterForm').submit(); }
 function setPill(field, val) {
     document.getElementById('h_' + field).value = val;
@@ -192,6 +315,6 @@ function scheduleSearch() {
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(submitFilters, 600);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); cerrarAlumnoEditar(); } });
 </script>
 {% endblock %}

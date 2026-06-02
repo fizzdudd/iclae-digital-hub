@@ -2,7 +2,7 @@
 
 {% block title %}Empresas{% endblock %}
 {% block page_title %}Empresas{% endblock %}
-{% block topbar_actions %}<a href="{% url 'exportar_empresas' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a>{% if user_rol == 'admin' %}<button type="button" class="nt-new-btn" onclick="abrirEmpresaModal()">+ Nueva Empresa</button>{% endif %}{% endblock %}
+{% block topbar_actions %}<a href="{% url 'exportar_empresas' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a>{% if user_rol == 'admin' %}<a href="{% url 'empresas_import' %}" class="topbar-btn">Importar Empresas</a><button type="button" class="nt-new-btn" onclick="abrirEmpresaModal()">+ Nueva Empresa</button>{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -13,8 +13,8 @@
     .iv-d-cta:hover { background:var(--blue-700); }
     .iv-d-proj { text-decoration:none; }
     .iv-d-proj:hover { border-color:#93c5fd; background:var(--blue-50); }
-    /* Columnas específicas de la tabla de empresas */
-    .cols-empresas { grid-template-columns:40px 1fr 230px 210px 84px; }
+    /* Columnas específicas de la tabla de empresas (última columna: acciones) */
+    .cols-empresas { grid-template-columns:40px 1fr 230px 210px 84px 84px; }
     @media (max-width:1080px) { .cols-empresas { grid-template-columns:40px 1fr; } }
 </style>
 {% endblock %}
@@ -30,16 +30,14 @@
     </div>
     <div class="iv-kpi">
         <div class="iv-kpi__label">eNPS promedio</div>
-        <div class="iv-kpi__value accent">{{ enps_avg }}</div>
-        <div class="iv-kpi__sub">Pulso real de las empresas</div>
+        <div class="iv-kpi__value accent">{{ enps_avg|default_if_none:'—' }}</div>
+        <div class="iv-kpi__sub">{% if enps_avg is None %}Sin evaluaciones en el período{% else %}Pulso real de las empresas{% endif %}</div>
     </div>
 </div>
 
 <!-- 2) Filtros + buscador -->
 <form id="filterForm" method="get">
     <input type="hidden" id="h_presencia" name="presencia" value="{{ filters.presencia }}">
-    <input type="hidden" id="h_tamano" name="tamano" value="{{ filters.tamano }}">
-    <input type="hidden" id="h_campus" name="campus" value="{{ filters.campus }}">
 
     <div class="iv-filters">
         <div class="iv-search">
@@ -63,25 +61,6 @@
             </div>
         </div>
 
-        <div class="iv-filter-group">
-            <span class="iv-filter-label">Tamaño</span>
-            <div class="iv-pills">
-                <button type="button" class="iv-pill {% if not filters.tamano %}active{% endif %}" onclick="setPill('tamano','')">Todos</button>
-                <button type="button" class="iv-pill {% if filters.tamano == 'grande' %}active{% endif %}" onclick="setPill('tamano','grande')">Grande</button>
-                <button type="button" class="iv-pill {% if filters.tamano == 'mediana' %}active{% endif %}" onclick="setPill('tamano','mediana')">Mediana</button>
-                <button type="button" class="iv-pill {% if 'peque' in filters.tamano %}active{% endif %}" onclick="setPill('tamano','peque')">Pequeña</button>
-            </div>
-        </div>
-
-        <div class="iv-filter-group">
-            <span class="iv-filter-label">Campus</span>
-            <div class="iv-pills">
-                <button type="button" class="iv-pill {% if not filters.campus %}active{% endif %}" onclick="setPill('campus','')">Todos</button>
-                <button type="button" class="iv-pill {% if filters.campus == 'santiago' %}active{% endif %}" onclick="setPill('campus','santiago')">Santiago</button>
-                <button type="button" class="iv-pill {% if filters.campus == 'concepcion' or filters.campus == 'concepción' %}active{% endif %}" onclick="setPill('campus','concepcion')">Concepción</button>
-            </div>
-        </div>
-
         <select class="iv-select" name="sort" onchange="submitFilters()" aria-label="Ordenar">
             <option value="practicantes" {% if filters.sort == 'practicantes' or not filters.sort %}selected{% endif %}>Más practicantes</option>
             <option value="enps" {% if filters.sort == 'enps' %}selected{% endif %}>Mejor eNPS</option>
@@ -90,7 +69,7 @@
         </select>
 
         <span class="iv-filters__meta">{{ empresas_count }} empresa{{ empresas_count|pluralize }}</span>
-        {% if filters.q or filters.rubro or filters.presencia or filters.tamano or filters.campus %}
+        {% if filters.q or filters.rubro or filters.presencia %}
         <a href="?" class="iv-clear">✕ Limpiar</a>
         {% endif %}
     </div>
@@ -104,6 +83,7 @@
         <div class="iv-th">Características</div>
         <div class="iv-th center">Alumnos · Proyectos · Tutores</div>
         <div class="iv-th right">eNPS</div>
+        <div class="iv-th right">Acciones</div>
     </div>
 
     {% for e in empresas %}
@@ -114,7 +94,6 @@
             <div class="iv-stack">
                 <span class="iv-badge cat-{{ e.rubro_class }}">{{ e.rubro }}</span>
             </div>
-            <div class="iv-cell-sub">{{ e.campus }}</div>
         </div>
         <div class="iv-stack">
             {% if 'multinacional' in e.presencia|lower %}
@@ -122,20 +101,33 @@
             {% else %}
                 <span class="iv-badge neutral">🇨🇱 {{ e.presencia }}</span>
             {% endif %}
-            {% if e.tamano %}<span class="iv-badge neutral">{{ e.tamano }}</span>{% endif %}
         </div>
         <div class="iv-stats">
-            <div class="iv-stat"><div class="iv-stat__v">{{ e.practicantes }}</div><div class="iv-stat__l">Alumnos</div></div>
-            <div class="iv-stat"><div class="iv-stat__v">{{ e.proyectos }}</div><div class="iv-stat__l">Proyectos</div></div>
-            <div class="iv-stat"><div class="iv-stat__v">{{ e.tutores }}</div><div class="iv-stat__l">Tutores</div></div>
+            <div class="iv-stat"><div class="iv-stat__v">{{ e.practicantes }}</div></div>
+            <div class="iv-stat"><div class="iv-stat__v">{{ e.proyectos }}</div></div>
+            <div class="iv-stat"><div class="iv-stat__v">{{ e.tutores }}</div></div>
         </div>
         <div class="iv-enps">
-            {% if e.enps %}
+            {% if e.enps is not None %}
                 <div class="iv-enps__v {% if e.enps >= 9 %}high{% elif e.enps >= 7 %}mid{% endif %}">{{ e.enps }}</div>
             {% else %}
                 <div class="iv-enps__v none">—</div>
             {% endif %}
             <div class="iv-enps__l">eNPS</div>
+        </div>
+        <div class="iv-actions" onclick="event.stopPropagation()">
+            {% if user_rol == 'admin' %}
+            <button type="button" class="iv-act-btn iv-act-btn--edit" title="Editar" aria-label="Editar empresa" onclick="abrirEmpresaEditar({{ e.id }})">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+            </button>
+            <form method="post" action="{% url 'empresa_eliminar' %}" onsubmit="return confirm('¿Eliminar la empresa {{ e.nombre|escapejs }}? Esta acción no se puede deshacer.');">
+                {% csrf_token %}
+                <input type="hidden" name="empresa_id" value="{{ e.id }}">
+                <button type="submit" class="iv-act-btn iv-act-btn--del" title="Eliminar" aria-label="Eliminar empresa">
+                    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
     {% empty %}
@@ -145,9 +137,9 @@
 
 {% if page_obj and page_obj.paginator.num_pages > 1 %}
 <div class="iv-pagination">
-    {% if page_obj.has_previous %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&tamano={{ filters.tamano }}&campus={{ filters.campus }}&sort={{ filters.sort }}&page={{ page_obj.previous_page_number }}">‹</a>{% endif %}
-    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="iv-page current">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&tamano={{ filters.tamano }}&campus={{ filters.campus }}&sort={{ filters.sort }}&page={{ num }}">{{ num }}</a>{% endif %}{% endfor %}
-    {% if page_obj.has_next %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&tamano={{ filters.tamano }}&campus={{ filters.campus }}&sort={{ filters.sort }}&page={{ page_obj.next_page_number }}">›</a>{% endif %}
+    {% if page_obj.has_previous %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&sort={{ filters.sort }}&page={{ page_obj.previous_page_number }}">‹</a>{% endif %}
+    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="iv-page current">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&sort={{ filters.sort }}&page={{ num }}">{{ num }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&sort={{ filters.sort }}&page={{ page_obj.next_page_number }}">›</a>{% endif %}
     <span class="iv-page-info">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ empresas_count }}</span>
 </div>
 {% endif %}
@@ -188,15 +180,6 @@
                         <input class="nt-input" type="text" id="em-ubic" name="ubicacion" maxlength="255" placeholder="Ej: Santiago">
                     </div>
                     <div class="nt-field">
-                        <label class="nt-field__label" for="em-tam">Tamaño</label>
-                        <select class="nt-select" id="em-tam" name="tamano">
-                            <option value="">Sin definir</option>
-                            <option value="pequeña">Pequeña</option>
-                            <option value="mediana">Mediana</option>
-                            <option value="grande">Grande</option>
-                        </select>
-                    </div>
-                    <div class="nt-field">
                         <label class="nt-field__label" for="em-pres">Presencia</label>
                         <select class="nt-select" id="em-pres" name="presencia">
                             <option value="">Sin definir</option>
@@ -227,6 +210,63 @@
         </form>
     </div>
 </div>
+
+<!-- Modal: Editar Empresa -->
+<div class="nt-modal" id="empresaEditModal">
+    <div class="nt-modal__backdrop" onclick="cerrarEmpresaEditar()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="empresaEditTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="empresaEditTitle">Editar empresa</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarEmpresaEditar()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="{% url 'empresa_editar' %}">
+            {% csrf_token %}
+            <input type="hidden" name="empresa_id" id="ed-id">
+            <div class="nt-modal__body">
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ed-nombre">Nombre</label>
+                    <input class="nt-input" type="text" id="ed-nombre" name="nombre" maxlength="255" required>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-rubro">Rubro</label>
+                        <input class="nt-input" type="text" id="ed-rubro" name="rubro" maxlength="150">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-ubic">Ubicación</label>
+                        <input class="nt-input" type="text" id="ed-ubic" name="ubicacion" maxlength="255">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-pres">Presencia</label>
+                        <select class="nt-select" id="ed-pres" name="presencia">
+                            <option value="">Sin definir</option>
+                            <option value="chile">Solo Chile</option>
+                            <option value="multinacional">Multinacional</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ed-desc">Descripción</label>
+                    <textarea class="nt-textarea" id="ed-desc" name="descripcion"></textarea>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-cn">Contacto (nombre)</label>
+                        <input class="nt-input" type="text" id="ed-cn" name="contacto_nombre" maxlength="150">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-ce">Contacto (email)</label>
+                        <input class="nt-input" type="email" id="ed-ce" name="contacto_email" maxlength="254">
+                    </div>
+                </div>
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarEmpresaEditar()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -237,10 +277,10 @@ const _empresasData = {
         nombre: "{{ e.nombre|escapejs }}",
         initials: "{{ e.initials }}",
         rubro: "{{ e.rubro|escapejs }}",
+        rubroRaw: "{{ e.rubro_raw|escapejs }}",
         presencia: "{{ e.presencia|escapejs }}",
-        tamano: "{{ e.tamano|escapejs }}",
-        campus: "{{ e.campus|escapejs }}",
-        enps: {{ e.enps }},
+        presenciaRaw: "{{ e.presencia_raw|escapejs }}",
+        enps: {{ e.enps|default_if_none:'null' }},
         proyectos: {{ e.proyectos }},
         practicantes: {{ e.practicantes }},
         tutores: {{ e.tutores }},
@@ -274,9 +314,7 @@ function openDetail(id) {
             <div class="iv-d-stat"><div class="iv-d-stat__v">${e.tutores}</div><div class="iv-d-stat__l">Tutores</div></div>
         </div>
         <div class="iv-d-rows">
-            ${_row('Sede', e.campus)}
             ${_row('Presencia', e.presencia)}
-            ${_row('Tamaño', e.tamano)}
             ${e.empleados ? _row('Empleados', e.empleados) : ''}
             ${e.ubicacion ? _row('Ubicación', e.ubicacion) : ''}
             ${e.enps ? _row('eNPS', e.enps) : ''}
@@ -330,6 +368,22 @@ function _proyectoRow(p) {
 function abrirEmpresaModal() { document.getElementById('empresaModal').classList.add('open'); }
 function cerrarEmpresaModal() { document.getElementById('empresaModal').classList.remove('open'); }
 
+// ── Modal Editar Empresa ──
+function abrirEmpresaEditar(id) {
+    const e = _empresasData[id];
+    if (!e) return;
+    document.getElementById('ed-id').value = id;
+    document.getElementById('ed-nombre').value = e.nombre || '';
+    document.getElementById('ed-rubro').value = e.rubroRaw || '';
+    document.getElementById('ed-ubic').value = e.ubicacion || '';
+    document.getElementById('ed-pres').value = e.presenciaRaw || '';
+    document.getElementById('ed-desc').value = e.descripcion || '';
+    document.getElementById('ed-cn').value = e.contactoNombre || '';
+    document.getElementById('ed-ce').value = e.contactoEmail || '';
+    document.getElementById('empresaEditModal').classList.add('open');
+}
+function cerrarEmpresaEditar() { document.getElementById('empresaEditModal').classList.remove('open'); }
+
 function submitFilters() { document.getElementById('filterForm').submit(); }
 function setPill(field, val) {
     document.getElementById('h_' + field).value = val;
@@ -340,6 +394,6 @@ function scheduleSearch() {
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(submitFilters, 600);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); cerrarEmpresaModal(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); cerrarEmpresaModal(); cerrarEmpresaEditar(); } });
 </script>
 {% endblock %}

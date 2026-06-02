@@ -30,10 +30,6 @@
     .filter-chip:hover { background:var(--blue-50); border-color:#93c5fd; color:var(--blue-700); }
     .filter-chip.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
 
-    /* ── PAGE HEADER ── */
-    .page-header { margin-bottom:20px; }
-    .page-header-sub { font-size:13.5px; font-weight:600; color:var(--text-secondary); }
-
     /* ── KPIs ── */
     .kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
     .kpi { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
@@ -76,7 +72,12 @@
     .btn-postular { background:var(--blue-600); color:#fff; }
     .btn-postular:hover { background:var(--blue-700); }
     .btn-cerrado { background:#f1f5f9; color:#94a3b8; cursor:default; }
-    .btn-count { background:var(--blue-50); color:var(--blue-700); cursor:default; }
+
+    /* Color de KPIs (sin estilos en línea) */
+    .kpi-v--green { color:var(--green-700); }
+    .kpi-v--violet { color:var(--violet-700); }
+    /* Separador horizontal del panel de filtros */
+    .filter-divider-h { height:1px; background:var(--border); margin:0 -18px; }
 
     /* ── MIS POSTULACIONES ── */
     .pipeline-list { display:grid; gap:10px; }
@@ -105,14 +106,10 @@
 
 {% block content %}
 
-<div class="page-header">
-    <div class="page-header-sub">Portal de oportunidades profesionales y vinculación empresarial</div>
-</div>
-
 <div class="kpis">
     <div class="kpi"><div class="kpi-l">Vacantes totales</div><div class="kpi-v">{{ vacantes_count }}</div></div>
-    <div class="kpi"><div class="kpi-l">Vacantes abiertas</div><div class="kpi-v" style="color:var(--green-700);">{{ vacantes_abiertas }}</div></div>
-    <div class="kpi"><div class="kpi-l">Mis postulaciones</div><div class="kpi-v" style="color:var(--violet-700);">{{ mis_postulaciones_count }}</div></div>
+    <div class="kpi"><div class="kpi-l">Vacantes abiertas</div><div class="kpi-v kpi-v--green">{{ vacantes_abiertas }}</div></div>
+    <div class="kpi"><div class="kpi-l">Mis postulaciones</div><div class="kpi-v kpi-v--violet">{{ mis_postulaciones_count }}</div></div>
 </div>
 
 <form id="filterForm" method="get">
@@ -144,7 +141,7 @@
                 <button type="button" class="filter-chip {% if filters.modalidad == 'remoto' %}active{% endif %}" data-modalidad="remoto" onclick="setF('modalidad','remoto',this)">Remoto</button>
             </div>
         </div>
-        <div style="height:1px;background:var(--border);margin:0 -18px;"></div>
+        <div class="filter-divider-h"></div>
         <div class="filter-group">
             <div class="filter-group-label">
                 <span class="filter-group-icon">📌</span>
@@ -190,8 +187,6 @@
                     {% else %}
                     <button class="btn btn-cerrado" disabled>Cerrado</button>
                     {% endif %}
-                {% else %}
-                    <span class="btn btn-count">{{ v.postulaciones }} postul.</span>
                 {% endif %}
             </div>
         </div>

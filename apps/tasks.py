@@ -1,15 +1,4 @@
-"""Tareas asíncronas de ICLAE Digital Hub.
-
-El envío de anuncios masivos puede alcanzar miles de destinatarios; ejecutarlo
-dentro del ciclo request/response bloquearía el servidor. Por eso se delega a
-Celery mediante `enviar_anuncio_masivo_task.delay(...)`.
-
-Tolerancia a entornos sin Celery
----------------------------------
-Si la librería `celery` no está instalada (p. ej. en la demo), se define un
-shim de `shared_task` que provee un método `.delay()` síncrono. De este modo la
-vista usa siempre la misma interfaz y nunca se rompe la integración.
-"""
+"""Tareas asíncronas: envío de anuncios masivos vía Celery (con shim si no está)."""
 
 import logging
 
@@ -23,9 +12,9 @@ logger = logging.getLogger(__name__)
 # ─── Compatibilidad con/sin Celery ───────────────────────────────────────────
 try:
     from celery import shared_task
-except Exception:  # pragma: no cover - Celery opcional en demo
+except Exception:  # pragma: no cover - Celery opcional
     def shared_task(*dargs, **dkwargs):
-        """Reemplazo mínimo de @shared_task: añade `.delay()` síncrono."""
+        """Shim de @shared_task con .delay()/.apply_async() síncronos."""
 
         def _wrap(func):
             func.delay = lambda *a, **kw: func(*a, **kw)
@@ -39,7 +28,7 @@ except Exception:  # pragma: no cover - Celery opcional en demo
         return _wrap
 
 
-# Mapeo de segmento → filtro de rol sobre el modelo Usuario.
+# Segmento → rol del modelo Usuario.
 SEGMENTOS_ROL = {
     'alumnos': 'alumno',
     'tutores_empresa': 'tutor_empresa',
@@ -47,30 +36,50 @@ SEGMENTOS_ROL = {
 }
 
 
+def destinatarios_por_segmento(segmento, periodo):
+    """Usuarios activos del segmento con participación en el período (vacío sin período)."""
+    from .models import Alumno, TutorEmpresa, TutorUdd, Usuario
+
+    if periodo is None:
+        return Usuario.objects.none()
+
+    alumno_ids = list(
+        Alumno.objects.filter(proyectoperiodo__periodo=periodo).values_list('pk', flat=True)
+    )
+    tutor_empresa_ids = list(
+        TutorEmpresa.objects.filter(proyecto_periodos__periodo=periodo).values_list('pk', flat=True)
+    )
+    tutor_udd_ids = list(
+        TutorUdd.objects.filter(proyecto_periodos__periodo=periodo).values_list('pk', flat=True)
+    )
+
+    if segmento == 'alumnos':
+        ids = alumno_ids
+    elif segmento == 'tutores_empresa':
+        ids = tutor_empresa_ids
+    elif segmento == 'tutores_udd':
+        ids = tutor_udd_ids
+    else:  # 'todos': cualquier participante del período
+        ids = alumno_ids + tutor_empresa_ids + tutor_udd_ids
+
+    return Usuario.objects.filter(is_active=True, pk__in=ids).distinct()
+
+
 @shared_task(name='apps.enviar_anuncio_masivo_task', bind=False)
 def enviar_anuncio_masivo_task(recordatorio_id, segmento, titulo, mensaje):
-    """Procesa un anuncio masivo en segundo plano.
+    """Crea notificaciones y correos para el segmento; devuelve el total enviado."""
+    from .models import Notificacion, PeriodoAcademico, RecordatorioMasivo
 
-    1. Resuelve los destinatarios según el segmento objetivo.
-    2. Crea un registro individual en la tabla `notificacion` por cada usuario.
-    3. Dispara el correo institucional con `send_mail`.
-    4. Actualiza `recordatorio_masivo.cantidad_envios` con el total real, lo que
-       marca la campaña como "Enviado" (antes era 0 = "Procesando").
-    """
-    # Import diferido para evitar dependencias circulares al cargar la app.
-    from .models import Notificacion, RecordatorioMasivo, Usuario
-
-    rol = SEGMENTOS_ROL.get(segmento)
-    destinatarios = Usuario.objects.filter(is_active=True)
-    if rol:
-        destinatarios = destinatarios.filter(rol=rol)
+    # El envío siempre usa el período activo global, nunca la previsualización de auditoría.
+    periodo = PeriodoAcademico.objects.filter(is_active=True).first()
+    destinatarios = destinatarios_por_segmento(segmento, periodo)
 
     ahora = timezone.now()
     cuerpo = mensaje or ''
     enviados = 0
 
     for usuario in destinatarios.iterator():
-        # 2) Registro individual en la tabla notificacion.
+        # Notificación individual.
         try:
             Notificacion.objects.create(
                 destinatario=usuario,
@@ -86,8 +95,7 @@ def enviar_anuncio_masivo_task(recordatorio_id, segmento, titulo, mensaje):
             logger.exception('No se pudo crear la notificación para %s', usuario.pk)
             continue
 
-        # 3) Correo institucional. Aislado para que un fallo de SMTP no
-        #    interrumpa el resto de la campaña.
+        # Correo aislado: un fallo de SMTP no corta la campaña.
         if usuario.email:
             try:
                 send_mail(
@@ -102,7 +110,7 @@ def enviar_anuncio_masivo_task(recordatorio_id, segmento, titulo, mensaje):
 
         enviados += 1
 
-    # 4) Cierre de la campaña: cantidad real de envíos → estado "Enviado".
+    # Cierre: total real de envíos → estado "Enviado".
     RecordatorioMasivo.objects.filter(pk=recordatorio_id).update(
         cantidad_envios=enviados,
         fecha_envio=ahora,
