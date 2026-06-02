@@ -1,3 +1,4 @@
+import re
 import unicodedata
 from functools import wraps
 
@@ -95,7 +96,8 @@ def _separar_nombre_completo(nombre_completo):
         'mac', 'mc', 'van', 'von', 'y', 'da', 'do', 'dos', 'di', 'le',
     )
 
-    palabras = (nombre_completo or '').split()
+    # Las comas (frecuentes al final del dato) se tratan como separadores.
+    palabras = (nombre_completo or '').replace(',', ' ').split()
     if not palabras:
         return '', ''
 
@@ -129,6 +131,44 @@ def _separar_nombre_completo(nombre_completo):
         return ' '.join(palabra.capitalize() for parte in partes for palabra in parte.split())
 
     return _titulo(nombres), _titulo(apellidos)
+
+
+# Conectores que van en minúscula dentro de un nombre propio (salvo al inicio).
+_CONECTORES_TITULO = {'de', 'del', 'la', 'las', 'los', 'el', 'y', 'e', 'da', 'do', 'dos'}
+# Formas jurídicas/siglas que se conservan en mayúscula en nombres de empresa.
+_SIGLAS_EMPRESA = {'sa', 'spa', 'ltda', 'eirl', 'sas', 'sac', 'saic', 'saci', 'srl', 'llc', 'inc', 'ltd'}
+
+
+def _titulo_es(texto, siglas=False):
+    """Capitaliza como nombre propio en español.
+
+    Cada palabra lleva inicial mayúscula y el resto en minúscula; los conectores
+    (de, la, y, ...) quedan en minúscula salvo al inicio. Con siglas=True (empresas)
+    se conservan en mayúscula las formas jurídicas (S.A., SpA, Ltda) y las siglas
+    sin vocales (p. ej. SB, EBV). Las comas se tratan como separadores.
+    """
+    texto = re.sub(r'\s+', ' ', (texto or '').replace(',', ' ')).strip()
+    if not texto:
+        return ''
+
+    def _capitalizar(palabra):
+        return re.sub(r'[^\W\d_]+', lambda m: m.group(0)[:1].upper() + m.group(0)[1:].lower(), palabra)
+
+    salida = []
+    for indice, palabra in enumerate(texto.split()):
+        nucleo = ''.join(c for c in palabra if c.isalpha())
+        if not nucleo:
+            salida.append(palabra)
+            continue
+        clave = _normalizar_texto(nucleo)
+        sin_vocales = not any(v in clave for v in 'aeiou')
+        if indice > 0 and clave in _CONECTORES_TITULO:
+            salida.append(palabra.lower())
+        elif siglas and nucleo.isupper() and ('.' in palabra or clave in _SIGLAS_EMPRESA or sin_vocales):
+            salida.append(palabra.upper())
+        else:
+            salida.append(_capitalizar(palabra))
+    return ' '.join(salida)
 
 
 def _rubro_class(nombre):
@@ -1957,6 +1997,10 @@ def alumno_editar_view(request):
         alumno.sede = sede
         alumno.generacion = generacion
         alumno.matricula = (request.POST.get('matricula') or '').strip()[:30] or None
+        # Enlaces de empleabilidad (alimentan la métrica del dashboard).
+        alumno.url_linkedin = (request.POST.get('url_linkedin') or '').strip() or None
+        alumno.url_cv = (request.POST.get('url_cv') or '').strip() or None
+        alumno.url_youtube = (request.POST.get('url_youtube') or '').strip() or None
         alumno.updated_at = timezone.now()
         alumno.save()
         messages.success(request, f'Alumno “{nombre_full}” actualizado correctamente.')
@@ -2252,6 +2296,9 @@ def alumnos_view(request):
                 'sede_id': a.sede_id or '',
                 'generacion_raw': a.generacion or '',
                 'matricula': a.matricula or '',
+                'url_linkedin': a.url_linkedin or '',
+                'url_cv': a.url_cv or '',
+                'url_youtube': a.url_youtube or '',
             }
         )
 
@@ -3395,21 +3442,67 @@ def notificaciones_limpiar_view(request):
 
 # ─── EXCEL IMPORT ────────────────────────��────────────────────────��─────────
 
-# Esquema de columnas por tipo de usuario importable.
+# Esquema de columnas por tipo de usuario importable. apellido no es obligatorio:
+# si falta, se deriva del nombre completo con _separar_nombre_completo.
 IMPORT_SCHEMAS = {
     'alumno': {
-        'required': ['nombre', 'apellido', 'email'],
-        'optional': ['carrera', 'sede', 'generacion', 'matricula', 'empresa'],
+        'required': ['nombre', 'email'],
+        'optional': ['apellido', 'carrera', 'sede', 'generacion', 'matricula', 'empresa'],
     },
     'tutor_udd': {
-        'required': ['nombre', 'apellido', 'email'],
-        'optional': ['sede', 'departamento'],
+        'required': ['nombre', 'email'],
+        'optional': ['apellido', 'sede', 'departamento'],
     },
     'tutor_empresa': {
-        'required': ['nombre', 'apellido', 'email'],
-        'optional': ['empresa', 'cargo'],
+        'required': ['nombre', 'email'],
+        'optional': ['apellido', 'empresa', 'cargo'],
     },
 }
+
+
+# Conectores que se ignoran al comparar nombres de carrera (acentos aparte).
+_CONECTORES_CARRERA = {'en', 'de', 'del', 'la', 'el', 'los', 'las', 'e', 'y'}
+
+
+def _tokens_carrera(texto):
+    """Palabras significativas de un nombre de carrera, sin acentos ni conectores."""
+    return [t for t in _normalizar_texto(texto).split() if t not in _CONECTORES_CARRERA]
+
+
+def _resolver_carrera(nombre):
+    """Empareja la carrera tolerando acentos y conectores; la crea si no existe.
+
+    Necesario porque la columna carrera_id del alumno es obligatoria en la base: si
+    no se resolviera, el alumno no podría crearse. Primero busca por coincidencia de
+    palabras significativas (así "Ingeniería Civil Informatica e Innovación
+    Tecnologica" empareja con "...en Informática e Innovación Tecnológica") y, solo si
+    no hay ninguna, crea la carrera con el nombre recibido.
+    """
+    nombre = (nombre or '').strip()
+    if not nombre:
+        return None
+    objetivo = _tokens_carrera(nombre)
+    if objetivo:
+        for carrera in Carrera.objects.all():
+            if _tokens_carrera(carrera.nombre) == objetivo:
+                return carrera
+    carrera, _ = Carrera.objects.get_or_create(
+        nombre=nombre[:255],
+        defaults={'universidad': _universidad_por_defecto()},
+    )
+    return carrera
+
+
+def _resolver_sede(nombre):
+    """Empareja la sede por nombre tolerando acentos; None si no se reconoce."""
+    nombre = (nombre or '').strip()
+    if not nombre:
+        return None
+    objetivo = _normalizar_texto(nombre)
+    for sede in Sede.objects.all():
+        if _normalizar_texto(sede.nombre) == objetivo:
+            return sede
+    return None
 
 
 def _crear_perfil_importado(tipo, usuario, datos):
@@ -3419,8 +3512,8 @@ def _crear_perfil_importado(tipo, usuario, datos):
     validación de negocio (p. ej. empresa inexistente) para reportarlo.
     """
     if tipo == 'alumno':
-        carrera = Carrera.objects.filter(nombre__icontains=datos['carrera']).first() if datos.get('carrera') else None
-        sede = Sede.objects.filter(nombre__icontains=datos['sede']).first() if datos.get('sede') else None
+        carrera = _resolver_carrera(datos.get('carrera'))
+        sede = _resolver_sede(datos.get('sede'))
         generacion = datos.get('generacion') or ''
         Alumno.objects.create(
             id=usuario,
@@ -3432,7 +3525,7 @@ def _crear_perfil_importado(tipo, usuario, datos):
             updated_at=timezone.now(),
         )
     elif tipo == 'tutor_udd':
-        sede = Sede.objects.filter(nombre__icontains=datos['sede']).first() if datos.get('sede') else None
+        sede = _resolver_sede(datos.get('sede'))
         TutorUdd.objects.create(
             id=usuario,
             sede=sede,
@@ -3491,18 +3584,17 @@ def excel_import_view(request):
                     missing = [col for col in schema['required'] if col not in col_idx]
                     if missing:
                         error = f'Faltan columnas obligatorias para {rol_labels[tipo]}: {", ".join(missing)}.'
+                        # Causa habitual del error: el listado de empresas se sube por el
+                        # importador de personas. Se orienta al importador correcto.
+                        messages.warning(
+                            request,
+                            "Si está intentando cargar el listado de empresas colaboradoras, por favor "
+                            "utilice el botón 'Importar Empresas' ubicado en la pestaña de Empresas.",
+                        )
                     else:
                         all_cols = schema['required'] + schema['optional']
                         created = skipped = errors_list = 0
                         detail = []
-                        # Asignación a empresa por período (solo alumnos).
-                        asignados = 0
-                        sin_asignar = []
-                        empresas_norm = {}
-                        if tipo == 'alumno':
-                            # Mapa nombre normalizado → empresa, calculado una sola vez.
-                            for emp in Empresa.objects.all():
-                                empresas_norm.setdefault(_normalizar_texto(emp.nombre), emp)
 
                         for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
                             # Fila completamente vacía: se ignora silenciosamente.
@@ -3520,6 +3612,16 @@ def excel_import_view(request):
                             nombre = datos.get('nombre', '')
                             apellido = datos.get('apellido', '')
                             email = datos.get('email', '').lower()
+
+                            # apellido no es obligatorio: si no viene, se separa del
+                            # nombre completo (respeta apellidos compuestos).
+                            if nombre and not apellido:
+                                nombre, apellido = _separar_nombre_completo(nombre)
+                            # Formato de nombre propio: inicial mayúscula, resto minúscula.
+                            nombre = _titulo_es(nombre)
+                            apellido = _titulo_es(apellido)
+                            datos['nombre'] = nombre
+                            datos['apellido'] = apellido
 
                             faltantes = [c for c in schema['required'] if not datos.get(c)]
                             if faltantes:
@@ -3549,69 +3651,26 @@ def excel_import_view(request):
                                     motivo = _crear_perfil_importado(tipo, usuario, datos)
                                     if motivo:
                                         raise ValueError(motivo)
-
-                                    # ── Bloque 1 + 2: resolución de empresa con enfoque
-                                    # "Sala de Espera". El alumno SIEMPRE queda creado;
-                                    # la asignación al período solo ocurre si la empresa
-                                    # ya existe en el catálogo. Nunca se crea una empresa
-                                    # nueva de forma automática (sin get_or_create).
-                                    fila_asignada = False
-                                    empresa_no_existe = False
-                                    if tipo == 'alumno' and periodo is not None:
-                                        empresa_norm = _normalizar_texto(datos.get('empresa'))
-                                        if empresa_norm:
-                                            try:
-                                                # Búsqueda segura por nombre normalizado: una
-                                                # ausencia se trata como ObjectDoesNotExist.
-                                                empresa_match = empresas_norm.get(empresa_norm)
-                                                if empresa_match is None:
-                                                    raise ObjectDoesNotExist
-                                                alumno_obj = Alumno.objects.get(pk=usuario.pk)
-                                                ProyectoPeriodo.objects.create(
-                                                    proyecto=_proyecto_para_empresa(empresa_match, usuario),
-                                                    periodo=periodo,
-                                                    alumno=alumno_obj,
-                                                    sede=alumno_obj.sede,
-                                                    created_at=timezone.now(),
-                                                    updated_at=timezone.now(),
-                                                )
-                                                fila_asignada = True
-                                            except ObjectDoesNotExist:
-                                                # Sala de espera: la empresa no existe en el
-                                                # registro. El alumno permanece creado y se
-                                                # omite el modelo intermedio de asignación.
-                                                empresa_no_existe = True
+                                    # No se crean proyectos ni asignaciones: los alumnos
+                                    # quedan sin asignar y los tutores los integran a sus
+                                    # proyectos. La columna empresa del Excel se ignora.
                             except Exception as exc:
                                 errors_list += 1
                                 detail.append({'row': row_num, 'status': 'error', 'msg': f'Fila {row_num}: {exc}'})
                             else:
                                 created += 1
                                 detail.append({'row': row_num, 'status': 'ok', 'msg': f'Fila {row_num}: {nombre} {apellido} ({email}) creado'})
-                                if tipo == 'alumno':
-                                    if fila_asignada:
-                                        asignados += 1
-                                    elif empresa_no_existe:
-                                        # ── Bloque 3: alumno huérfano por empresa inexistente. ──
-                                        sin_asignar.append(f"{nombre} {apellido}".strip() or email)
 
                         # ── Feedback al administrador (mensajes de Django) ──
                         if created:
                             if tipo == 'alumno':
                                 messages.success(
                                     request,
-                                    f'{created} alumno(s) creado(s); {asignados} asignado(s) a una '
-                                    f'empresa en el período {periodo_label}.'
+                                    f'{created} alumno(s) creado(s). Quedan sin asignar: los tutores '
+                                    f'los integrarán a sus proyectos.'
                                 )
                             else:
                                 messages.success(request, f'{created} {rol_labels[tipo]}(s) creado(s) correctamente.')
-                        if sin_asignar:
-                            messages.warning(
-                                request,
-                                'Los siguientes alumnos fueron creados pero quedaron sin empresa '
-                                'asignada porque la empresa no existe en el registro: '
-                                + ', '.join(sin_asignar)
-                                + '. Por favor, asígnelos manualmente.'
-                            )
 
                         results = {
                             'created': created,
@@ -4335,10 +4394,10 @@ def empresas_plantilla_view(request):
 def empresas_import_view(request):
     """Importación masiva de empresas desde un archivo Excel (.xlsx).
 
-    Carga progresiva: lo único imprescindible es el nombre (con mapeo flexible de la
-    cabecera). Las demás columnas pueden venir vacías y se guardan como nulo. Descarta
-    duplicados por nombre o por correo (este último solo cuando viene informado) e
-    inserta fila a fila en savepoints. Termina en Empresas con un resumen detallado.
+    Lectura ultra tolerante: si el archivo trae una sola columna, esa columna se toma
+    como nombre aunque la primera fila sea ya un dato y no un encabezado. El único
+    criterio para descartar una fila es que el nombre venga vacío o nulo. Inserta con
+    get_or_create por nombre saneado (idempotente) y cierra con un resumen exacto.
     """
     import openpyxl
 
@@ -4364,140 +4423,129 @@ def empresas_import_view(request):
             messages.error(request, 'No se pudo leer el archivo: parece dañado o no es un Excel válido. Revísalo e inténtalo de nuevo.')
             return redirect('empresas_import')
 
-        header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), None)
-        if not header_row or all(c is None for c in header_row):
-            messages.error(request, 'El archivo está vacío o no tiene encabezados en la primera fila.')
+        # ── Lectura ultra tolerante: se cargan todas las filas con algún contenido ──
+        filas = [
+            fila for fila in ws.iter_rows(min_row=1, values_only=True)
+            if fila is not None and not all(c is None or str(c).strip() == '' for c in fila)
+        ]
+        if not filas:
+            messages.error(request, 'El archivo está vacío: no tiene datos para importar.')
             return redirect('empresas_import')
 
-        # Normaliza encabezados: minúsculas, sin espacios y sin el sufijo "(opcional)"
-        # de la plantilla, de modo que "presencia (opcional)" mapee a presencia.
-        headers = [str(c or '').strip().lower().replace('(opcional)', '').strip() for c in header_row]
-        col_idx = {h: i for i, h in enumerate(headers) if h}
+        # Encabezado tentativo (primera fila), normalizado y sin el sufijo "(opcional)".
+        encabezado = [str(c or '').strip().lower().replace('(opcional)', '').strip() for c in filas[0]]
+        col_idx = {h: i for i, h in enumerate(encabezado) if h}
 
-        # Mapeo flexible del nombre: si la columna no se llama exactamente "nombre",
-        # se busca entre los alias frecuentes comparando sin acentos.
-        if 'nombre' not in col_idx:
+        # Mapeo flexible del nombre entre alias frecuentes (comparando sin acentos).
+        nombre_idx = col_idx.get('nombre')
+        if nombre_idx is None:
             headers_norm = {_normalizar_texto(h): i for h, i in col_idx.items()}
             for alias in EMPRESA_IMPORT_NOMBRE_ALIASES:
                 idx = headers_norm.get(_normalizar_texto(alias))
                 if idx is not None:
-                    col_idx['nombre'] = idx
+                    nombre_idx = idx
                     break
 
-        if 'nombre' not in col_idx:
-            messages.error(
-                request,
-                'No se encontró la columna del nombre de la empresa. Acepta encabezados como '
-                'nombre, empresa u organizacion. Descarga la plantilla y úsala como base.',
-            )
-            return redirect('empresas_import')
+        # ¿La primera fila es realmente un encabezado? Lo es si reconocemos la columna
+        # del nombre o cualquier columna conocida de Empresa. Si no reconocemos nada,
+        # se asume que la primera columna es el nombre y que la primera fila ya es un
+        # dato: así un Excel de una sola columna (incluso de 1x1, sin cabecera) entra.
+        columnas_conocidas = set(EMPRESA_IMPORT_OPCIONALES) | {'nombre'}
+        hay_encabezado = nombre_idx is not None or any(h in columnas_conocidas for h in col_idx)
+        if nombre_idx is None:
+            nombre_idx = 0  # única o primera columna = nombre
 
-        # Deduplicación eficiente: un set por campo, cargados con una sola consulta.
-        nombres_existentes = {n.strip().lower() for n in Empresa.objects.values_list('nombre', flat=True) if n}
-        correos_existentes = {c.strip().lower() for c in Empresa.objects.values_list('contacto_email', flat=True) if c}
-        nombres_vistos = set()
-        correos_vistos = set()
-
+        filas_datos = filas[1:] if hay_encabezado else filas
+        # Los campos opcionales solo se mapean cuando hubo una cabecera reconocible.
+        usar_opcionales = hay_encabezado
         presencias_validas = ('chile', 'multinacional')
 
-        def cell(row, name):
-            idx = col_idx.get(name)
-            if idx is None or idx >= len(row):
+        def celda(fila, idx):
+            if idx is None or idx >= len(fila):
                 return ''
-            value = row[idx]
-            return str(value).strip() if value is not None else ''
+            valor = fila[idx]
+            return str(valor).strip() if valor is not None else ''
 
         def limpiar_opcional(valor):
-            """Saneo de campos opcionales: cadena vacía, solo espacios o nan -> None;
-            si hay valor real, se devuelve sin espacios a los extremos."""
+            """Cadena vacía, solo espacios o nan -> None; si hay valor real, sin espacios."""
             texto = (valor or '').strip()
             if not texto or texto.lower() == 'nan':
                 return None
             return texto
 
-        def opcional_trunc(name, limite):
-            """Lee un opcional de la fila, lo limpia y trunca; vacío -> None."""
-            texto = limpiar_opcional(cell(row, name))
+        def opcional(fila, name, limite):
+            """Opcional saneado y truncado; None si no hubo cabecera o viene vacío."""
+            if not usar_opcionales:
+                return None
+            texto = limpiar_opcional(celda(fila, col_idx.get(name)))
             return texto[:limite] if texto else None
 
-        nuevas = []
-        omitidas_invalidas = 0
-        omitidas_duplicadas = 0
+        # Nombres existentes normalizados (sin acentos ni mayúsculas) para no duplicar.
+        nombres_existentes = {_normalizar_texto(n) for n in Empresa.objects.values_list('nombre', flat=True) if n}
+        nombres_vistos = set()
 
-        try:
-            for row in ws.iter_rows(min_row=2, values_only=True):
-                if row is None or all(c is None or str(c).strip() == '' for c in row):
-                    continue
-
-                # ── Único requisito: el nombre debe venir con texto válido ──
-                nombre = cell(row, 'nombre')
-                if not nombre:
-                    omitidas_invalidas += 1
-                    continue
-
-                correo = cell(row, 'contacto_email').lower()
-                clave_nombre = nombre.lower()
-                # El correo solo deduplica cuando viene informado; varias filas sin
-                # correo no deben tratarse como repetidas entre sí.
-                es_duplicado = (
-                    clave_nombre in nombres_existentes or clave_nombre in nombres_vistos
-                    or (correo and (correo in correos_existentes or correo in correos_vistos))
-                )
-                if es_duplicado:
-                    omitidas_duplicadas += 1
-                    continue
-                nombres_vistos.add(clave_nombre)
-                if correo:
-                    correos_vistos.add(correo)
-
-                # ── Saneamiento de los opcionales antes de insertar ──
-                # Una cadena vacía, de solo espacios o un nan se transforma
-                # estrictamente a None. Es imprescindible para presencia, que en
-                # PostgreSQL es un tipo enumerado (presencia_empresa) y rechaza ''
-                # por no ser una etiqueta válida; solo acepta None o uno de sus valores.
-                presencia = limpiar_opcional(cell(row, 'presencia'))
-                if presencia is not None:
-                    presencia = presencia.lower()
-                    if presencia not in presencias_validas:
-                        presencia = None
-                descripcion = limpiar_opcional(cell(row, 'descripcion'))
-
-                nuevas.append(Empresa(
-                    nombre=nombre[:255],
-                    rubro=opcional_trunc('rubro', 150),
-                    ubicacion=opcional_trunc('ubicacion', 255),
-                    presencia=presencia,
-                    descripcion=descripcion,
-                    contacto_nombre=opcional_trunc('contacto_nombre', 150),
-                    contacto_email=opcional_trunc('contacto_email', 254),
-                    is_active=True,
-                ))
-        except Exception:
-            messages.error(request, 'El archivo tiene un formato inesperado y no se pudo procesar por completo. Revísalo con la plantilla oficial.')
-            return redirect('empresas_import')
-
-        # Inserción fila a fila (no en bloque). bulk_create con varias filas usa un
-        # camino con UNNEST que tipa la columna como text[], incompatible con el tipo
-        # enumerado presencia_empresa de PostgreSQL; el insert individual sí lo acepta.
-        # Cada fila va en su propio savepoint para que un error aislado no tumbe el lote.
+        ahora = timezone.now()
         creadas = 0
+        omitidas_duplicadas = 0
+        omitidas_sin_nombre = 0
         fallidas = 0
-        for empresa_obj in nuevas:
+
+        for fila in filas_datos:
+            # ── Único criterio de descarte: nombre vacío o nulo (NaN) ──
+            nombre = limpiar_opcional(celda(fila, nombre_idx))
+            if not nombre:
+                omitidas_sin_nombre += 1
+                continue
+
+            # Formato de razón social: Mayúscula inicial, conservando siglas (S.A., SpA).
+            nombre = _titulo_es(nombre, siglas=True)
+            clave = _normalizar_texto(nombre)
+            if clave in nombres_existentes or clave in nombres_vistos:
+                omitidas_duplicadas += 1
+                continue
+            nombres_vistos.add(clave)
+
+            # presencia es un enum de PostgreSQL: solo acepta None o etiqueta válida.
+            presencia = opcional(fila, 'presencia', 50)
+            if presencia is not None:
+                presencia = presencia.lower()
+                if presencia not in presencias_validas:
+                    presencia = None
+
+            # get_or_create por nombre saneado; cada fila en su savepoint para que un
+            # error aislado no tumbe el resto del lote.
             try:
                 with transaction.atomic():
-                    empresa_obj.save(force_insert=True)
-                creadas += 1
+                    _, creado = Empresa.objects.get_or_create(
+                        nombre=nombre[:255],
+                        defaults={
+                            'rubro': opcional(fila, 'rubro', 150),
+                            'ubicacion': opcional(fila, 'ubicacion', 255),
+                            'presencia': presencia,
+                            'descripcion': opcional(fila, 'descripcion', None),
+                            'contacto_nombre': opcional(fila, 'contacto_nombre', 150),
+                            'contacto_email': opcional(fila, 'contacto_email', 254),
+                            'is_active': True,
+                            'created_at': ahora,
+                            'updated_at': ahora,
+                        },
+                    )
+                if creado:
+                    creadas += 1
+                else:
+                    omitidas_duplicadas += 1
             except Exception:
                 fallidas += 1
 
-        resumen = (
-            'Importación finalizada. %d empresa(s) creada(s), %d omitida(s) por duplicidad y '
-            '%d omitida(s) por no tener nombre.'
-            % (creadas, omitidas_duplicadas, omitidas_invalidas)
-        )
+        # Resumen exacto (conteo correcto aunque sea una sola empresa).
+        partes = ['%d empresa(s) creada(s)' % creadas]
+        if omitidas_duplicadas:
+            partes.append('%d omitida(s) por duplicidad' % omitidas_duplicadas)
+        if omitidas_sin_nombre:
+            partes.append('%d omitida(s) sin nombre' % omitidas_sin_nombre)
         if fallidas:
-            resumen += ' %d fila(s) no se pudieron guardar por un error de datos.' % fallidas
-        messages.success(request, resumen)
+            partes.append('%d con error de datos' % fallidas)
+        messages.success(request, 'Importación finalizada. ' + ', '.join(partes) + '.')
         return redirect('empresas')
 
     return render(request, 'pages/empresas_import.html', {

@@ -28,6 +28,12 @@
     /* Botón de acción rápida: Asignar empresa */
     .al-assign-btn { height:30px; padding:0 12px; border:none; border-radius:var(--radius-md); background:var(--blue-600); color:#fff; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
     .al-assign-btn:hover { background:var(--blue-700); }
+
+    /* Carrera y empresa pueden ser largas: se truncan con puntos suspensivos dentro de
+       su columna para que no se monten sobre la columna vecina (Sede · Empresa). */
+    .cols-alumnos > div, .cols-alumnos--asignar > div { min-width:0; }
+    .iv-cell-carrera .iv-badge,
+    .iv-stack .iv-badge { max-width:100%; overflow:hidden; text-overflow:ellipsis; }
 </style>
 {% endblock %}
 
@@ -106,10 +112,10 @@
             <div class="iv-cell-main">{{ a.nombre }}</div>
             <div class="iv-cell-sub">{{ a.email }}</div>
         </div>
-        <div><span class="iv-badge cat-carrera">{{ a.carrera }}</span></div>
+        <div class="iv-cell-carrera"><span class="iv-badge cat-carrera" title="{{ a.carrera }}">{{ a.carrera }}</span></div>
         <div class="iv-stack">
-            <span class="iv-badge neutral">{{ a.sede }}</span>
-            {% if a.empresa %}<span class="iv-badge success">{{ a.empresa }}</span>{% else %}<span class="iv-cell-muted">Sin asignar</span>{% endif %}
+            <span class="iv-badge neutral" title="{{ a.sede }}">{{ a.sede }}</span>
+            {% if a.empresa %}<span class="iv-badge success" title="{{ a.empresa }}">{{ a.empresa }}</span>{% else %}<span class="iv-cell-muted">Sin asignar</span>{% endif %}
         </div>
         <div>
             <div class="iv-progress"><div class="iv-progress__fill" style="--pct:{{ a.profile_pct }}%"></div></div>
@@ -207,6 +213,18 @@
                         <input class="nt-input" type="text" id="ae-matricula" name="matricula" maxlength="30">
                     </div>
                 </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ae-linkedin">LinkedIn</label>
+                    <input class="nt-input" type="url" id="ae-linkedin" name="url_linkedin" placeholder="https://www.linkedin.com/in/...">
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ae-cv">Currículum (CV)</label>
+                    <input class="nt-input" type="url" id="ae-cv" name="url_cv" placeholder="https://...">
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ae-youtube">Video de presentación (YouTube)</label>
+                    <input class="nt-input" type="url" id="ae-youtube" name="url_youtube" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
             </div>
             <div class="nt-modal__foot">
                 <button type="button" class="nt-btn-cancel" onclick="cerrarAlumnoEditar()">Cancelar</button>
@@ -235,6 +253,9 @@ const _alumnosData = {
         sedeId: "{{ a.sede_id }}",
         generacionRaw: "{{ a.generacion_raw }}",
         matricula: "{{ a.matricula|escapejs }}",
+        urlLinkedin: "{{ a.url_linkedin|escapejs }}",
+        urlCv: "{{ a.url_cv|escapejs }}",
+        urlYoutube: "{{ a.url_youtube|escapejs }}",
         profilePct: {{ a.profile_pct }},
         linkedin: {{ a.linkedin_ok|lower }},
         cv: {{ a.cv_ok|lower }},
@@ -301,6 +322,9 @@ function abrirAlumnoEditar(id) {
     document.getElementById('ae-sede').value = a.sedeId || '';
     document.getElementById('ae-generacion').value = a.generacionRaw || '';
     document.getElementById('ae-matricula').value = a.matricula || '';
+    document.getElementById('ae-linkedin').value = a.urlLinkedin || '';
+    document.getElementById('ae-cv').value = a.urlCv || '';
+    document.getElementById('ae-youtube').value = a.urlYoutube || '';
     document.getElementById('alumnoEditModal').classList.add('open');
 }
 function cerrarAlumnoEditar() { document.getElementById('alumnoEditModal').classList.remove('open'); }
