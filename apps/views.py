@@ -4312,21 +4312,21 @@ def exportar_empresas_view(request):
     return _xlsx_response('empresas.xlsx', 'Empresas', headers, rows)
 
 
-# Perfilamiento progresivo de la carga de empresas. Obligatorias: no pueden ir
-# vacías (se valida fila a fila). Opcionales: pueden quedar en blanco (se guardan
-# como nulo). En la plantilla, las opcionales llevan el sufijo "(opcional)" en el
-# encabezado; la importación lo normaliza al leer.
-EMPRESA_IMPORT_OBLIGATORIAS = ['nombre', 'rubro', 'ubicacion', 'contacto_nombre', 'contacto_email']
-EMPRESA_IMPORT_OPCIONALES = ['presencia', 'descripcion']
+# Carga progresiva de empresas. Lo único imprescindible es el nombre; el resto puede
+# quedar en blanco (se guarda como nulo) y completarse después. En la plantilla, las
+# opcionales llevan el sufijo "(opcional)" en el encabezado; la importación lo normaliza.
+EMPRESA_IMPORT_OBLIGATORIAS = ['nombre']
+EMPRESA_IMPORT_OPCIONALES = ['rubro', 'ubicacion', 'contacto_nombre', 'contacto_email', 'presencia', 'descripcion']
+# Alias tolerados para la columna del nombre (se comparan sin acentos ni espacios).
+EMPRESA_IMPORT_NOMBRE_ALIASES = ['nombre', 'empresa', 'nombre empresa', 'nombre de la empresa', 'organizacion', 'razon social']
 
 
 def empresas_plantilla_view(request):
     """Descarga una plantilla Excel (.xlsx) vacía con los encabezados de Empresa.
 
-    La primera fila trae los encabezados exactos que espera la importación: los
-    obligatorios tal cual (nombre, rubro, ubicacion, contacto_nombre,
-    contacto_email) y los dos opcionales rotulados como presencia (opcional) y
-    descripcion (opcional).
+    La primera fila trae el único encabezado obligatorio (nombre) y el resto rotulados
+    con el sufijo (opcional): rubro, ubicacion, contacto_nombre, contacto_email,
+    presencia y descripcion. La importación normaliza el sufijo al leer.
     """
     encabezados = list(EMPRESA_IMPORT_OBLIGATORIAS) + [f'{col} (opcional)' for col in EMPRESA_IMPORT_OPCIONALES]
     return _xlsx_response('plantilla_empresas.xlsx', 'Empresas', encabezados, [])
@@ -4335,11 +4335,10 @@ def empresas_plantilla_view(request):
 def empresas_import_view(request):
     """Importación masiva de empresas desde un archivo Excel (.xlsx).
 
-    Perfilamiento progresivo: si falta cualquier campo obligatorio en una fila, esa
-    fila se omite y suma a los errores de validación; presencia y descripcion pueden
-    venir vacías y la fila se procesa igual (se guardan como nulo). Valida el formato
-    con cuidado, descarta duplicados por nombre o correo con un set por campo e
-    inserta en bloque con bulk_create. Termina en Empresas con un resumen detallado.
+    Carga progresiva: lo único imprescindible es el nombre (con mapeo flexible de la
+    cabecera). Las demás columnas pueden venir vacías y se guardan como nulo. Descarta
+    duplicados por nombre o por correo (este último solo cuando viene informado) e
+    inserta fila a fila en savepoints. Termina en Empresas con un resumen detallado.
     """
     import openpyxl
 
@@ -4374,12 +4373,22 @@ def empresas_import_view(request):
         # de la plantilla, de modo que "presencia (opcional)" mapee a presencia.
         headers = [str(c or '').strip().lower().replace('(opcional)', '').strip() for c in header_row]
         col_idx = {h: i for i, h in enumerate(headers) if h}
-        faltan_columnas = [col for col in EMPRESA_IMPORT_OBLIGATORIAS if col not in col_idx]
-        if faltan_columnas:
+
+        # Mapeo flexible del nombre: si la columna no se llama exactamente "nombre",
+        # se busca entre los alias frecuentes comparando sin acentos.
+        if 'nombre' not in col_idx:
+            headers_norm = {_normalizar_texto(h): i for h, i in col_idx.items()}
+            for alias in EMPRESA_IMPORT_NOMBRE_ALIASES:
+                idx = headers_norm.get(_normalizar_texto(alias))
+                if idx is not None:
+                    col_idx['nombre'] = idx
+                    break
+
+        if 'nombre' not in col_idx:
             messages.error(
                 request,
-                'Faltan columnas obligatorias en la primera fila: %s. Descarga la plantilla y úsala como base.'
-                % ', '.join(faltan_columnas),
+                'No se encontró la columna del nombre de la empresa. Acepta encabezados como '
+                'nombre, empresa u organizacion. Descarga la plantilla y úsala como base.',
             )
             return redirect('empresas_import')
 
@@ -4406,6 +4415,11 @@ def empresas_import_view(request):
                 return None
             return texto
 
+        def opcional_trunc(name, limite):
+            """Lee un opcional de la fila, lo limpia y trunca; vacío -> None."""
+            texto = limpiar_opcional(cell(row, name))
+            return texto[:limite] if texto else None
+
         nuevas = []
         omitidas_invalidas = 0
         omitidas_duplicadas = 0
@@ -4415,23 +4429,26 @@ def empresas_import_view(request):
                 if row is None or all(c is None or str(c).strip() == '' for c in row):
                     continue
 
-                # ── Validación estricta: todo campo obligatorio debe venir con valor ──
-                if any(not cell(row, col) for col in EMPRESA_IMPORT_OBLIGATORIAS):
+                # ── Único requisito: el nombre debe venir con texto válido ──
+                nombre = cell(row, 'nombre')
+                if not nombre:
                     omitidas_invalidas += 1
                     continue
 
-                nombre = cell(row, 'nombre')
                 correo = cell(row, 'contacto_email').lower()
                 clave_nombre = nombre.lower()
+                # El correo solo deduplica cuando viene informado; varias filas sin
+                # correo no deben tratarse como repetidas entre sí.
                 es_duplicado = (
                     clave_nombre in nombres_existentes or clave_nombre in nombres_vistos
-                    or correo in correos_existentes or correo in correos_vistos
+                    or (correo and (correo in correos_existentes or correo in correos_vistos))
                 )
                 if es_duplicado:
                     omitidas_duplicadas += 1
                     continue
                 nombres_vistos.add(clave_nombre)
-                correos_vistos.add(correo)
+                if correo:
+                    correos_vistos.add(correo)
 
                 # ── Saneamiento de los opcionales antes de insertar ──
                 # Una cadena vacía, de solo espacios o un nan se transforma
@@ -4447,12 +4464,12 @@ def empresas_import_view(request):
 
                 nuevas.append(Empresa(
                     nombre=nombre[:255],
-                    rubro=cell(row, 'rubro')[:150],
-                    ubicacion=cell(row, 'ubicacion')[:255],
+                    rubro=opcional_trunc('rubro', 150),
+                    ubicacion=opcional_trunc('ubicacion', 255),
                     presencia=presencia,
                     descripcion=descripcion,
-                    contacto_nombre=cell(row, 'contacto_nombre')[:150],
-                    contacto_email=cell(row, 'contacto_email')[:254],
+                    contacto_nombre=opcional_trunc('contacto_nombre', 150),
+                    contacto_email=opcional_trunc('contacto_email', 254),
                     is_active=True,
                 ))
         except Exception:
@@ -4475,7 +4492,7 @@ def empresas_import_view(request):
 
         resumen = (
             'Importación finalizada. %d empresa(s) creada(s), %d omitida(s) por duplicidad y '
-            '%d omitida(s) por campos obligatorios vacíos.'
+            '%d omitida(s) por no tener nombre.'
             % (creadas, omitidas_duplicadas, omitidas_invalidas)
         )
         if fallidas:

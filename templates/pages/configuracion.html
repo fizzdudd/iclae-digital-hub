@@ -61,6 +61,9 @@
     .cfg-card{background:var(--c-surface);border:1px solid var(--c-line);border-radius:var(--c-radius);box-shadow:var(--c-shadow);overflow:hidden;display:flex;flex-direction:column;}
     .cfg-grid-2>.cfg-card{height:100%;}
     .cfg-card+.cfg-card{margin-top:20px;}
+    /* En la rejilla de dos columnas las tarjetas son hermanas: se anula el margen
+       de apilado para que ambas arranquen a la misma altura. */
+    .cfg-grid-2>.cfg-card+.cfg-card{margin-top:0;}
     .cfg-card__h{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--c-line);}
     .cfg-card__title{font-size:15.5px;font-weight:600;color:var(--c-ink);display:flex;align-items:center;gap:10px;letter-spacing:-.01em;}
     .cfg-card__sub{font-size:12.5px;color:var(--c-muted);margin-top:3px;line-height:1.45;}

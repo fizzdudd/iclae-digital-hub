@@ -1,5 +1,6 @@
 """Carga las carreras semilla (idempotente vía get_or_create por nombre)."""
-from django.db import migrations
+import django.db.models.deletion
+from django.db import migrations, models
 
 
 CARRERAS_SEMILLA = [
@@ -18,15 +19,16 @@ def poblar_carreras(apps, schema_editor):
     Carrera = apps.get_model('apps', 'Carrera')
     Universidad = apps.get_model('apps', 'Universidad')
 
-    # universidad es obligatoria: usa la primera existente o crea la UDD por defecto.
+    # universidad es obligatoria (FK not-null): se resuelve el padre antes del ciclo.
     universidad = Universidad.objects.first()
     if universidad is None:
-        universidad = Universidad.objects.create(
+        universidad, _ = Universidad.objects.get_or_create(
             nombre='Universidad del Desarrollo',
-            codigo='UDD',
+            defaults={'codigo': 'UDD'},
         )
 
     for nombre in CARRERAS_SEMILLA:
+        # defaults asigna la universidad solo cuando la carrera no existe aún.
         Carrera.objects.get_or_create(
             nombre=nombre,
             defaults={'universidad': universidad},
@@ -46,5 +48,21 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # La columna universidad_id ya existe en la base (Carrera es managed=False),
+        # pero el estado de migraciones no la conocía. Se registra solo en el estado
+        # para poder asignarla con el ORM; no se altera el esquema real.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddField(
+                    model_name='carrera',
+                    name='universidad',
+                    field=models.ForeignKey(
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        to='apps.universidad',
+                    ),
+                ),
+            ],
+            database_operations=[],
+        ),
         migrations.RunPython(poblar_carreras, revertir_carreras),
     ]
