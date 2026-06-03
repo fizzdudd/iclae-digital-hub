@@ -1,165 +1,357 @@
 {% extends 'base.html' %}
 
 {% block title %}Notificaciones{% endblock %}
-{% block page_title %}Centro de Notificaciones{% endblock %}
+{% block page_title %}{% if is_admin %}Comunicados Institucionales{% else %}Bandeja de Entrada{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .section-divider { display:flex; align-items:center; gap:12px; margin: 8px 0 16px; }
-    .section-divider-line { height:1px; background: var(--border); flex:1; }
-    .section-divider-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; }
+    /* Barra de acciones */
+    .nt-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .nt-toolbar__txt { font-size:12.5px; color:var(--text-secondary); font-weight:600; }
+    .nt-toolbar__actions { display:flex; align-items:center; gap:10px; }
+    .nt-clear-btn { height:34px; padding:0 14px; border:1px solid var(--border); background:#fff; color:var(--text-secondary); border-radius:var(--radius-md); font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .nt-clear-btn:hover { border-color:#93c5fd; color:var(--blue-700); background:var(--blue-50); }
 
-    .kpis { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .kpi { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
-    .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
-    .kpis .kpi:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
-    .kpis .kpi:nth-child(2)::before { background:linear-gradient(90deg,#e11d48,#fb7185); }
-    .kpis .kpi:nth-child(3)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
-    .kpi-l { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
-    .kpi-v { font-size:28px; font-weight:700; margin-top:6px; }
+    /* Banner de éxito */
+    .nt-banner { padding:11px 15px; background:var(--green-100); border:1px solid #bbf7d0; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:var(--green-700); margin-bottom:16px; }
 
-    .split { display:grid; grid-template-columns: 1.4fr 1fr; gap:12px; }
-    .card { border:1px solid var(--border); border-radius:var(--radius-lg); background:#fff; box-shadow:var(--shadow-sm); }
-    .card-h { padding:13px 15px 0; }
-    .card-b { padding:12px 15px 15px; }
+    /* Comunicados (admin): Fecha · Asunto · Segmento · Estado · Acciones */
+    .nt-cols { grid-template-columns:150px 1fr 150px 110px 110px; }
+    .nt-archive-btn { height:30px; padding:0 12px; border:1px solid var(--border); background:#fff; color:var(--text-secondary); border-radius:var(--radius-md); font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .nt-archive-btn:hover { border-color:#fca5a5; color:#b91c1c; background:#fef2f2; }
+    .nt-state { font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; display:inline-block; }
+    .nt-state.enviado { background:var(--green-100); color:var(--green-800); }
+    .nt-state.procesando { background:color-mix(in srgb, var(--cat-4) 16%, #fff); color:color-mix(in srgb, var(--cat-4) 88%, #0f172a); }
+    .nt-state.fallido { background:#fef2f2; color:#b91c1c; }
 
-    .notice { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:9px; }
-    .notice:last-child { margin-bottom:0; }
-    .n-top { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
-    .n-title { font-size:13px; font-weight:700; }
-    .n-msg { font-size:12px; color:var(--text-secondary); margin-top:5px; }
-    .n-meta { margin-top:8px; font-size:11px; color:var(--text-muted); }
-    .pill { font-size:10px; border-radius:999px; padding:3px 8px; font-weight:800; }
-    .pill.read { background:#dcfce7; color:#166534; }
-    .pill.unread { background:#ffe4e6; color:#9f1239; }
+    /* Bandeja (alumno/tutor): indicador · Asunto · Fecha */
+    .nt-inbox-cols { grid-template-columns:30px 1fr 150px; }
+    .nt-msg { cursor:pointer; }
+    .nt-msg:hover { background:var(--blue-50); }
+    .nt-dot-cell { display:flex; align-items:center; justify-content:center; }
+    .nt-dot { width:9px; height:9px; border-radius:50%; background:var(--blue-600); display:inline-block; }
+    .nt-unread .iv-cell-main { font-weight:800; color:var(--text-primary); }
+    .nt-unread .iv-cell-sub { color:var(--text-secondary); }
+    .nt-msg:not(.nt-unread) .iv-cell-main { font-weight:500; color:var(--text-secondary); }
 
-    .rem { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:9px; }
-    .rem:last-child { margin-bottom:0; }
-    .rem-h { font-size:12.5px; font-weight:700; }
-    .rem-m { font-size:11.5px; color:var(--text-secondary); margin-top:4px; }
-    .rem-f { font-size:11px; color:var(--text-muted); margin-top:6px; }
-    @media (max-width: 960px){ .kpis{grid-template-columns:1fr;} .split{grid-template-columns:1fr;} }
-</style>
-{% endblock %}
+    /* Cuerpo del modal de lectura */
+    .nt-read-date { font-size:12px; color:var(--text-secondary); font-weight:600; }
+    .nt-read-body { font-size:14px; line-height:1.7; color:var(--text-primary); white-space:pre-wrap; }
 
-{% block extra_css %}{{ block.super }}
-<style>
-    .compose-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:16px; }
-    .compose-h { padding:13px 16px; border-bottom:1px solid var(--border); background:#f8fafc; display:flex; align-items:center; justify-content:space-between; }
-    .compose-title { font-size:14px; font-weight:800; }
-    .compose-b { padding:14px 16px 16px; display:grid; gap:10px; }
-    .field-row { display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; }
-    .field-label { font-size:12px; font-weight:700; color:var(--text-muted); }
-    .field-input { height:36px; border:1px solid var(--border); border-radius:var(--radius-md); padding:0 10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; }
-    .field-textarea { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fafbff; width:100%; min-height:80px; resize:vertical; }
-    .compose-actions { display:flex; justify-content:flex-end; gap:8px; }
-    .btn-send { height:38px; padding:0 20px; border:none; border-radius:var(--radius-md); background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
-    .success-banner { padding:10px 14px; background:#dcfce7; border:1px solid #bbf7d0; border-radius:var(--radius-md); font-size:13px; font-weight:600; color:#166534; margin-bottom:12px; }
+    /* Pestañas estilo bandeja (Gmail) */
+    .nt-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+    .nt-tab { appearance:none; border:none; background:none; font-family:inherit; font-size:13px; font-weight:700; color:var(--text-muted); padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; display:inline-flex; align-items:center; gap:8px; }
+    .nt-tab:hover { color:var(--text-secondary); }
+    .nt-tab.is-active { color:var(--blue-700); border-bottom-color:var(--blue-600); }
+    .nt-tab-count { font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; background:var(--blue-50); color:var(--blue-700); }
+    .nt-panel { display:none; }
+    .nt-panel.is-active { display:block; }
+
+    /* Bloque 2 · Tarjetas de estadísticas: dos columnas exactamente iguales y de
+       igual altura, sin importar la cantidad de texto que contengan. */
+    .iv-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); align-items:stretch; }
+    .iv-kpis .iv-kpi { height:100%; }
+
+    /* Bloque 3 · Contraste y legibilidad de textos secundarios sobre fondo blanco:
+       grises más oscuros y un poco más de peso en las etiquetas pequeñas. */
+    .iv-kpi__label { color:var(--text-secondary); }
+    .iv-kpi__sub { color:var(--text-secondary); font-weight:600; }
+    .iv-cell-sub { color:var(--text-secondary); font-weight:600; }
+    .iv-badge.cat-carrera { font-weight:700; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="section-divider">
-    <div class="section-divider-line"></div>
-    <div class="section-divider-text">🔔 Comunicaciones, alertas y recordatorios</div>
-    <div class="section-divider-line"></div>
+<div class="nt-toolbar">
+    {% if is_admin %}
+    <div class="nt-toolbar__txt"></div>
+    <div class="nt-toolbar__actions">
+        <button type="button" class="nt-new-btn" onclick="abrirAnuncioModal()">+ Nuevo Anuncio</button>
+    </div>
+    {% else %}
+    <div class="nt-toolbar__txt">{% if no_leidas %}{{ no_leidas }} sin leer{% endif %}</div>
+    <div class="nt-toolbar__actions">
+        <form method="post" action="{% url 'notificaciones_limpiar' %}">
+            {% csrf_token %}
+            <button type="submit" class="nt-clear-btn">Limpiar leídas</button>
+        </form>
+    </div>
+    {% endif %}
 </div>
 
 {% if sent_ok %}
-<div class="success-banner">✅ Anuncio enviado correctamente a {{ sent_count }} destinatario{{ sent_count|pluralize }}.</div>
+<div class="nt-banner">El anuncio se está procesando en segundo plano y se entregará a los destinatarios del segmento seleccionado.</div>
 {% endif %}
 
-<div class="compose-card">
-    <div class="compose-h">
-        <div class="compose-title">📣 Enviar anuncio</div>
-        <span style="font-size:12px;color:var(--text-muted);">Se registra en recordatorios masivos</span>
+{% if is_admin %}
+<!-- ── Administrador: Comunicados Institucionales ── -->
+<div class="iv-kpis">
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">Mensajes emitidos</div>
+        <div class="iv-kpi__value">{{ total_campanas }}</div>
+        <div class="iv-kpi__sub">Comunicados masivos registrados</div>
     </div>
-    <form method="post" action="">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="send_announcement">
-        <div class="compose-b">
-            <div class="field-row">
-                <label class="field-label">Segmento destino</label>
-                <select name="segmento" class="field-input">
-                    <option value="todos">Todos los usuarios</option>
-                    <option value="alumnos">Solo alumnos</option>
-                    <option value="tutores_empresa">Tutores empresa</option>
-                    <option value="tutores_udd">Tutores UDD</option>
-                </select>
-            </div>
-            <div class="field-row">
-                <label class="field-label">Asunto</label>
-                <input type="text" name="titulo" class="field-input" placeholder="Ej: Recordatorio entrega bitácora" required maxlength="255">
-            </div>
-            <div class="field-row" style="align-items:flex-start;">
-                <label class="field-label" style="padding-top:8px;">Mensaje</label>
-                <textarea name="mensaje" class="field-textarea" placeholder="Escribe el mensaje del anuncio..." required></textarea>
-            </div>
-        </div>
-        <div style="padding:0 16px 14px;">
-            <div class="compose-actions">
-                <button type="submit" class="btn-send">📤 Enviar anuncio</button>
-            </div>
-        </div>
-    </form>
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">Última actualización</div>
+        <div class="iv-kpi__value">{{ ultimo_envio|date:'d/m/Y'|default:'—' }}</div>
+        <div class="iv-kpi__sub">{% if ultimo_envio %}{{ ultimo_envio|date:'H:i' }} hrs{% else %}Sin envíos aún{% endif %}</div>
+    </div>
 </div>
 
-<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" data-auto-submit="true" data-auto-submit-text="true">
-    <input name="q" value="{{ filters.q }}" placeholder="Buscar notificacion" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;" />
-    <select name="tipo" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Tipo: todos</option>
-        {% for option in filter_options.tipo %}
-        <option value="{{ option.value }}" {% if filters.tipo == option.value %}selected{% endif %}>{{ option.label }}</option>
-        {% endfor %}
-    </select>
-    <select name="estado" onchange="this.form.submit()" style="height:34px;border:1px solid var(--border);border-radius:var(--radius-md);padding:0 10px;font-family:inherit;">
-        <option value="">Estado: todos</option>
-        <option value="leida" {% if filters.estado == 'leida' %}selected{% endif %}>Leidas</option>
-        <option value="no_leida" {% if filters.estado == 'no_leida' %}selected{% endif %}>No leidas</option>
-    </select>
-    <a href="?" class="pill unread" style="text-decoration:none;border:1px solid #fecaca;">Limpiar filtros</a>
-</form>
-
-<div class="kpis">
-    <div class="kpi"><div class="kpi-l">Notificaciones</div><div class="kpi-v">{{ notificaciones_count }}</div></div>
-    <div class="kpi"><div class="kpi-l">No leidas</div><div class="kpi-v" style="color:#9f1239;">{{ no_leidas_count }}</div></div>
-    <div class="kpi"><div class="kpi-l">Periodo</div><div class="kpi-v" style="font-size:22px;">{{ periodo_label }}</div></div>
+<div class="iv-table">
+    <div class="iv-thead nt-cols">
+        <div class="iv-th">Fecha</div>
+        <div class="iv-th">Asunto</div>
+        <div class="iv-th">Segmento</div>
+        <div class="iv-th right">Estado</div>
+        <div class="iv-th right">Acciones</div>
+    </div>
+    {% for c in campanas %}
+    <div class="iv-row nt-cols">
+        <div class="iv-cell-strong">{{ c.fecha|date:'d/m/Y H:i'|default:'—' }}</div>
+        <div class="iv-cell-title">
+            <div class="iv-cell-main">{{ c.asunto }}</div>
+            <div class="iv-cell-sub">{{ c.cantidad_envios }} destinatario{{ c.cantidad_envios|pluralize }}</div>
+        </div>
+        <div><span class="iv-badge cat-carrera">{{ c.segmento }}</span></div>
+        <div class="right"><span class="nt-state {{ c.estado_class }}">{{ c.estado_label }}</span></div>
+        <div class="right">
+            <form method="post" action="" onsubmit="return confirm('¿Archivar este comunicado? Dejará de verse aquí, pero seguirá disponible para sus destinatarios.');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="archivar_comunicado">
+                <input type="hidden" name="recordatorio_id" value="{{ c.id }}">
+                <button type="submit" class="nt-archive-btn">Archivar</button>
+            </form>
+        </div>
+    </div>
+    {% empty %}
+    <div class="iv-empty">Aún no se han enviado comunicados. Usa “+ Nuevo Anuncio” para crear el primero.</div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- ── Alumno / Tutor: Bandeja de Entrada con pestañas ── -->
+<div class="nt-tabs" role="tablist">
+    <button type="button" class="nt-tab is-active" data-panel="inbox" id="tabInbox" role="tab">
+        Bandeja de entrada
+        <span class="nt-tab-count" id="inboxCount" {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>
+    </button>
+    <button type="button" class="nt-tab" data-panel="read" id="tabRead" role="tab">Leídos</button>
 </div>
 
-<div class="split">
-    <div class="card">
-        <div class="card-h"><div style="font-size:15px;font-weight:700;">Notificaciones del sistema</div><div style="font-size:12px;color:var(--text-muted);">Correo, alertas y avisos internos</div></div>
-        <div class="card-b">
-            {% for n in notificaciones %}
-            <div class="notice">
-                <div class="n-top">
-                    <div>
-                        <div class="n-title">{{ n.titulo }}</div>
-                        <div class="n-msg">{{ n.mensaje|truncatechars:160 }}</div>
-                    </div>
-                    <span class="pill {% if n.leida %}read{% else %}unread{% endif %}">{% if n.leida %}Leida{% else %}No leida{% endif %}</span>
+<!-- Panel: Bandeja de entrada (no leídas) -->
+<div class="nt-panel is-active" id="panelInbox" role="tabpanel">
+    <div class="iv-table">
+        <div class="iv-thead nt-inbox-cols">
+            <div class="iv-th"></div>
+            <div class="iv-th">Asunto</div>
+            <div class="iv-th right">Fecha</div>
+        </div>
+        <div id="inboxList">
+            {% for m in mensajes_pendientes %}
+            <div class="iv-row nt-inbox-cols nt-msg nt-unread"
+                 role="button" tabindex="0"
+                 data-id="{{ m.id }}"
+                 data-asunto="{{ m.asunto }}"
+                 data-fecha="{{ m.fecha|date:'d/m/Y H:i' }}"
+                 data-cuerpo="{{ m.cuerpo }}">
+                <div class="nt-dot-cell"><span class="nt-dot"></span></div>
+                <div class="iv-cell-title">
+                    <div class="iv-cell-main">{{ m.asunto }}</div>
+                    <div class="iv-cell-sub">{{ m.cuerpo|truncatechars:90 }}</div>
                 </div>
-                <div class="n-meta">{{ n.tipo }} · {{ n.destinatario }} · {{ n.fecha|date:'d/m/Y H:i' }}</div>
+                <div class="iv-cell-strong right">{{ m.fecha|date:'d/m/Y H:i'|default:'—' }}</div>
             </div>
-            {% empty %}
-            <div style="color:var(--text-muted);">No hay notificaciones registradas.</div>
             {% endfor %}
         </div>
+        <div class="iv-empty" id="inboxEmpty" {% if mensajes_pendientes %}hidden{% endif %}>No tienes mensajes sin leer.</div>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-h"><div style="font-size:15px;font-weight:700;">Recordatorios masivos</div><div style="font-size:12px;color:var(--text-muted);">Envios recientes</div></div>
-        <div class="card-b">
-            {% for r in recordatorios %}
-            <div class="rem">
-                <div class="rem-h">{{ r.segmento|default:'Segmento general' }}</div>
-                <div class="rem-m">{{ r.mensaje|truncatechars:120 }}</div>
-                <div class="rem-f">{{ r.cantidad_envios|default:0 }} envios · {{ r.fecha_envio|date:'d/m/Y H:i' }}</div>
+<!-- Panel: Leídos (histórico) -->
+<div class="nt-panel" id="panelRead" role="tabpanel">
+    <div class="iv-table">
+        <div class="iv-thead nt-inbox-cols">
+            <div class="iv-th"></div>
+            <div class="iv-th">Asunto</div>
+            <div class="iv-th right">Fecha</div>
+        </div>
+        <div id="readList">
+            {% for m in mensajes_leidos %}
+            <div class="iv-row nt-inbox-cols nt-msg"
+                 role="button" tabindex="0"
+                 data-id="{{ m.id }}"
+                 data-asunto="{{ m.asunto }}"
+                 data-fecha="{{ m.fecha|date:'d/m/Y H:i' }}"
+                 data-cuerpo="{{ m.cuerpo }}">
+                <div class="nt-dot-cell"></div>
+                <div class="iv-cell-title">
+                    <div class="iv-cell-main">{{ m.asunto }}</div>
+                    <div class="iv-cell-sub">{{ m.cuerpo|truncatechars:90 }}</div>
+                </div>
+                <div class="iv-cell-strong right">{{ m.fecha|date:'d/m/Y H:i'|default:'—' }}</div>
             </div>
-            {% empty %}
-            <div style="color:var(--text-muted);">No hay recordatorios masivos enviados.</div>
             {% endfor %}
+        </div>
+        <div class="iv-empty" id="readEmpty" {% if mensajes_leidos %}hidden{% endif %}>Aún no has leído ningún mensaje.</div>
+    </div>
+</div>
+{% endif %}
+
+{% if is_admin %}
+<!-- Modal: Nuevo Anuncio (solo administradores) -->
+<div class="nt-modal" id="anuncioModal">
+    <div class="nt-modal__backdrop" onclick="cerrarAnuncioModal()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="anuncioModalTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="anuncioModalTitle">Nuevo anuncio masivo</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarAnuncioModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send_announcement">
+            <div class="nt-modal__body">
+                <div class="nt-field">
+                    <label class="nt-field__label" for="nt-segmento">Segmento destino</label>
+                    <select name="segmento" id="nt-segmento" class="nt-select">
+                        <option value="todos">Todos los usuarios</option>
+                        <option value="alumnos">Solo alumnos</option>
+                        <option value="tutores_empresa">Tutores empresa</option>
+                        <option value="tutores_udd">Tutores UDD</option>
+                    </select>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="nt-titulo">Asunto</label>
+                    <input type="text" name="titulo" id="nt-titulo" class="nt-input" placeholder="Ej: Recordatorio entrega de bitácora" required maxlength="255">
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="nt-mensaje">Mensaje</label>
+                    <textarea name="mensaje" id="nt-mensaje" class="nt-textarea" placeholder="Escribe el contenido del anuncio…" required></textarea>
+                </div>
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarAnuncioModal()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Enviar anuncio</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% else %}
+<!-- Modal: Lectura de mensaje (alumno/tutor) -->
+<div class="nt-modal" id="leerModal">
+    <div class="nt-modal__backdrop" onclick="cerrarLeerModal()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="leerModalTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="leerModalTitle">Mensaje</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarLeerModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="nt-modal__body">
+            <div class="nt-read-date" id="leerModalFecha"></div>
+            <div class="nt-read-body" id="leerModalCuerpo"></div>
+        </div>
+        <div class="nt-modal__foot">
+            <button type="button" class="nt-btn-submit" onclick="cerrarLeerModal()">Cerrar</button>
         </div>
     </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if is_admin %}
+<script>
+    function abrirAnuncioModal() {
+        document.getElementById('anuncioModal').classList.add('open');
+    }
+    function cerrarAnuncioModal() {
+        document.getElementById('anuncioModal').classList.remove('open');
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') cerrarAnuncioModal();
+    });
+</script>
+{% else %}
+<script>
+(function () {
+    var modal = document.getElementById('leerModal');
+    var elTitle = document.getElementById('leerModalTitle');
+    var elFecha = document.getElementById('leerModalFecha');
+    var elBody = document.getElementById('leerModalCuerpo');
+    var tokenInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+    var token = tokenInput ? tokenInput.value : '';
+
+    var inboxList = document.getElementById('inboxList');
+    var readList = document.getElementById('readList');
+    var inboxEmpty = document.getElementById('inboxEmpty');
+    var readEmpty = document.getElementById('readEmpty');
+    var inboxCount = document.getElementById('inboxCount');
+
+    // ── Pestañas ──
+    var tabs = document.querySelectorAll('.nt-tab');
+    var panels = {
+        inbox: document.getElementById('panelInbox'),
+        read: document.getElementById('panelRead'),
+    };
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            tabs.forEach(function (t) { t.classList.remove('is-active'); });
+            tab.classList.add('is-active');
+            Object.keys(panels).forEach(function (k) {
+                panels[k].classList.toggle('is-active', k === tab.dataset.panel);
+            });
+        });
+    });
+
+    function refreshEstado() {
+        if (inboxEmpty) inboxEmpty.hidden = inboxList.querySelector('.nt-msg') !== null;
+        if (readEmpty) readEmpty.hidden = readList.querySelector('.nt-msg') !== null;
+        if (inboxCount) {
+            var n = inboxList.querySelectorAll('.nt-msg').length;
+            inboxCount.textContent = n;
+            inboxCount.hidden = n === 0;
+        }
+    }
+
+    function cerrarLeerModal() { modal.classList.remove('open'); }
+    window.cerrarLeerModal = cerrarLeerModal;
+
+    // Traslada la fila de Bandeja de entrada al inicio de Leídos, sin recargar.
+    function moverALeidos(row) {
+        row.classList.remove('nt-unread');
+        var dot = row.querySelector('.nt-dot');
+        if (dot) dot.remove();
+        readList.insertBefore(row, readList.firstChild);
+        refreshEstado();
+    }
+
+    function marcarLeida(row) {
+        if (!row.classList.contains('nt-unread')) return;
+        fetch('/notificaciones/' + row.dataset.id + '/leer/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': token },
+        }).then(function (r) {
+            if (r.ok) { moverALeidos(row); }
+        });
+    }
+
+    function abrir(row) {
+        elTitle.textContent = row.dataset.asunto;
+        elFecha.textContent = row.dataset.fecha;
+        elBody.textContent = row.dataset.cuerpo;
+        modal.classList.add('open');
+        marcarLeida(row);
+    }
+
+    // Los listeners viajan con la fila aunque se mueva de contenedor.
+    document.querySelectorAll('.nt-msg').forEach(function (row) {
+        row.addEventListener('click', function () { abrir(row); });
+        row.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(row); }
+        });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') cerrarLeerModal();
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

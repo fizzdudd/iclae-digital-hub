@@ -1,354 +1,271 @@
 {% extends 'base.html' %}
 
 {% block title %}Empresas{% endblock %}
-{% block page_title %}Directorio de Empresas{% endblock %}
+{% block page_title %}Empresas{% endblock %}
+{% block topbar_actions %}<a href="{% url 'exportar_empresas' %}?{{ request.GET.urlencode }}" class="topbar-btn iv-topbar-export"><svg class="iv-export-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar</a>{% if user_rol == 'admin' %}<a href="{% url 'empresas_import' %}" class="topbar-btn">Importar Empresas</a><button type="button" class="nt-new-btn" onclick="abrirEmpresaModal()">+ Nueva Empresa</button>{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .section-divider { display:flex; align-items:center; gap:12px; margin:8px 0 16px; }
-    .section-divider-line { height:1px; background:var(--border); flex:1; }
-    .section-divider-text { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.7px; font-weight:700; }
-
-    /* ── FILTER TOP ROW ── */
-    .filters-top-row { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-    .search-wrap { position:relative; max-width:260px; flex-shrink:0; }
-    .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; font-size:14px; }
-    .search-input { width:260px; height:38px; padding:0 12px 0 36px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:13px; font-family:inherit; color:var(--text-primary); transition:border-color 0.15s; }
-    .search-input:focus { outline:none; border-color:var(--blue-600); }
-    .results-meta { font-size:12.5px; color:var(--text-muted); margin-left:auto; white-space:nowrap; }
-    .sort-select { height:38px; padding:0 30px 0 12px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:12.5px; font-family:inherit; color:var(--text-secondary); cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; }
-    .clear-btn { height:38px; padding:0 14px; border-radius:var(--radius-md); border:1.5px solid #fca5a5; background:#fff1f2; font-size:12.5px; font-weight:600; color:#dc2626; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px; text-decoration:none; transition:background 0.15s; }
-    .clear-btn:hover { background:#fee2e2; }
-
-    /* ── FILTER PANEL ── */
-    .filters-panel { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 18px; margin-bottom:16px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:12px; }
-    .filter-group { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .filter-group-label { display:flex; align-items:center; gap:6px; min-width:86px; flex-shrink:0; }
-    .filter-group-icon { font-size:14px; line-height:1; }
-    .filter-group-text { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); }
-    .filter-divider-v { width:1px; height:20px; background:var(--border); flex-shrink:0; }
-    .filter-divider-h { height:1px; background:var(--border); margin:0 -18px; }
-    .filter-chips { display:flex; gap:6px; flex-wrap:wrap; }
-    .filter-chip { padding:5px 13px; border-radius:20px; border:1.5px solid var(--border); background:#f8fafc; font-size:12px; font-weight:500; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
-    .filter-chip:hover { background:#f1f5f9; border-color:#cbd5e1; color:var(--text-primary); }
-    /* Rubro chips */
-    .filter-chip.rubro-chip.active[data-rubro="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
-    .filter-chip.rubro-chip.active[data-rubro="banca"] { background:var(--blue-100); border-color:#93c5fd; color:var(--blue-800); font-weight:600; }
-    .filter-chip.rubro-chip.active[data-rubro="fintech"] { background:var(--green-100); border-color:#86efac; color:var(--green-800); font-weight:600; }
-    .filter-chip.rubro-chip.active[data-rubro="retail"] { background:#ffe4e6; border-color:#fda4af; color:#9f1239; font-weight:600; }
-    .filter-chip.rubro-chip.active[data-rubro="energia"] { background:#cffafe; border-color:#67e8f9; color:#155e75; font-weight:600; }
-    .filter-chip.rubro-chip.active[data-rubro="hrtech"] { background:#fef3c7; border-color:#fcd34d; color:#92400e; font-weight:600; }
-    .filter-chip.rubro-chip.active[data-rubro="tecnologia"] { background:#d1fae5; border-color:#6ee7b7; color:#065f46; font-weight:600; }
-    .filter-chip.rubro-chip.active[data-rubro="insurtech"] { background:#ede9fe; border-color:#c4b5fd; color:#5b21b6; font-weight:600; }
-    /* Presencia chips */
-    .filter-chip.presencia-chip.active[data-presencia="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
-    .filter-chip.presencia-chip.active { background:#f0fdf4; border-color:#86efac; color:#166534; font-weight:600; }
-    /* Tamaño chips */
-    .filter-chip.tamano-chip.active[data-tamano="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
-    .filter-chip.tamano-chip.active[data-tamano="grande"] { background:#f1f5f9; border-color:#94a3b8; color:#1e293b; font-weight:600; }
-    .filter-chip.tamano-chip.active[data-tamano="mediana"] { background:#f5f3ff; border-color:#c4b5fd; color:#6d28d9; font-weight:600; }
-    .filter-chip.tamano-chip.active[data-tamano="peque"] { background:#fff7ed; border-color:#fed7aa; color:#9a3412; font-weight:600; }
-    /* Campus chips */
-    .filter-chip.campus-chip.active[data-campus="todos"] { background:var(--blue-600); border-color:var(--blue-600); color:#fff; font-weight:600; }
-    .filter-chip.campus-chip.active { background:var(--blue-50); border-color:#93c5fd; color:var(--blue-800); font-weight:600; }
-    /* Tamano bars decoration */
-    .tamano-bars { display:flex; align-items:flex-end; gap:1.5px; height:11px; flex-shrink:0; }
-    .tamano-bar { width:3px; border-radius:1px; background:currentColor; opacity:0.4; }
-    .filter-chip.tamano-chip.active .tamano-bar { opacity:1; }
-
-    /* ── KPI GRID ── */
-    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:16px; position:relative; overflow:hidden; }
-    .card::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
-    .grid .card:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
-    .grid .card:nth-child(2)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
-    .grid .card:nth-child(3)::before { background:linear-gradient(90deg,#16a34a,#4ade80); }
-    .kpi-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
-    .kpi-value { font-size:30px; font-weight:700; line-height:1; margin-top:8px; }
-
-    /* ── COMPANY LIST ── */
-    .companies-grid { display:flex; flex-direction:column; background:#fff; border-radius:var(--radius-lg); border:1px solid var(--border); box-shadow:var(--shadow-sm); overflow:hidden; }
-    .companies-header { display:grid; grid-template-columns:48px 1fr 240px 220px 100px; align-items:center; gap:16px; padding:10px 20px; background:#f8fafc; border-bottom:1.5px solid var(--border); }
-    .col-header { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); }
-    .company-card { display:grid; grid-template-columns:48px 1fr 240px 220px 100px; align-items:center; gap:16px; padding:14px 20px; cursor:pointer; transition:background 0.12s; border-bottom:1px solid #f8fafc; position:relative; }
-    .company-card:last-child { border-bottom:none; }
-    .company-card:hover { background:#f8fbff; }
-    .company-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:var(--blue-600); transition:width 0.15s; }
-    .company-card:hover::before { width:3px; }
-
-    .company-logo { width:42px; height:42px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; letter-spacing:-0.5px; }
-    .col-name { display:flex; flex-direction:column; gap:4px; min-width:0; }
-    .col-name-main { font-size:15px; font-weight:700; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-0.2px; }
-    .col-name-sub { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-    .rubro-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
-    .company-rubro { display:inline-flex; align-items:center; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; }
-
-    /* Rubro colors */
-    .rubro-banca { background:var(--blue-100); color:var(--blue-800); }
-    .rubro-fintech { background:var(--green-100); color:var(--green-800); }
-    .rubro-tecnologia { background:#d1fae5; color:#065f46; }
-    .rubro-retail { background:#ffe4e6; color:#9f1239; }
-    .rubro-energia { background:#cffafe; color:#155e75; }
-    .rubro-insurtech { background:#ede9fe; color:#5b21b6; }
-    .rubro-hrtech { background:#fef3c7; color:#92400e; }
-    .rubro-default { background:#f1f5f9; color:#475569; }
-    .dot-banca { background:#3b82f6; }
-    .dot-fintech { background:#22c55e; }
-    .dot-tecnologia { background:#10b981; }
-    .dot-retail { background:#f43f5e; }
-    .dot-energia { background:#06b6d4; }
-    .dot-insurtech { background:#8b5cf6; }
-    .dot-hrtech { background:#f59e0b; }
-    .dot-default { background:#94a3b8; }
-
-    .col-pills { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-    .pill { font-size:11px; font-weight:500; padding:3px 9px; border-radius:20px; }
-    .pill-globe { background:#f0fdf4; color:#166534; }
-    .pill-chile { background:var(--blue-50); color:var(--blue-800); }
-    .pill-grande { background:#f8fafc; color:#475569; }
-    .pill-mediana { background:#f5f3ff; color:#6366f1; }
-    .pill-pequeña { background:#fff7ed; color:#9a3412; }
-    .pill-default { background:#f1f5f9; color:#64748b; }
-    .campus-pill { background:#f1f5f9; color:#64748b; }
-
-    .col-stats { display:flex; align-items:center; }
-    .stat-item { text-align:center; flex:1; }
-    .stat-item:not(:last-child) { border-right:1px solid #f1f5f9; }
-    .stat-value { font-size:14px; font-weight:700; color:var(--text-primary); }
-    .stat-label { font-size:10px; color:var(--text-muted); font-weight:500; margin-top:1px; }
-
-    .col-enps { text-align:right; flex-shrink:0; }
-    .enps-score { font-size:18px; font-weight:700; line-height:1; letter-spacing:-0.5px; }
-    .enps-label { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-muted); margin-top:1px; }
-
-    .empty-row { padding:32px 20px; text-align:center; color:var(--text-muted); font-size:13px; }
-
-    @media (max-width:1080px) {
-        .grid { grid-template-columns:1fr; }
-        .companies-header { display:none; }
-        .company-card { grid-template-columns:48px 1fr; }
-        .company-card > *:not(:nth-child(1)):not(:nth-child(2)) { grid-column:2; }
-        .filter-group { flex-wrap:wrap; }
-    }
+    .iv-topbar-export { text-decoration:none; display:flex; align-items:center; gap:5px; }
+    .iv-export-icon { width:12px; height:12px; }
+    /* CTA principal del detalle de empresa: crear proyecto vinculado */
+    .iv-d-cta { display:inline-flex; align-items:center; justify-content:center; gap:7px; width:100%; height:38px; margin-bottom:16px; background:var(--blue-600); color:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:700; text-decoration:none; }
+    .iv-d-cta:hover { background:var(--blue-700); }
+    .iv-d-proj { text-decoration:none; }
+    .iv-d-proj:hover { border-color:#93c5fd; background:var(--blue-50); }
+    /* Columnas específicas de la tabla de empresas (última columna: acciones) */
+    .cols-empresas { grid-template-columns:40px 1fr 230px 210px 84px 84px; }
+    @media (max-width:1080px) { .cols-empresas { grid-template-columns:40px 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="section-divider">
-    <div class="section-divider-line"></div>
-    <div class="section-divider-text">🏢 Directorio y rendimiento de empresas</div>
-    <div class="section-divider-line"></div>
+
+<!-- 1) KPIs -->
+<div class="iv-kpis">
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">Empresas activas</div>
+        <div class="iv-kpi__value">{{ empresas_count }}</div>
+        <div class="iv-kpi__sub">Con prácticas en curso</div>
+    </div>
+    <div class="iv-kpi">
+        <div class="iv-kpi__label">eNPS promedio</div>
+        <div class="iv-kpi__value accent">{{ enps_avg|default_if_none:'—' }}</div>
+        <div class="iv-kpi__sub">{% if enps_avg is None %}Sin evaluaciones en el período{% else %}Pulso real de las empresas{% endif %}</div>
+    </div>
 </div>
 
+<!-- 2) Filtros + buscador -->
 <form id="filterForm" method="get">
-    <input type="hidden" id="hRubro" name="rubro" value="{{ filters.rubro }}">
-    <input type="hidden" id="hPresencia" name="presencia" value="{{ filters.presencia }}">
-    <input type="hidden" id="hTamano" name="tamano" value="{{ filters.tamano }}">
-    <input type="hidden" id="hCampus" name="campus" value="{{ filters.campus }}">
-    <input type="hidden" id="hSort" name="sort" value="{{ filters.sort }}">
+    <input type="hidden" id="h_presencia" name="presencia" value="{{ filters.presencia }}">
 
-    <div class="filters-top-row">
-        <div class="search-wrap">
-            <span class="search-icon">🔍</span>
-            <input class="search-input" type="text" name="q" value="{{ filters.q }}" placeholder="Buscar empresa..." oninput="scheduleSearch()">
+    <div class="iv-filters">
+        <div class="iv-search">
+            <span class="iv-search__icon">🔍</span>
+            <input class="iv-search__input" type="text" name="q" value="{{ filters.q }}" placeholder="Buscar empresa..." oninput="scheduleSearch()">
         </div>
-        <span class="results-meta">{{ empresas_count }} empresa{{ empresas_count|pluralize }}</span>
-        {% if filters.q or filters.rubro or filters.presencia or filters.tamano or filters.campus %}
-        <a href="?" class="clear-btn">✕ Limpiar filtros</a>
-        {% endif %}
-        <select class="sort-select" onchange="setSort(this.value)">
+
+        <select class="iv-select" name="rubro" onchange="submitFilters()" aria-label="Rubro">
+            <option value="">Rubro: todos</option>
+            {% for opt in filter_options.rubro %}
+            <option value="{{ opt.value }}" {% if filters.rubro == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+            {% endfor %}
+        </select>
+
+        <div class="iv-filter-group">
+            <span class="iv-filter-label">Presencia</span>
+            <div class="iv-pills">
+                <button type="button" class="iv-pill {% if not filters.presencia %}active{% endif %}" onclick="setPill('presencia','')">Todas</button>
+                <button type="button" class="iv-pill {% if 'multinacional' in filters.presencia %}active{% endif %}" onclick="setPill('presencia','multinacional')">Multinacional</button>
+                <button type="button" class="iv-pill {% if 'chile' in filters.presencia %}active{% endif %}" onclick="setPill('presencia','chile')">Solo Chile</button>
+            </div>
+        </div>
+
+        <select class="iv-select" name="sort" onchange="submitFilters()" aria-label="Ordenar">
             <option value="practicantes" {% if filters.sort == 'practicantes' or not filters.sort %}selected{% endif %}>Más practicantes</option>
             <option value="enps" {% if filters.sort == 'enps' %}selected{% endif %}>Mejor eNPS</option>
             <option value="proyectos" {% if filters.sort == 'proyectos' %}selected{% endif %}>Más proyectos</option>
             <option value="nombre" {% if filters.sort == 'nombre' %}selected{% endif %}>A → Z</option>
         </select>
-    </div>
 
-    <div class="filters-panel">
-        <!-- Rubro -->
-        <div class="filter-group">
-            <div class="filter-group-label">
-                <span class="filter-group-icon">🏭</span>
-                <span class="filter-group-text">Rubro</span>
-            </div>
-            <div class="filter-divider-v"></div>
-            <div class="filter-chips">
-                <button type="button" class="filter-chip rubro-chip {% if not filters.rubro %}active{% endif %}" data-rubro="todos" onclick="setFilter('rubro','todos',this)">Todos</button>
-                <button type="button" class="filter-chip rubro-chip {% if filters.rubro == 'banca' %}active{% endif %}" data-rubro="banca" onclick="setFilter('rubro','banca',this)"><span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;"></span>Banca</button>
-                <button type="button" class="filter-chip rubro-chip {% if filters.rubro == 'fintech' %}active{% endif %}" data-rubro="fintech" onclick="setFilter('rubro','fintech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;"></span>Fintech</button>
-                <button type="button" class="filter-chip rubro-chip {% if filters.rubro == 'retail' %}active{% endif %}" data-rubro="retail" onclick="setFilter('rubro','retail',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f43f5e;display:inline-block;"></span>Retail</button>
-                <button type="button" class="filter-chip rubro-chip {% if filters.rubro == 'energia' %}active{% endif %}" data-rubro="energia" onclick="setFilter('rubro','energia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#06b6d4;display:inline-block;"></span>Energía</button>
-                <button type="button" class="filter-chip rubro-chip {% if filters.rubro == 'hrtech' %}active{% endif %}" data-rubro="hrtech" onclick="setFilter('rubro','hrtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>HR Tech</button>
-                <button type="button" class="filter-chip rubro-chip {% if filters.rubro == 'tecnologia' %}active{% endif %}" data-rubro="tecnologia" onclick="setFilter('rubro','tecnologia',this)"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span>Tecnología</button>
-                <button type="button" class="filter-chip rubro-chip {% if filters.rubro == 'insurtech' %}active{% endif %}" data-rubro="insurtech" onclick="setFilter('rubro','insurtech',this)"><span style="width:7px;height:7px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span>InsurTech</button>
-            </div>
-        </div>
-
-        <div class="filter-divider-h"></div>
-
-        <!-- Presencia + Tamaño + Campus row -->
-        <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
-
-            <!-- Presencia -->
-            <div class="filter-group" style="flex:0 0 auto;">
-                <div class="filter-group-label">
-                    <span class="filter-group-icon">🌍</span>
-                    <span class="filter-group-text">Presencia</span>
-                </div>
-                <div class="filter-divider-v"></div>
-                <div class="filter-chips">
-                    <button type="button" class="filter-chip presencia-chip {% if not filters.presencia %}active{% endif %}" data-presencia="todos" onclick="setFilter('presencia','todos',this)">Todas</button>
-                    <button type="button" class="filter-chip presencia-chip {% if 'multinacional' in filters.presencia %}active{% endif %}" data-presencia="multinacional" onclick="setFilter('presencia','multinacional',this)">🌎 Multinacional</button>
-                    <button type="button" class="filter-chip presencia-chip {% if 'chile' in filters.presencia %}active{% endif %}" data-presencia="chile" onclick="setFilter('presencia','chile',this)">🇨🇱 Solo Chile</button>
-                </div>
-            </div>
-
-            <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
-
-            <!-- Tamaño -->
-            <div class="filter-group" style="flex:0 0 auto;">
-                <div class="filter-group-label">
-                    <span class="filter-group-icon">📊</span>
-                    <span class="filter-group-text">Tamaño</span>
-                </div>
-                <div class="filter-divider-v"></div>
-                <div class="filter-chips">
-                    <button type="button" class="filter-chip tamano-chip {% if not filters.tamano %}active{% endif %}" data-tamano="todos" onclick="setFilter('tamano','todos',this)">Todos</button>
-                    <button type="button" class="filter-chip tamano-chip {% if filters.tamano == 'grande' %}active{% endif %}" data-tamano="grande" onclick="setFilter('tamano','grande',this)">
-                        <span class="tamano-bars"><span class="tamano-bar" style="height:11px;"></span><span class="tamano-bar" style="height:8px;"></span><span class="tamano-bar" style="height:11px;"></span></span>
-                        Grande
-                    </button>
-                    <button type="button" class="filter-chip tamano-chip {% if filters.tamano == 'mediana' %}active{% endif %}" data-tamano="mediana" onclick="setFilter('tamano','mediana',this)">
-                        <span class="tamano-bars"><span class="tamano-bar" style="height:7px;"></span><span class="tamano-bar" style="height:10px;"></span><span class="tamano-bar" style="height:7px;"></span></span>
-                        Mediana
-                    </button>
-                    <button type="button" class="filter-chip tamano-chip {% if 'peque' in filters.tamano %}active{% endif %}" data-tamano="peque" onclick="setFilter('tamano','peque',this)">
-                        <span class="tamano-bars"><span class="tamano-bar" style="height:5px;"></span><span class="tamano-bar" style="height:7px;"></span><span class="tamano-bar" style="height:5px;"></span></span>
-                        Pequeña
-                    </button>
-                </div>
-            </div>
-
-            <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></div>
-
-            <!-- Campus -->
-            <div class="filter-group" style="flex:0 0 auto;">
-                <div class="filter-group-label">
-                    <span class="filter-group-icon">📍</span>
-                    <span class="filter-group-text">Campus</span>
-                </div>
-                <div class="filter-divider-v"></div>
-                <div class="filter-chips">
-                    <button type="button" class="filter-chip campus-chip {% if not filters.campus %}active{% endif %}" data-campus="todos" onclick="setFilter('campus','todos',this)">Todos</button>
-                    <button type="button" class="filter-chip campus-chip {% if filters.campus == 'santiago' %}active{% endif %}" data-campus="santiago" onclick="setFilter('campus','santiago',this)">Santiago</button>
-                    <button type="button" class="filter-chip campus-chip {% if filters.campus == 'concepcion' or filters.campus == 'concepción' %}active{% endif %}" data-campus="concepcion" onclick="setFilter('campus','concepcion',this)">Concepción</button>
-                </div>
-            </div>
-
-        </div>
+        <span class="iv-filters__meta">{{ empresas_count }} empresa{{ empresas_count|pluralize }}</span>
+        {% if filters.q or filters.rubro or filters.presencia %}
+        <a href="?" class="iv-clear">✕ Limpiar</a>
+        {% endif %}
     </div>
 </form>
 
-<div class="grid">
-    <div class="card">
-        <div class="kpi-label">Empresas activas</div>
-        <div class="kpi-value">{{ empresas_count }}</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Con prácticas en curso</div>
-    </div>
-    <div class="card">
-        <div class="kpi-label">Período</div>
-        <div class="kpi-value" style="font-size:24px;">{{ periodo_label }}</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Configuración vigente</div>
-    </div>
-    <div class="card">
-        <div class="kpi-label">eNPS promedio</div>
-        <div class="kpi-value" style="font-size:24px;color:var(--blue-700);">{{ enps_avg }}</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Pulso real de las empresas</div>
-    </div>
-</div>
-
-<div class="companies-grid">
-    <div class="companies-header">
+<!-- 3) Tabla de resultados -->
+<div class="iv-table">
+    <div class="iv-thead cols-empresas">
         <div></div>
-        <div class="col-header">Empresa</div>
-        <div class="col-header">Características</div>
-        <div class="col-header" style="text-align:center;">Alumnos · Proyectos · Tutores</div>
-        <div class="col-header" style="text-align:right;">eNPS</div>
+        <div class="iv-th">Empresa</div>
+        <div class="iv-th">Características</div>
+        <div class="iv-th center">Alumnos · Proyectos · Tutores</div>
+        <div class="iv-th right">eNPS</div>
+        <div class="iv-th right">Acciones</div>
     </div>
 
     {% for e in empresas %}
-    <div class="company-card" style="cursor:pointer;" onclick="openDetail({{ e.id }})">
-        <div class="company-logo" style="{{ e.logo_style }}">{{ e.initials }}</div>
-        <div class="col-name">
-            <div class="col-name-main">{{ e.nombre }}</div>
-            <div class="col-name-sub">
-                <span class="rubro-dot dot-{{ e.rubro_class }}"></span>
-                <span class="company-rubro rubro-{{ e.rubro_class }}">{{ e.rubro }}</span>
+    <div class="iv-row cols-empresas clickable" onclick="openDetail({{ e.id }})">
+        <div class="iv-logo {% cycle 'c1' 'c2' 'c3' 'c4' 'c5' %}">{{ e.initials }}</div>
+        <div class="iv-cell-title">
+            <div class="iv-cell-main">{{ e.nombre }}</div>
+            <div class="iv-stack">
+                <span class="iv-badge cat-{{ e.rubro_class }}">{{ e.rubro }}</span>
             </div>
-            <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">{{ e.campus }}</div>
         </div>
-        <div class="col-pills">
+        <div class="iv-stack">
             {% if 'multinacional' in e.presencia|lower %}
-                <span class="pill pill-globe">🌎 {{ e.presencia }}</span>
+                <span class="iv-badge neutral">🌎 {{ e.presencia }}</span>
             {% else %}
-                <span class="pill pill-chile">🇨🇱 {{ e.presencia }}</span>
-            {% endif %}
-            {% if e.tamano %}
-                {% if 'grande' in e.tamano|lower %}
-                    <span class="pill pill-grande">{{ e.tamano }}</span>
-                {% elif 'mediana' in e.tamano|lower or 'mediano' in e.tamano|lower %}
-                    <span class="pill pill-mediana">{{ e.tamano }}</span>
-                {% elif 'peque' in e.tamano|lower %}
-                    <span class="pill pill-pequeña">{{ e.tamano }}</span>
-                {% else %}
-                    <span class="pill pill-default">{{ e.tamano }}</span>
-                {% endif %}
+                <span class="iv-badge neutral">🇨🇱 {{ e.presencia }}</span>
             {% endif %}
         </div>
-        <div class="col-stats">
-            <div class="stat-item">
-                <div class="stat-value">{{ e.practicantes }}</div>
-                <div class="stat-label">Alumnos</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">{{ e.proyectos }}</div>
-                <div class="stat-label">Proyectos</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">{{ e.tutores }}</div>
-                <div class="stat-label">Tutores</div>
-            </div>
+        <div class="iv-stats">
+            <div class="iv-stat"><div class="iv-stat__v">{{ e.practicantes }}</div></div>
+            <div class="iv-stat"><div class="iv-stat__v">{{ e.proyectos }}</div></div>
+            <div class="iv-stat"><div class="iv-stat__v">{{ e.tutores }}</div></div>
         </div>
-        <div class="col-enps">
-            {% if e.enps %}
-                <div class="enps-score" style="color:{% if e.enps >= 9 %}var(--green-700){% elif e.enps >= 7 %}var(--blue-700){% else %}var(--text-primary){% endif %};">{{ e.enps }}</div>
+        <div class="iv-enps">
+            {% if e.enps is not None %}
+                <div class="iv-enps__v {% if e.enps >= 9 %}high{% elif e.enps >= 7 %}mid{% endif %}">{{ e.enps }}</div>
             {% else %}
-                <div class="enps-score" style="color:var(--text-muted);">—</div>
+                <div class="iv-enps__v none">—</div>
             {% endif %}
-            <div class="enps-label">eNPS</div>
+            <div class="iv-enps__l">eNPS</div>
+        </div>
+        <div class="iv-actions" onclick="event.stopPropagation()">
+            {% if user_rol == 'admin' %}
+            <button type="button" class="iv-act-btn iv-act-btn--edit" title="Editar" aria-label="Editar empresa" onclick="abrirEmpresaEditar({{ e.id }})">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+            </button>
+            <form method="post" action="{% url 'empresa_eliminar' %}" onsubmit="return confirm('¿Eliminar la empresa {{ e.nombre|escapejs }}? Esta acción no se puede deshacer.');">
+                {% csrf_token %}
+                <input type="hidden" name="empresa_id" value="{{ e.id }}">
+                <button type="submit" class="iv-act-btn iv-act-btn--del" title="Eliminar" aria-label="Eliminar empresa">
+                    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
     {% empty %}
-    <div class="empty-row">No hay empresas registradas con los filtros seleccionados.</div>
+    <div class="iv-empty">No hay empresas registradas con los filtros seleccionados.</div>
     {% endfor %}
 </div>
+
 {% if page_obj and page_obj.paginator.num_pages > 1 %}
-<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:16px;">
-    {% if page_obj.has_previous %}<a href="?rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&tamano={{ filters.tamano }}&q={{ filters.q }}&page={{ page_obj.previous_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">‹</a>{% endif %}
-    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--blue-600);background:var(--blue-600);border-radius:var(--radius-md);font-size:13px;font-weight:700;display:inline-flex;align-items:center;color:#fff;">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a href="?rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&tamano={{ filters.tamano }}&q={{ filters.q }}&page={{ num }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">{{ num }}</a>{% endif %}{% endfor %}
-    {% if page_obj.has_next %}<a href="?rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&tamano={{ filters.tamano }}&q={{ filters.q }}&page={{ page_obj.next_page_number }}" style="height:34px;min-width:34px;padding:0 10px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-md);font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;color:var(--text-secondary);">›</a>{% endif %}
-    <span style="font-size:12px;color:var(--text-muted);margin-left:6px;">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ empresas_count }}</span>
+<div class="iv-pagination">
+    {% if page_obj.has_previous %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&sort={{ filters.sort }}&page={{ page_obj.previous_page_number }}">‹</a>{% endif %}
+    {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="iv-page current">{{ num }}</span>{% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&sort={{ filters.sort }}&page={{ num }}">{{ num }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a class="iv-page" href="?q={{ filters.q }}&rubro={{ filters.rubro }}&presencia={{ filters.presencia }}&sort={{ filters.sort }}&page={{ page_obj.next_page_number }}">›</a>{% endif %}
+    <span class="iv-page-info">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ empresas_count }}</span>
 </div>
 {% endif %}
 
-<!-- Detail panel overlay -->
-<div id="detailOverlay" onclick="closeDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:100;"></div>
-<div id="detailPanel" style="display:none;position:fixed;top:0;right:0;width:380px;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.12);z-index:101;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;">
-    <div style="padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);">Detalle empresa</span>
-        <button onclick="closeDetail()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">×</button>
+<!-- Panel de detalle -->
+<div id="detailOverlay" class="iv-overlay" onclick="closeDetail()"></div>
+<div id="detailPanel" class="iv-detail">
+    <div class="iv-detail__head">
+        <span class="iv-detail__eyebrow">Detalle empresa</span>
+        <button class="iv-detail__close" onclick="closeDetail()">×</button>
     </div>
-    <div id="detailContent" style="padding:16px 20px 24px;"></div>
+    <div id="detailContent" class="iv-detail__body"></div>
+</div>
+
+<!-- Modal: Nueva Empresa -->
+<div class="nt-modal" id="empresaModal">
+    <div class="nt-modal__backdrop" onclick="cerrarEmpresaModal()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="empresaModalTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="empresaModalTitle">Nueva empresa</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarEmpresaModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="{% url 'empresas' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_empresa">
+            <div class="nt-modal__body">
+                <div class="nt-field">
+                    <label class="nt-field__label" for="em-nombre">Nombre</label>
+                    <input class="nt-input" type="text" id="em-nombre" name="nombre" maxlength="255" placeholder="Ej: Banco Falabella" required>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-rubro">Rubro</label>
+                        <input class="nt-input" type="text" id="em-rubro" name="rubro" maxlength="150" placeholder="Ej: Banca">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-ubic">Ubicación</label>
+                        <input class="nt-input" type="text" id="em-ubic" name="ubicacion" maxlength="255" placeholder="Ej: Santiago">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-pres">Presencia</label>
+                        <select class="nt-select" id="em-pres" name="presencia">
+                            <option value="">Sin definir</option>
+                            <option value="chile">Solo Chile</option>
+                            <option value="multinacional">Multinacional</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="em-desc">Descripción</label>
+                    <textarea class="nt-textarea" id="em-desc" name="descripcion" placeholder="Breve descripción de la empresa..."></textarea>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-cn">Contacto (nombre)</label>
+                        <input class="nt-input" type="text" id="em-cn" name="contacto_nombre" maxlength="150" placeholder="Nombre del contacto">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="em-ce">Contacto (email)</label>
+                        <input class="nt-input" type="email" id="em-ce" name="contacto_email" maxlength="254" placeholder="correo@empresa.cl">
+                    </div>
+                </div>
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarEmpresaModal()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Crear empresa</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Editar Empresa -->
+<div class="nt-modal" id="empresaEditModal">
+    <div class="nt-modal__backdrop" onclick="cerrarEmpresaEditar()"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true" aria-labelledby="empresaEditTitle">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title" id="empresaEditTitle">Editar empresa</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarEmpresaEditar()" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="{% url 'empresa_editar' %}">
+            {% csrf_token %}
+            <input type="hidden" name="empresa_id" id="ed-id">
+            <div class="nt-modal__body">
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ed-nombre">Nombre</label>
+                    <input class="nt-input" type="text" id="ed-nombre" name="nombre" maxlength="255" required>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-rubro">Rubro</label>
+                        <input class="nt-input" type="text" id="ed-rubro" name="rubro" maxlength="150">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-ubic">Ubicación</label>
+                        <input class="nt-input" type="text" id="ed-ubic" name="ubicacion" maxlength="255">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-pres">Presencia</label>
+                        <select class="nt-select" id="ed-pres" name="presencia">
+                            <option value="">Sin definir</option>
+                            <option value="chile">Solo Chile</option>
+                            <option value="multinacional">Multinacional</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="nt-field">
+                    <label class="nt-field__label" for="ed-desc">Descripción</label>
+                    <textarea class="nt-textarea" id="ed-desc" name="descripcion"></textarea>
+                </div>
+                <div class="nt-grid-2">
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-cn">Contacto (nombre)</label>
+                        <input class="nt-input" type="text" id="ed-cn" name="contacto_nombre" maxlength="150">
+                    </div>
+                    <div class="nt-field">
+                        <label class="nt-field__label" for="ed-ce">Contacto (email)</label>
+                        <input class="nt-input" type="email" id="ed-ce" name="contacto_email" maxlength="254">
+                    </div>
+                </div>
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarEmpresaEditar()">Cancelar</button>
+                <button type="submit" class="nt-btn-submit">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
@@ -359,12 +276,11 @@ const _empresasData = {
     {{ e.id }}: {
         nombre: "{{ e.nombre|escapejs }}",
         initials: "{{ e.initials }}",
-        logoStyle: "{{ e.logo_style }}",
         rubro: "{{ e.rubro|escapejs }}",
+        rubroRaw: "{{ e.rubro_raw|escapejs }}",
         presencia: "{{ e.presencia|escapejs }}",
-        tamano: "{{ e.tamano|escapejs }}",
-        campus: "{{ e.campus|escapejs }}",
-        enps: {{ e.enps }},
+        presenciaRaw: "{{ e.presencia_raw|escapejs }}",
+        enps: {{ e.enps|default_if_none:'null' }},
         proyectos: {{ e.proyectos }},
         practicantes: {{ e.practicantes }},
         tutores: {{ e.tutores }},
@@ -372,7 +288,9 @@ const _empresasData = {
         contactoNombre: "{{ e.contacto_nombre|escapejs }}",
         contactoEmail: "{{ e.contacto_email|escapejs }}",
         ubicacion: "{{ e.ubicacion|escapejs }}",
-        empleados: "{{ e.empleados|escapejs }}"
+        empleados: "{{ e.empleados|escapejs }}",
+        tutoresList: [{% for t in e.tutores_list %}{ nombre: "{{ t.nombre|escapejs }}", initials: "{{ t.initials|escapejs }}", cargo: "{{ t.cargo|escapejs }}", email: "{{ t.email|escapejs }}" }{% if not forloop.last %}, {% endif %}{% endfor %}],
+        proyectosList: [{% for p in e.proyectos_list %}{ id: {{ p.id }}, titulo: "{{ p.titulo|escapejs }}", activo: {% if p.is_active %}true{% else %}false{% endif %} }{% if not forloop.last %}, {% endif %}{% endfor %}]
     },
     {% endfor %}
 };
@@ -380,84 +298,102 @@ const _empresasData = {
 function openDetail(id) {
     const e = _empresasData[id];
     if (!e) return;
-    const el = document.getElementById('detailContent');
-    el.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-            <div style="${e.logoStyle};width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;">${e.initials}</div>
+    document.getElementById('detailContent').innerHTML = `
+        <div class="iv-d-head">
+            <div class="iv-d-logo">${e.initials}</div>
             <div>
-                <div style="font-size:16px;font-weight:800;">${e.nombre}</div>
-                <div style="font-size:12px;color:var(--text-muted);">${e.rubro}</div>
+                <div class="iv-d-name">${e.nombre}</div>
+                <div class="iv-d-sub">${e.rubro}</div>
             </div>
         </div>
-        ${e.descripcion ? `<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0 0 16px;">${e.descripcion}</p>` : ''}
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
-            <div style="background:#f8fafc;border-radius:10px;padding:10px 12px;text-align:center;">
-                <div style="font-size:20px;font-weight:800;color:var(--blue-700);">${e.practicantes}</div>
-                <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Alumnos</div>
-            </div>
-            <div style="background:#f8fafc;border-radius:10px;padding:10px 12px;text-align:center;">
-                <div style="font-size:20px;font-weight:800;">${e.proyectos}</div>
-                <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Proyectos</div>
-            </div>
-            <div style="background:#f8fafc;border-radius:10px;padding:10px 12px;text-align:center;">
-                <div style="font-size:20px;font-weight:800;">${e.tutores}</div>
-                <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Tutores</div>
-            </div>
+        <a class="iv-d-cta" href="/proyectos/?empresa_fija=${id}">+ Nuevo Proyecto</a>
+        ${e.descripcion ? `<p class="iv-d-desc">${e.descripcion}</p>` : ''}
+        <div class="iv-d-stats">
+            <div class="iv-d-stat"><div class="iv-d-stat__v accent">${e.practicantes}</div><div class="iv-d-stat__l">Alumnos</div></div>
+            <div class="iv-d-stat"><div class="iv-d-stat__v">${e.proyectos}</div><div class="iv-d-stat__l">Proyectos</div></div>
+            <div class="iv-d-stat"><div class="iv-d-stat__v">${e.tutores}</div><div class="iv-d-stat__l">Tutores</div></div>
         </div>
-        <div style="display:grid;gap:8px;">
-            ${_row('📍 Sede', e.campus)}
-            ${_row('🌎 Presencia', e.presencia)}
-            ${_row('📊 Tamaño', e.tamano)}
-            ${e.empleados ? _row('👥 Empleados', e.empleados) : ''}
-            ${e.ubicacion ? _row('🗺 Ubicación', e.ubicacion) : ''}
-            ${e.enps ? _row('📈 eNPS', e.enps) : ''}
+        <div class="iv-d-rows">
+            ${_row('Presencia', e.presencia)}
+            ${e.empleados ? _row('Empleados', e.empleados) : ''}
+            ${e.ubicacion ? _row('Ubicación', e.ubicacion) : ''}
+            ${e.enps ? _row('eNPS', e.enps) : ''}
         </div>
         ${(e.contactoNombre || e.contactoEmail) ? `
-        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;">Contacto empresa</div>
-            ${e.contactoNombre ? `<div style="font-size:13px;font-weight:700;">${e.contactoNombre}</div>` : ''}
-            ${e.contactoEmail ? `<a href="mailto:${e.contactoEmail}" style="font-size:12px;color:var(--blue-600);text-decoration:none;">${e.contactoEmail}</a>` : ''}
+        <div class="iv-d-contact">
+            <div class="iv-d-label">Contacto empresa</div>
+            ${e.contactoNombre ? `<div class="iv-d-contact__name">${e.contactoNombre}</div>` : ''}
+            ${e.contactoEmail ? `<a href="mailto:${e.contactoEmail}" class="iv-d-contact__email">${e.contactoEmail}</a>` : ''}
         </div>` : ''}
+        <div class="iv-d-tutors">
+            <div class="iv-d-label">Tutores empresa · ${e.tutoresList.length}</div>
+            ${e.tutoresList.length ? e.tutoresList.map(_tutorRow).join('') : '<div class="iv-d-tutors__empty">Sin tutores asociados.</div>'}
+        </div>
+        <div class="iv-d-projects">
+            <div class="iv-d-label">Proyectos asociados · ${e.proyectosList.length}</div>
+            ${e.proyectosList.length ? e.proyectosList.map(_proyectoRow).join('') : '<div class="iv-d-tutors__empty">Sin proyectos asociados.</div>'}
+        </div>
     `;
-    document.getElementById('detailOverlay').style.display = 'block';
-    const panel = document.getElementById('detailPanel');
-    panel.style.display = 'block';
-    requestAnimationFrame(() => panel.style.transform = 'translateX(0)');
+    document.getElementById('detailOverlay').classList.add('open');
+    document.getElementById('detailPanel').classList.add('open');
 }
 
 function closeDetail() {
-    const panel = document.getElementById('detailPanel');
-    panel.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-        panel.style.display = 'none';
-        document.getElementById('detailOverlay').style.display = 'none';
-    }, 250);
+    document.getElementById('detailPanel').classList.remove('open');
+    document.getElementById('detailOverlay').classList.remove('open');
 }
 
 function _row(label, value) {
-    return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
-        <span style="color:var(--text-muted);">${label}</span>
-        <span style="font-weight:600;">${value}</span>
+    return `<div class="iv-d-row"><span class="iv-d-row__k">${label}</span><span class="iv-d-row__v">${value}</span></div>`;
+}
+
+function _tutorRow(t) {
+    return `<div class="iv-d-tutor">
+        <div class="iv-d-tutor__av">${t.initials}</div>
+        <div class="iv-d-tutor__info">
+            <div class="iv-d-tutor__name">${t.nombre}</div>
+            <div class="iv-d-tutor__role">${t.cargo || t.email || 'Tutor empresa'}</div>
+        </div>
     </div>`;
 }
 
-function setFilter(type, val, el) {
-    const inputMap = { rubro:'hRubro', presencia:'hPresencia', tamano:'hTamano', campus:'hCampus' };
-    const inputId = inputMap[type];
-    if (!inputId) return;
-    document.getElementById(inputId).value = (val === 'todos' || val === 'todas') ? '' : val;
-    document.getElementById('filterForm').submit();
+function _proyectoRow(p) {
+    const estado = p.activo
+        ? '<span class="iv-d-proj__state is-on">Activo</span>'
+        : '<span class="iv-d-proj__state">Cerrado</span>';
+    return `<a class="iv-d-proj" href="/proyectos/${p.id}/"><span class="iv-d-proj__name">${p.titulo}</span>${estado}</a>`;
 }
 
-function setSort(val) {
-    document.getElementById('hSort').value = val;
-    document.getElementById('filterForm').submit();
-}
+// ── Modal Nueva Empresa ──
+function abrirEmpresaModal() { document.getElementById('empresaModal').classList.add('open'); }
+function cerrarEmpresaModal() { document.getElementById('empresaModal').classList.remove('open'); }
 
+// ── Modal Editar Empresa ──
+function abrirEmpresaEditar(id) {
+    const e = _empresasData[id];
+    if (!e) return;
+    document.getElementById('ed-id').value = id;
+    document.getElementById('ed-nombre').value = e.nombre || '';
+    document.getElementById('ed-rubro').value = e.rubroRaw || '';
+    document.getElementById('ed-ubic').value = e.ubicacion || '';
+    document.getElementById('ed-pres').value = e.presenciaRaw || '';
+    document.getElementById('ed-desc').value = e.descripcion || '';
+    document.getElementById('ed-cn').value = e.contactoNombre || '';
+    document.getElementById('ed-ce').value = e.contactoEmail || '';
+    document.getElementById('empresaEditModal').classList.add('open');
+}
+function cerrarEmpresaEditar() { document.getElementById('empresaEditModal').classList.remove('open'); }
+
+function submitFilters() { document.getElementById('filterForm').submit(); }
+function setPill(field, val) {
+    document.getElementById('h_' + field).value = val;
+    submitFilters();
+}
 let _searchTimer;
 function scheduleSearch() {
     clearTimeout(_searchTimer);
-    _searchTimer = setTimeout(() => document.getElementById('filterForm').submit(), 700);
+    _searchTimer = setTimeout(submitFilters, 600);
 }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); cerrarEmpresaModal(); cerrarEmpresaEditar(); } });
 </script>
 {% endblock %}

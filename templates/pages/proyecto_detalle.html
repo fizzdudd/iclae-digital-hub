@@ -1,0 +1,441 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ proyecto.titulo }}{% endblock %}
+{% block page_title %}Configuración del proyecto{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ph-back { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--text-secondary); text-decoration:none; margin-bottom:14px; }
+    .ph-back:hover { color:var(--blue-700); }
+
+    .ph-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .ph-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:20px 22px; }
+    .ph-card--info { grid-column:1 / -1; }
+    @media (max-width:900px){ .ph-grid { grid-template-columns:1fr; } }
+
+    .ph-card__head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .ph-title { font-size:16px; font-weight:800; color:var(--text-primary); }
+    .ph-sub { font-size:12.5px; color:var(--text-muted); margin-top:3px; }
+    .ph-estado { font-size:11px; font-weight:700; padding:4px 11px; border-radius:999px; white-space:nowrap; }
+    .ph-estado.on { background:var(--green-100); color:var(--green-700); }
+    .ph-estado.off { background:#f1f5f9; color:#64748b; }
+
+    .ph-info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px 18px; }
+    .ph-info__k { font-size:11px; color:var(--text-muted); font-weight:600; }
+    .ph-info__v { font-size:14px; color:var(--text-primary); font-weight:700; margin-top:2px; }
+    .ph-desc { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); font-size:13px; color:var(--text-secondary); line-height:1.6; }
+
+    .ph-role-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:8px; }
+    .ph-role-label.spaced { margin-top:18px; }
+    .ph-role-count { color:var(--blue-700); font-weight:800; }
+
+    .ph-person { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-md); }
+    .ph-avatar { width:38px; height:38px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; }
+    .ph-avatar--udd { background:var(--cat-3); }
+    .ph-avatar--emp { background:var(--cat-4); }
+    .ph-avatar--al { background:var(--blue-600); }
+    .ph-person__info { min-width:0; flex:1; }
+    .ph-person__name { font-size:13.5px; font-weight:700; color:var(--text-primary); }
+    .ph-person__meta { font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ph-person__actions { display:flex; gap:6px; flex-shrink:0; align-items:center; }
+
+    .ph-empty { display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:18px; border:1px dashed var(--border); border-radius:var(--radius-md); background:#fafbff; }
+    .ph-empty__txt { font-size:12.5px; color:var(--text-muted); }
+
+    .ph-list { display:flex; flex-direction:column; gap:10px; }
+    .ph-inline-form { display:inline; margin:0; }
+
+    .ph-mini { height:30px; padding:0 12px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:12px; font-weight:700; color:var(--text-secondary); cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:5px; text-decoration:none; }
+    .ph-mini:hover { border-color:#93c5fd; color:var(--blue-700); background:var(--blue-50); }
+    .ph-mini--danger:hover { border-color:#fca5a5; color:#b91c1c; background:#fef2f2; }
+    .ph-mini--primary { border-color:var(--blue-600); background:var(--blue-600); color:#fff; }
+    .ph-mini--primary:hover { background:var(--blue-700); border-color:var(--blue-700); color:#fff; }
+    .ph-mini--disabled { background:#e5e7eb; border-color:#e5e7eb; color:#94a3b8; cursor:not-allowed; }
+
+    /* Combobox con buscador (Añadir Alumno). El desplegable va en flujo dentro del
+       cuerpo del modal (no en absoluto) para que su overflow no lo recorte. */
+    .ph-combo { position:relative; }
+    .ph-combo__list { display:none; margin-top:6px; max-height:240px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); padding:4px; }
+    .ph-combo__list.open { display:block; }
+    .ph-combo__item { display:block; width:100%; text-align:left; border:none; background:none; padding:9px 11px; border-radius:var(--radius-sm); cursor:pointer; font-family:inherit; }
+    .ph-combo__item:hover, .ph-combo__item.is-active { background:var(--blue-50); }
+    .ph-combo__name { font-size:13px; font-weight:700; color:var(--text-primary); }
+    .ph-combo__meta { font-size:11.5px; color:var(--text-muted); margin-top:1px; }
+    .ph-combo__empty { padding:12px; text-align:center; font-size:12.5px; color:var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="ph-back" href="{% url 'proyectos' %}">← Volver a Proyectos</a>
+
+{% if sin_periodo %}
+<div class="ph-card">
+    <div class="ph-title">{{ proyecto.titulo }}</div>
+    <p class="ph-sub">No hay un período académico activo, por lo que aún no es posible orquestar tutores ni alumnos para este proyecto.</p>
+</div>
+{% else %}
+<div class="ph-grid">
+
+    <!-- Información Base -->
+    <section class="ph-card ph-card--info">
+        <div class="ph-card__head">
+            <div>
+                <div class="ph-title">{{ proyecto.titulo }}</div>
+                <div class="ph-sub">{{ empresa_nombre }} · {{ periodo_label }}</div>
+            </div>
+            <span class="ph-estado {% if is_active %}on{% else %}off{% endif %}">{% if is_active %}Abierto{% else %}Cerrado{% endif %}</span>
+        </div>
+        <div class="ph-info-grid">
+            <div><div class="ph-info__k">Empresa</div><div class="ph-info__v">{{ empresa_nombre }}</div></div>
+            <div><div class="ph-info__k">Carrera</div><div class="ph-info__v">{{ carrera_nombre }}</div></div>
+            <div><div class="ph-info__k">Modalidad</div><div class="ph-info__v">{{ modalidad_label }}</div></div>
+            <div><div class="ph-info__k">Vacantes</div><div class="ph-info__v">{{ vacantes }}</div></div>
+            <div><div class="ph-info__k">Alumnos asignados</div><div class="ph-info__v">{{ alumnos_count }}</div></div>
+        </div>
+        {% if descripcion %}<p class="ph-desc">{{ descripcion }}</p>{% endif %}
+    </section>
+
+    <!-- Equipo de Tutores -->
+    <section class="ph-card">
+        <div class="ph-card__head">
+            <div class="ph-title">Equipo de Tutores</div>
+        </div>
+
+        <div class="ph-role-label">Tutores UDD <span class="ph-role-count">{{ tutores_udd_asignados|length }}/2</span></div>
+        {% if tutores_udd_asignados %}
+        <div class="ph-list">
+            {% for t in tutores_udd_asignados %}
+            <div class="ph-person">
+                <span class="ph-avatar ph-avatar--udd">{{ t.iniciales }}</span>
+                <div class="ph-person__info">
+                    <div class="ph-person__name">{{ t.nombre }}</div>
+                    <div class="ph-person__meta">{{ t.detalle }}</div>
+                </div>
+                <div class="ph-person__actions">
+                    <form method="post" class="ph-inline-form" onsubmit="return confirm('¿Desvincular a {{ t.nombre|escapejs }} del proyecto?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="desvincular_tutor">
+                        <input type="hidden" name="tipo" value="udd">
+                        <input type="hidden" name="tutor_id" value="{{ t.id }}">
+                        <button type="submit" class="ph-mini ph-mini--danger">Desvincular</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if not tutor_udd_lleno %}
+        <div class="ph-empty">
+            {% if not tutores_udd_asignados %}<span class="ph-empty__txt">Aún no hay un tutor UDD asignado a este proyecto.</span>{% endif %}
+            <button type="button" class="ph-mini ph-mini--primary" onclick="abrirModal('modalTutorUdd')">+ Asignar Tutor UDD</button>
+        </div>
+        {% endif %}
+
+        <div class="ph-role-label spaced">Tutores Empresa <span class="ph-role-count">{{ tutores_empresa_asignados|length }}/2</span></div>
+        {% if tutores_empresa_asignados %}
+        <div class="ph-list">
+            {% for t in tutores_empresa_asignados %}
+            <div class="ph-person">
+                <span class="ph-avatar ph-avatar--emp">{{ t.iniciales }}</span>
+                <div class="ph-person__info">
+                    <div class="ph-person__name">{{ t.nombre }}</div>
+                    <div class="ph-person__meta">{{ t.detalle }}</div>
+                </div>
+                <div class="ph-person__actions">
+                    <form method="post" class="ph-inline-form" onsubmit="return confirm('¿Desvincular a {{ t.nombre|escapejs }} del proyecto?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="desvincular_tutor">
+                        <input type="hidden" name="tipo" value="empresa">
+                        <input type="hidden" name="tutor_id" value="{{ t.id }}">
+                        <button type="submit" class="ph-mini ph-mini--danger">Desvincular</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if not tutor_empresa_lleno %}
+        <div class="ph-empty">
+            {% if not tutores_empresa_asignados %}<span class="ph-empty__txt">Aún no hay un tutor empresa asignado a este proyecto.</span>{% endif %}
+            <button type="button" class="ph-mini ph-mini--primary" onclick="abrirModal('modalTutorEmpresa')">+ Asignar Tutor Empresa</button>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Alumnos Asignados -->
+    <section class="ph-card">
+        <div class="ph-card__head">
+            <div>
+                <div class="ph-title">Alumnos Asignados</div>
+                <div class="ph-sub">{{ alumnos_count }} de {{ vacantes }} vacantes</div>
+            </div>
+            {% if cupos_llenos %}
+            <button type="button" class="ph-mini ph-mini--disabled" disabled>Cupos llenos</button>
+            {% else %}
+            <button type="button" class="ph-mini ph-mini--primary" onclick="abrirModal('modalAlumno')">+ Añadir Alumno</button>
+            {% endif %}
+        </div>
+
+        {% if alumnos %}
+        <div class="ph-list">
+            {% for a in alumnos %}
+            <div class="ph-person">
+                <span class="ph-avatar ph-avatar--al">{{ a.iniciales }}</span>
+                <div class="ph-person__info">
+                    <div class="ph-person__name">{{ a.nombre }}</div>
+                    <div class="ph-person__meta">{{ a.carrera }} · {{ a.email }}</div>
+                </div>
+                <div class="ph-person__actions">
+                    <button type="button" class="ph-mini" onclick="abrirCambiarProyecto('{{ a.pp_id }}','{{ a.nombre|escapejs }}')">Cambiar Proyecto</button>
+                    <form method="post" class="ph-inline-form" onsubmit="return confirm('¿Desvincular a {{ a.nombre|escapejs }} del proyecto?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="desvincular_alumno">
+                        <input type="hidden" name="pp_id" value="{{ a.pp_id }}">
+                        <button type="submit" class="ph-mini ph-mini--danger">Desvincular</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="ph-empty">
+            <span class="ph-empty__txt">Este proyecto todavía no tiene alumnos asignados.</span>
+            {% if cupos_llenos %}
+            <button type="button" class="ph-mini ph-mini--disabled" disabled>Cupos llenos</button>
+            {% else %}
+            <button type="button" class="ph-mini ph-mini--primary" onclick="abrirModal('modalAlumno')">+ Añadir Alumno</button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+
+<!-- Modal: Añadir alumno (buscador integrado) -->
+<div class="nt-modal" id="modalAlumno">
+    <div class="nt-modal__backdrop" onclick="cerrarModal('modalAlumno')"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title">Añadir alumno al proyecto</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarModal('modalAlumno')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="" id="formAlumno">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="asignar_alumno">
+            <input type="hidden" name="alumno_id" id="alElegidoId">
+            <div class="nt-modal__body">
+                {% include 'layout/audit_banner.html' %}
+                {% if disponibles %}
+                <div class="nt-field">
+                    <label class="nt-field__label" for="alBuscador">Buscar alumno</label>
+                    <div class="ph-combo">
+                        <input type="text" class="nt-input" id="alBuscador" autocomplete="off" placeholder="Escribe nombre o correo…" oninput="filtrarAlumnos()" onfocus="filtrarAlumnos()">
+                        <div class="ph-combo__list" id="alLista"></div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="nt-note">No hay alumnos activos sin proyecto disponibles en el período actual.</div>
+                {% endif %}
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarModal('modalAlumno')">Cancelar</button>
+                <button type="submit" class="nt-btn-submit" {% if not disponibles %}disabled{% endif %}>Añadir alumno</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{ disponibles|json_script:"alumnosData" }}
+
+<!-- Modal: Cambiar Proyecto (traslado del alumno) -->
+<div class="nt-modal" id="modalCambiarProyecto">
+    <div class="nt-modal__backdrop" onclick="cerrarModal('modalCambiarProyecto')"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title">Cambiar de proyecto a <span id="cambiarNombre">alumno</span></div>
+            <button type="button" class="nt-modal__close" onclick="cerrarModal('modalCambiarProyecto')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="cambiar_proyecto">
+            <input type="hidden" name="pp_id" id="cambiarPpId">
+            <div class="nt-modal__body">
+                {% if proyectos_destino %}
+                <div class="nt-field">
+                    <label class="nt-field__label" for="proyDestino">Nuevo proyecto de destino</label>
+                    <select class="nt-select" id="proyDestino" name="proyecto_destino_id" required>
+                        <option value="">Selecciona un proyecto…</option>
+                        {% for p in proyectos_destino %}<option value="{{ p.id }}">{{ p.titulo }} · {{ p.empresa }} ({{ p.disponibles }} cupo{{ p.disponibles|pluralize }})</option>{% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <div class="nt-note">No hay otros proyectos activos con cupos disponibles para trasladar al alumno.</div>
+                {% endif %}
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarModal('modalCambiarProyecto')">Cancelar</button>
+                <button type="submit" class="nt-btn-submit" {% if not proyectos_destino %}disabled{% endif %}>Trasladar alumno</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Asignar / Reasignar tutor UDD -->
+<div class="nt-modal" id="modalTutorUdd">
+    <div class="nt-modal__backdrop" onclick="cerrarModal('modalTutorUdd')"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title">Asignar Tutor UDD</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarModal('modalTutorUdd')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="asignar_tutor">
+            <input type="hidden" name="tipo" value="udd">
+            <div class="nt-modal__body">
+                {% if tutores_udd %}
+                <div class="nt-field">
+                    <label class="nt-field__label" for="tu-udd">Tutor UDD</label>
+                    <select class="nt-select" id="tu-udd" name="tutor_id" required>
+                        <option value="">Selecciona un tutor…</option>
+                        {% for t in tutores_udd %}<option value="{{ t.id }}">{{ t.nombre }} · {{ t.detalle }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="nt-note">El tutor quedará vinculado a todos los alumnos del proyecto.</div>
+                {% else %}
+                <div class="nt-note">No hay tutores UDD registrados.</div>
+                {% endif %}
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarModal('modalTutorUdd')">Cancelar</button>
+                <button type="submit" class="nt-btn-submit" {% if not tutores_udd %}disabled{% endif %}>Guardar tutor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Asignar / Reasignar tutor empresa -->
+<div class="nt-modal" id="modalTutorEmpresa">
+    <div class="nt-modal__backdrop" onclick="cerrarModal('modalTutorEmpresa')"></div>
+    <div class="nt-modal__card" role="dialog" aria-modal="true">
+        <div class="nt-modal__head">
+            <div class="nt-modal__title">Asignar Tutor Empresa</div>
+            <button type="button" class="nt-modal__close" onclick="cerrarModal('modalTutorEmpresa')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="asignar_tutor">
+            <input type="hidden" name="tipo" value="empresa">
+            <div class="nt-modal__body">
+                {% if tutores_empresa %}
+                <div class="nt-field">
+                    <label class="nt-field__label" for="tu-emp">Tutor de {{ empresa_nombre }}</label>
+                    <select class="nt-select" id="tu-emp" name="tutor_id" required>
+                        <option value="">Selecciona un tutor…</option>
+                        {% for t in tutores_empresa %}<option value="{{ t.id }}">{{ t.nombre }} · {{ t.detalle }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="nt-note">Solo se listan tutores de la empresa vinculada al proyecto.</div>
+                {% else %}
+                <div class="nt-note">{{ empresa_nombre }} aún no tiene tutores empresa registrados.</div>
+                {% endif %}
+            </div>
+            <div class="nt-modal__foot">
+                <button type="button" class="nt-btn-cancel" onclick="cerrarModal('modalTutorEmpresa')">Cancelar</button>
+                <button type="submit" class="nt-btn-submit" {% if not tutores_empresa %}disabled{% endif %}>Guardar tutor</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function abrirModal(id) { document.getElementById(id).classList.add('open'); }
+    function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function abrirCambiarProyecto(ppId, nombre) {
+        document.getElementById('cambiarPpId').value = ppId;
+        document.getElementById('cambiarNombre').textContent = nombre;
+        abrirModal('modalCambiarProyecto');
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.nt-modal.open').forEach(function (m) { m.classList.remove('open'); });
+        }
+    });
+
+    // ── Buscador integrado del modal "Añadir Alumno" (maneja >1000 registros) ──
+    (function () {
+        var dataEl = document.getElementById('alumnosData');
+        var input = document.getElementById('alBuscador');
+        var lista = document.getElementById('alLista');
+        var hidden = document.getElementById('alElegidoId');
+        var form = document.getElementById('formAlumno');
+        if (!dataEl || !input || !lista || !hidden || !form) return;
+        var alumnos = JSON.parse(dataEl.textContent);
+
+        function pinta(matches) {
+            lista.innerHTML = '';
+            if (!matches.length) {
+                var vacio = document.createElement('div');
+                vacio.className = 'ph-combo__empty';
+                vacio.textContent = 'Sin coincidencias';
+                lista.appendChild(vacio);
+                lista.classList.add('open');
+                return;
+            }
+            matches.forEach(function (a) {
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'ph-combo__item';
+                item.dataset.id = a.id;
+                item.dataset.nombre = a.nombre;
+                var n = document.createElement('div');
+                n.className = 'ph-combo__name';
+                n.textContent = a.nombre;
+                var m = document.createElement('div');
+                m.className = 'ph-combo__meta';
+                m.textContent = a.carrera + ' · ' + a.email;
+                item.appendChild(n);
+                item.appendChild(m);
+                lista.appendChild(item);
+            });
+            lista.classList.add('open');
+        }
+
+        window.filtrarAlumnos = function () {
+            var q = input.value.trim().toLowerCase();
+            hidden.value = '';
+            var matches = alumnos;
+            if (q) {
+                matches = alumnos.filter(function (a) {
+                    return (a.nombre + ' ' + a.email + ' ' + a.carrera).toLowerCase().indexOf(q) !== -1;
+                });
+            }
+            pinta(matches.slice(0, 50));
+        };
+
+        lista.addEventListener('click', function (e) {
+            var item = e.target.closest('.ph-combo__item');
+            if (!item) return;
+            hidden.value = item.dataset.id;
+            input.value = item.dataset.nombre;
+            lista.classList.remove('open');
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.ph-combo')) lista.classList.remove('open');
+        });
+
+        form.addEventListener('submit', function (e) {
+            if (!hidden.value) {
+                e.preventDefault();
+                input.focus();
+                filtrarAlumnos();
+            }
+        });
+    })();
+</script>
+{% endblock %}

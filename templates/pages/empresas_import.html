@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Importar Empresas{% endblock %}
+{% block page_title %}Importar Empresas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .imp-wrap { max-width:720px; }
+    .imp-back { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--text-secondary); text-decoration:none; margin-bottom:14px; }
+    .imp-back:hover { color:var(--blue-700); }
+
+    .imp-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:22px; margin-bottom:16px; }
+    .imp-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+    .imp-title { font-size:15px; font-weight:800; color:var(--text-primary); }
+    .imp-sub { font-size:12.5px; color:var(--text-muted); margin-top:4px; line-height:1.5; }
+
+    .imp-drop { margin-top:14px; border:2px dashed var(--border); border-radius:var(--radius-lg); background:#fafbff; padding:40px 20px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+    .imp-drop:hover { border-color:#93c5fd; background:var(--blue-50); }
+    .imp-drop.is-drag { border-color:var(--blue-600); background:var(--blue-50); }
+    .imp-drop__icon { width:42px; height:42px; color:var(--blue-600); margin:0 auto 10px; display:block; }
+    .imp-drop__main { font-size:14px; font-weight:700; color:var(--text-primary); }
+    .imp-drop__hint { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .imp-drop__file { font-size:13px; font-weight:700; color:var(--blue-700); margin-top:12px; min-height:18px; }
+    .imp-hidden-input { display:none; }
+    .imp-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="imp-back" href="{% url 'empresas' %}">← Volver a Empresas</a>
+
+<div class="imp-wrap">
+    <!-- Paso 1: descargar plantilla -->
+    <div class="imp-card">
+        <div class="imp-head">
+            <div>
+                <div class="imp-title">1 · Descarga la plantilla</div>
+                <div class="imp-sub">Usa este archivo como base. La primera fila trae los encabezados exactos; la única columna obligatoria es nombre.</div>
+            </div>
+            <a class="topbar-btn" href="{% url 'empresas_plantilla' %}">Descargar plantilla Excel</a>
+        </div>
+    </div>
+
+    <!-- Paso 2: subir archivo -->
+    <div class="imp-card">
+        <div class="imp-title">2 · Sube tu archivo Excel</div>
+        <div class="imp-sub">Arrastra y suelta tu archivo .xlsx o haz clic para explorar. Las empresas cuyo nombre o correo ya existan se omiten automáticamente.</div>
+        <form method="post" action="{% url 'empresas_import' %}" enctype="multipart/form-data" id="impForm">
+            {% csrf_token %}
+            <div class="imp-drop" id="impDrop" onclick="document.getElementById('impFile').click()">
+                <svg class="imp-drop__icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm6.293-13.707a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 6.414V13a1 1 0 11-2 0V6.414L7.707 7.707a1 1 0 01-1.414-1.414l3-3z" clip-rule="evenodd"/></svg>
+                <div class="imp-drop__main">Arrastra tu archivo aquí o haz clic para explorar</div>
+                <div class="imp-drop__hint">Formato admitido: Excel (.xlsx)</div>
+                <div class="imp-drop__file" id="impFileName"></div>
+            </div>
+            <input class="imp-hidden-input" type="file" id="impFile" name="archivo" accept=".xlsx">
+            <div class="imp-foot">
+                <a class="topbar-btn" href="{% url 'empresas' %}">Cancelar</a>
+                <button type="submit" class="nt-btn-submit" id="impSubmit" disabled>Importar empresas</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const drop = document.getElementById('impDrop');
+        const input = document.getElementById('impFile');
+        const name = document.getElementById('impFileName');
+        const submit = document.getElementById('impSubmit');
+
+        function mostrar(file) {
+            if (file) {
+                name.textContent = '📄 ' + file.name;
+                submit.disabled = false;
+            } else {
+                name.textContent = '';
+                submit.disabled = true;
+            }
+        }
+
+        input.addEventListener('change', () => mostrar(input.files[0]));
+
+        ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
+            e.preventDefault();
+            drop.classList.add('is-drag');
+        }));
+        ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {
+            e.preventDefault();
+            drop.classList.remove('is-drag');
+        }));
+        drop.addEventListener('drop', e => {
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                input.files = e.dataTransfer.files;
+                mostrar(file);
+            }
+        });
+    })();
+</script>
+{% endblock %}

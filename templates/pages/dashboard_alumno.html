@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Alumno — ICLAE Digital Hub{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Dashboard de Alumno</h1>
+    <p class="text-gray-600 mb-8">Bienvenido, {{ user.get_full_name }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Card: Mis Proyectos -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Mis Proyectos</h2>
+            <p class="text-gray-600 text-sm">Visualiza los proyectos en los que estás participando.</p>
+            <a href="{% url 'proyectos' %}" class="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Ver proyectos</a>
+        </div>
+
+        <!-- Card: Mis Postulaciones -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Mis Postulaciones</h2>
+            <p class="text-gray-600 text-sm">Revisa el estado de tus postulaciones a proyectos.</p>
+            <a href="{% url 'postulaciones' %}" class="inline-block mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Ver postulaciones</a>
+        </div>
+
+        <!-- Card: Mi Bitácora -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Mi Bitácora</h2>
+            <p class="text-gray-600 text-sm">Registra el progreso semanal de tu proyecto.</p>
+            <a href="{% url 'bitacora' %}" class="inline-block mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Ir a bitácora</a>
+        </div>
+
+        <!-- Card: Mis Evaluaciones -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Mis Evaluaciones</h2>
+            <p class="text-gray-600 text-sm">Consulta el desempeño en tu proyecto.</p>
+            <a href="{% url 'evaluaciones' %}" class="inline-block mt-4 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700">Ver evaluaciones</a>
+        </div>
+    </div>
+
+    <!-- Información del perfil -->
+    {% if perfil %}
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Información de Perfil</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-600">Carrera:</p>
+                <p class="text-gray-900 font-semibold">{% if perfil.carrera %}{{ perfil.carrera.nombre }}{% else %}No asignada{% endif %}</p>
+            </div>
+            <div>
+                <p class="text-gray-600">Matrícula:</p>
+                <p class="text-gray-900 font-semibold">{{ perfil.matricula|default:"No asignado" }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .container { max-width: 100%; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+    .text-3xl { font-size: 1.875rem; }
+    .font-bold { font-weight: 700; }
+    .text-gray-900 { color: #111827; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .text-gray-600 { color: #4b5563; }
+    .mb-8 { margin-bottom: 2rem; }
+    .grid { display: grid; }
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gap-6 { gap: 1.5rem; }
+    .gap-4 { gap: 1rem; }
+    .bg-white { background-color: white; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+    .p-6 { padding: 1.5rem; }
+    .border-l-4 { border-left: 4px solid; }
+    .border-blue-500 { border-color: #3b82f6; }
+    .border-green-500 { border-color: #10b981; }
+    .border-purple-500 { border-color: #a855f7; }
+    .border-orange-500 { border-color: #f97316; }
+    .text-lg { font-size: 1.125rem; }
+    .font-semibold { font-weight: 600; }
+    .text-sm { font-size: 0.875rem; }
+    .inline-block { display: inline-block; }
+    .mt-4 { margin-top: 1rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .bg-blue-600 { background-color: #2563eb; }
+    .text-white { color: white; }
+    .hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+    .bg-green-600 { background-color: #16a34a; }
+    .hover\:bg-green-700:hover { background-color: #15803d; }
+    .bg-purple-600 { background-color: #9333ea; }
+    .hover\:bg-purple-700:hover { background-color: #7e22ce; }
+    .bg-orange-600 { background-color: #ea580c; }
+    .hover\:bg-orange-700:hover { background-color: #c2410c; }
+    .mt-8 { margin-top: 2rem; }
+    .mb-4 { margin-bottom: 1rem; }
+</style>
+{% endblock %}

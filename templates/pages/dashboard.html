@@ -5,31 +5,57 @@
 
 {% block extra_css %}
 <style>
+    /* ============================================================
+       SISTEMA VISUAL DEL DASHBOARD
+       - Color primario sobrio (azul institucional) para TODOS los
+         gráficos (barras, anillos, funnel, KPIs).
+       - Verde / ámbar / rojo SOLO para estados reales
+         (éxito / precaución / alerta).
+       - Sin estilos inline ni degradados; clases estructuradas.
+       - Los valores data-driven (anchos %) se inyectan vía la
+         custom property --pct; la regla de ancho vive en CSS.
+       ============================================================ */
+    :root {
+        --c-primary: #2563eb;
+        --c-primary-strong: #1d4ed8;
+        --c-track: #eef1f6;          /* riel neutro de barras */
+        --c-empty-bg: #f8fafc;       /* fondo de estados vacíos */
+        --c-empty-border: #e2e8f0;
+        --c-empty-text: #94a3b8;
+
+        /* Paleta categórica para visualización de datos
+           (armoniza con el azul marino institucional) */
+        --cat-1: #2563eb;   /* Azul institucional */
+        --cat-2: #06b6d4;   /* Turquesa */
+        --cat-3: #8b5cf6;   /* Morado suave */
+        --cat-4: #f97316;   /* Coral / Naranja */
+        --cat-5: #10b981;   /* Esmeralda */
+    }
+
     /* ── DIVIDERS ── */
     .section-divider { display:flex; align-items:center; gap:12px; margin:8px 0 16px; }
     .section-divider-line { height:1px; background:var(--border); flex:1; }
     .section-divider-text { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; white-space:nowrap; padding:0 4px; }
 
-    /* ── KPI CARDS ── */
+    /* ── KPI CARDS (acento unificado azul) ── */
     .kpi-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:20px; }
     .kpi-card { background:var(--card-bg); border:1px solid var(--border); box-shadow:var(--shadow-sm); border-radius:var(--radius-lg); padding:18px 20px; position:relative; overflow:hidden; transition:box-shadow .2s,transform .2s; }
     .kpi-card:hover { box-shadow:var(--shadow-md); transform:translateY(-1px); }
-    .kpi-card::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
-    .kpi-card.blue::before { background:linear-gradient(90deg,#3b82f6,#60a5fa); }
-    .kpi-card.green::before { background:linear-gradient(90deg,#22c55e,#4ade80); }
-    .kpi-card.amber::before { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
-    .kpi-card.violet::before { background:linear-gradient(90deg,#8b5cf6,#a78bfa); }
+    .kpi-card::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; border-radius:var(--radius-lg) var(--radius-lg) 0 0; background:var(--c-primary); }
+    /* Borde superior fino con un color distinto de la paleta categórica por tarjeta */
+    .kpi-card.blue::before   { background:var(--cat-1); }
+    .kpi-card.green::before  { background:var(--cat-5); }
+    .kpi-card.amber::before  { background:var(--cat-4); }
+    .kpi-card.violet::before { background:var(--cat-3); }
     .kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-    .kpi-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
-    .kpi-card.blue .kpi-label { color:#2563eb; }
-    .kpi-card.green .kpi-label { color:#16a34a; }
-    .kpi-card.amber .kpi-label { color:#d97706; }
-    .kpi-card.violet .kpi-label { color:#7c3aed; }
-    .kpi-icon { width:36px; height:36px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:16px; }
-    .kpi-card.blue .kpi-icon { background:var(--blue-100); }
-    .kpi-card.green .kpi-icon { background:#dcfce7; }
-    .kpi-card.amber .kpi-icon { background:#fef3c7; }
-    .kpi-card.violet .kpi-icon { background:#ede9fe; }
+    .kpi-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--c-primary); }
+    .kpi-card.blue .kpi-label, .kpi-card.green .kpi-label, .kpi-card.amber .kpi-label, .kpi-card.violet .kpi-label { color:var(--c-primary); }
+    .kpi-icon { width:36px; height:36px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:16px; background:var(--blue-100); }
+    /* Fondo del ícono levemente teñido con el color de paleta de la tarjeta */
+    .kpi-card.blue .kpi-icon   { background:color-mix(in srgb, var(--cat-1) 14%, #fff); }
+    .kpi-card.green .kpi-icon  { background:color-mix(in srgb, var(--cat-5) 15%, #fff); }
+    .kpi-card.amber .kpi-icon  { background:color-mix(in srgb, var(--cat-4) 15%, #fff); }
+    .kpi-card.violet .kpi-icon { background:color-mix(in srgb, var(--cat-3) 16%, #fff); }
     .kpi-value { font-size:32px; font-weight:700; letter-spacing:-1px; line-height:1; margin-bottom:4px; }
     .kpi-sub { font-size:12px; color:var(--text-muted); }
 
@@ -44,39 +70,86 @@
     .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
     .section-title { font-size:15px; font-weight:700; }
     .section-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
-    .section-link { font-size:12.5px; color:var(--blue-600); font-weight:500; cursor:pointer; }
+    .section-link { font-size:12.5px; color:var(--blue-600); font-weight:500; cursor:pointer; text-decoration:none; }
+    .section-actions { display:flex; align-items:center; gap:8px; }
 
-    /* ── FUNNEL ── */
+    /* ── UTILIDADES (reemplazan estilos inline) ── */
+    .subhead { font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+    .empty-text { font-size:13px; color:var(--text-muted); }
+    .empty-text.pad { padding:8px 0; }
+    .ta-right { text-align:right; }
+    .cell-rank { color:var(--text-muted); font-weight:600; font-size:12px; }
+    .cell-strong { font-weight:700; }
+    .cell-muted { color:var(--text-secondary); }
+    .icon-sm { width:14px; height:14px; }
+    .emoji-lg { font-size:18px; }
+
+    /* Pills neutros (sin alerta visual) */
+    .pill-muted { font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; background:#eef1f6; color:var(--text-secondary); }
+
+    /* Nota informativa secundaria (azul muy claro, no parece error) */
+    .info-note { display:flex; align-items:center; gap:9px; padding:10px 13px; border-radius:var(--radius-md); background:var(--blue-50); border:1px solid var(--blue-100); margin-top:12px; }
+    .info-note.plain { background:var(--c-empty-bg); border-color:var(--c-empty-border); margin-top:0; }
+    .info-note__icon { color:var(--c-primary); flex-shrink:0; display:flex; align-items:center; font-size:15px; }
+    .info-note.plain .info-note__icon { color:var(--text-muted); }
+    .info-note__text { font-size:12.5px; color:var(--text-secondary); line-height:1.5; }
+
+    /* ── BARRAS (riel neutro + relleno azul sólido, delgadas) ── */
+    .dist-bar-wrap, .comp-bar-wrap, .region-bar-wrap, .progress-bar, .bar-lg {
+        background:var(--c-track); border-radius:999px; overflow:hidden;
+    }
+    .dist-bar-wrap { height:6px; }
+    .comp-bar-wrap { flex:1; height:6px; }
+    .region-bar-wrap { width:84px; height:6px; flex-shrink:0; }
+    .progress-bar { width:84px; height:6px; }
+    .bar-lg { flex:1; height:8px; }
+    .dist-bar-fill, .comp-bar-fill, .region-bar-fill, .progress-fill, .bar-lg__fill {
+        height:100%; border-radius:999px; background:var(--c-primary); width:var(--pct,0%);
+    }
+    /* Clases de color heredadas del contexto Django -> azul sólido unificado */
+    .bar-blue, .bar-green, .bar-violet, .bar-amber, .bar-rose, .bar-cyan, .bar-orange { background:var(--c-primary); }
+
+    /* Paleta categórica aplicable a rellenos de datos (definida después
+       para prevalecer sobre el azul por defecto del relleno) */
+    .cat-c1 { background:var(--cat-1); }
+    .cat-c2 { background:var(--cat-2); }
+    .cat-c3 { background:var(--cat-3); }
+    .cat-c4 { background:var(--cat-4); }
+    .cat-c5 { background:var(--cat-5); }
+
+    /* ── FUNNEL (monocromático azul, opacidad descendente) ── */
     .funnel-wrap { padding:10px 20px 20px; display:flex; flex-direction:column; gap:6px; }
     .funnel-step { display:flex; align-items:center; gap:14px; }
-    .funnel-shape { height:50px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; }
+    .funnel-shape { height:46px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; background:var(--c-primary); }
+    .funnel-shape.s1 { width:100%; background:var(--cat-1); border-radius:10px 10px 4px 4px; }
+    .funnel-shape.s2 { width:82%; background:var(--cat-3); }
+    .funnel-shape.s3 { width:60%; background:var(--cat-2); }
+    .funnel-shape.s4 { width:34%; background:var(--cat-5); border-radius:4px 4px 10px 10px; }
+    /* El estado vacío (ej. 0 contratados) prevalece sobre el color de etapa */
+    .funnel-shape.is-empty { background:#e9edf3; color:var(--text-muted); }
+    .funnel-meta { min-width:140px; }
     .funnel-meta-value { font-size:22px; font-weight:700; letter-spacing:-.5px; }
+    .funnel-meta.is-empty .funnel-meta-value { color:var(--c-empty-text); }
     .funnel-meta-label { font-size:11.5px; color:var(--text-muted); font-weight:500; }
     .funnel-pct { display:inline-block; margin-top:3px; padding:2px 8px; font-size:11px; border-radius:999px; font-weight:700; }
+    .funnel-pct.blue { background:var(--blue-100); color:var(--blue-800); }
+    .funnel-pct.muted { background:#eef1f6; color:var(--text-muted); }
     .funnel-arrow { text-align:center; color:var(--text-muted); font-size:14px; }
 
-    /* ── RENDIMIENTO ── */
+    /* ── RENDIMIENTO (stats neutras, valor en primario) ── */
     .nota-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
-    .nota-stat { border-radius:var(--radius-md); padding:12px 8px; text-align:center; border:1px solid; }
-    .nota-stat.prom { background:var(--blue-50); border-color:var(--blue-200); }
-    .nota-stat.max { background:#f0fdf4; border-color:#bbf7d0; }
-    .nota-stat.min { background:#fff1f2; border-color:#fecdd3; }
-    .nota-stat-value { font-size:24px; font-weight:700; letter-spacing:-.5px; }
-    .nota-stat.prom .nota-stat-value { color:var(--blue-700); }
-    .nota-stat.max .nota-stat-value { color:#15803d; }
-    .nota-stat.min .nota-stat-value { color:#be123c; }
-    .nota-stat-label { font-size:11px; margin-top:3px; font-weight:500; }
-    .nota-stat.prom .nota-stat-label { color:var(--blue-600); }
-    .nota-stat.max .nota-stat-label { color:#16a34a; }
-    .nota-stat.min .nota-stat-label { color:#be123c; }
+    .nota-stat { border-radius:var(--radius-md); padding:12px 8px; text-align:center; border:1px solid var(--c-empty-border); background:var(--c-empty-bg); }
+    .nota-stat-value { font-size:24px; font-weight:700; letter-spacing:-.5px; color:var(--c-primary-strong); }
+    .nota-stat-label { font-size:11px; margin-top:3px; font-weight:500; color:var(--text-secondary); }
+    .nota-stat.is-empty .nota-stat-value { color:var(--c-empty-text); }
+    .nota-stat.is-empty .nota-stat-label { color:var(--text-muted); }
 
     .comp-list { display:flex; flex-direction:column; gap:10px; }
     .comp-row { display:flex; align-items:center; gap:10px; }
     .comp-rank { width:20px; font-size:11px; font-weight:700; color:var(--text-muted); text-align:center; flex-shrink:0; }
     .comp-name { width:160px; font-size:13px; font-weight:500; flex-shrink:0; }
-    .comp-bar-wrap { flex:1; height:10px; background:#f1f5f9; border-radius:5px; overflow:hidden; }
-    .comp-bar-fill { height:100%; border-radius:5px; }
     .comp-score { width:32px; text-align:right; font-size:13px; font-weight:700; flex-shrink:0; }
+    /* Badge de nivel = estado real de desempeño -> color semántico permitido */
     .comp-badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; flex-shrink:0; }
     .comp-badge.green { background:var(--green-100); color:#166534; }
     .comp-badge.blue { background:var(--blue-100); color:var(--blue-800); }
@@ -84,22 +157,37 @@
 
     /* ── PERFIL DIGITAL ── */
     .profile-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-    .profile-item { text-align:center; padding:14px 10px; border-radius:var(--radius-md); background:#f8fafc; border:1px solid var(--border); }
+    .profile-item { text-align:center; padding:14px 10px; border-radius:var(--radius-md); background:var(--c-empty-bg); border:1px solid var(--border); }
     .ring-wrap { position:relative; width:70px; height:70px; margin:0 auto 10px; }
     .ring-wrap svg { transform:rotate(-90deg); }
-    .ring-center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; }
+    .ring-track { stroke:var(--c-track); }
+    .ring-fg { stroke:var(--c-primary); }            /* anillo unificado azul */
+    .ring-center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:var(--c-primary-strong); }
     .profile-label { font-size:12.5px; font-weight:600; margin-bottom:2px; }
     .profile-count { font-size:11px; color:var(--text-muted); }
+
+    .profile-summary { margin-top:16px; padding:12px 14px; background:var(--c-empty-bg); border-radius:var(--radius-md); border:1px solid var(--border); }
+    .profile-summary__label { font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px; }
+    .profile-summary__row { display:flex; align-items:center; gap:10px; }
+    .profile-summary__pct { font-size:14px; font-weight:700; color:var(--c-primary-strong); }
+    .profile-summary__count { font-size:12px; color:var(--text-muted); }
+
     .reminder-btn { display:flex; align-items:center; gap:7px; padding:8px 14px; border-radius:var(--radius-md); border:1.5px solid var(--blue-200); background:var(--blue-50); color:var(--blue-700); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .15s; }
     .reminder-btn:hover { background:var(--blue-100); border-color:var(--blue-600); }
 
     /* ── BADGES ── */
+    .badges-summary { display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+    .badges-summary__value { font-size:28px; font-weight:700; color:var(--c-primary-strong); letter-spacing:-1px; }
+    .badges-summary__label { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .badges-summary__side { text-align:right; }
+    .badges-summary__side-value { font-size:20px; font-weight:700; color:var(--text-primary); }
+    .badges-summary__side-label { font-size:11px; color:var(--text-muted); }
     .badges-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-    .badge-item { display:flex; align-items:center; gap:12px; border:1px solid var(--border); background:#fafbff; border-radius:var(--radius-md); padding:12px 14px; }
-    .badge-emoji { width:38px; height:38px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .badge-item { display:flex; align-items:center; gap:12px; border:1px solid var(--border); background:var(--c-empty-bg); border-radius:var(--radius-md); padding:12px 14px; }
+    .badge-emoji { width:38px; height:38px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; background:var(--blue-50); }
     .badge-name { font-size:13px; font-weight:600; }
     .badge-count { font-size:11px; color:var(--text-muted); margin-top:2px; }
-    .badge-pill { margin-left:auto; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; flex-shrink:0; }
+    .badge-pill { margin-left:auto; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; flex-shrink:0; background:var(--blue-100); color:var(--blue-800); }
 
     /* ── TABLES ── */
     .table-wrap { overflow:hidden; }
@@ -109,80 +197,46 @@
     .table-wrap tr:last-child td { border-bottom:none; }
     .table-wrap tr:hover td { background:#f8fafc; }
 
-    .area-badge { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; display:inline-block; }
-    .area-badge.banca { background:var(--blue-100); color:#1e40af; }
-    .area-badge.fintech { background:#dcfce7; color:#166534; }
-    .area-badge.insurtech { background:#ede9fe; color:#5b21b6; }
-    .area-badge.hrtech { background:#fef3c7; color:#92400e; }
-    .area-badge.energia { background:#cffafe; color:#155e75; }
-    .area-badge.retail { background:#ffe4e6; color:#9f1239; }
-    .area-badge.tecnologia { background:#d1fae5; color:#065f46; }
-    .area-badge.default { background:#f1f5f9; color:#475569; }
-
-    .progress-bar { width:80px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; }
-    .progress-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#3b82f6,#60a5fa); }
+    /* Badge de área = categoría -> tono neutro sobrio (sin multicolor) */
+    .area-badge { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; display:inline-block; background:var(--blue-50); color:var(--blue-800); }
+    .area-badge.banca, .area-badge.fintech, .area-badge.insurtech, .area-badge.hrtech,
+    .area-badge.energia, .area-badge.retail, .area-badge.tecnologia, .area-badge.default {
+        background:var(--blue-50); color:var(--blue-800);
+    }
 
     /* ── DIST BARS ── */
     .dist-list { padding:8px 20px 16px; }
     .dist-row { display:grid; grid-template-columns:minmax(120px,160px) minmax(0,1fr) 34px; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #f1f5f9; }
     .dist-row:last-child { border-bottom:none; }
     .dist-label { font-size:12.5px; color:var(--text-secondary); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .dist-bar-wrap { flex:1; height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden; }
-    .dist-bar-fill { height:100%; border-radius:4px; }
     .dist-value { font-size:12px; font-weight:700; text-align:right; }
 
-    .bar-blue   { background:linear-gradient(90deg,#3b82f6,#93c5fd); }
-    .bar-green  { background:linear-gradient(90deg,#22c55e,#86efac); }
-    .bar-violet { background:linear-gradient(90deg,#8b5cf6,#c4b5fd); }
-    .bar-amber  { background:linear-gradient(90deg,#f59e0b,#fcd34d); }
-    .bar-rose   { background:linear-gradient(90deg,#f43f5e,#fda4af); }
-    .bar-cyan   { background:linear-gradient(90deg,#06b6d4,#67e8f9); }
-    .bar-orange { background:linear-gradient(90deg,#ea580c,#fb923c); }
-
-    /* ── MODALIDAD ── */
+    /* ── MODALIDAD (categorías -> tarjetas neutras, valor en primario) ── */
     .mod-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-    .mod-item { border:1px solid; border-radius:var(--radius-md); text-align:center; padding:16px 12px; }
-    .mod-item.presencial { background:#f0fdf4; border-color:#bbf7d0; }
-    .mod-item.hibrido    { background:var(--blue-50); border-color:var(--blue-200); }
-    .mod-item.remoto     { background:#f5f3ff; border-color:#ddd6fe; }
-    .mod-pct { font-size:28px; font-weight:700; letter-spacing:-1px; }
-    .mod-item.presencial .mod-pct { color:#15803d; }
-    .mod-item.hibrido .mod-pct    { color:var(--blue-700); }
-    .mod-item.remoto .mod-pct     { color:#6d28d9; }
-    .mod-label { font-size:12px; font-weight:700; margin-top:3px; }
-    .mod-item.presencial .mod-label { color:#16a34a; }
-    .mod-item.hibrido .mod-label    { color:var(--blue-600); }
-    .mod-item.remoto .mod-label     { color:#7c3aed; }
+    .mod-item { border:1px solid var(--c-empty-border); border-radius:var(--radius-md); text-align:center; padding:16px 12px; background:var(--c-empty-bg); }
+    .mod-item.presencial, .mod-item.hibrido, .mod-item.remoto { background:var(--c-empty-bg); border-color:var(--c-empty-border); }
+    .mod-pct { font-size:28px; font-weight:700; letter-spacing:-1px; color:var(--c-primary); }
+    .mod-item.presencial .mod-pct, .mod-item.hibrido .mod-pct, .mod-item.remoto .mod-pct { color:var(--c-primary); }
+    .mod-label { font-size:12px; font-weight:700; margin-top:3px; color:var(--text-secondary); }
+    .mod-item.presencial .mod-label, .mod-item.hibrido .mod-label, .mod-item.remoto .mod-label { color:var(--text-secondary); }
     .mod-count { font-size:11px; color:var(--text-muted); margin-top:2px; }
 
-    /* ── SATISFACCIÓN ── */
+    /* ── SATISFACCIÓN (valor real en primario; N/D como estado vacío) ── */
     .sat-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; padding:8px 20px 16px; }
-    .sat-item { text-align:center; padding:14px 10px; border-radius:var(--radius-md); }
-    .sat-item.blue  { background:var(--blue-50); border:1px solid var(--blue-200); }
-    .sat-item.green { background:#f0fdf4; border:1px solid #bbf7d0; }
-    .sat-item.amber { background:#fffbeb; border:1px solid #fde68a; }
-    .sat-score { font-size:28px; font-weight:700; letter-spacing:-1px; }
-    .sat-item.blue .sat-score  { color:var(--blue-700); }
-    .sat-item.green .sat-score { color:#15803d; }
-    .sat-item.amber .sat-score { color:#b45309; }
-    .sat-label { font-size:11px; font-weight:500; margin-top:4px; }
-    .sat-item.blue .sat-label  { color:var(--blue-600); }
-    .sat-item.green .sat-label { color:#16a34a; }
-    .sat-item.amber .sat-label { color:#d97706; }
+    .sat-item { text-align:center; padding:14px 10px; border-radius:var(--radius-md); background:var(--c-empty-bg); border:1px solid var(--c-empty-border); }
+    .sat-score { font-size:28px; font-weight:700; letter-spacing:-1px; color:var(--c-primary); }
+    .sat-label { font-size:11px; font-weight:500; margin-top:4px; color:var(--text-secondary); }
+    .sat-item.is-empty .sat-score { font-size:18px; color:var(--c-empty-text); }
+    .sat-item.is-empty .sat-label { color:var(--text-muted); }
 
-    /* ── REGION ── */
+    /* ── REGION (barras azules sólidas y delgadas) ── */
     .region-list { padding:8px 20px 16px; }
     .region-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f1f5f9; }
     .region-row:last-child { border-bottom:none; }
-    .region-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .region-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; background:var(--c-primary); }
     .region-name { font-size:13px; font-weight:600; flex:1; }
-    .region-bar-wrap { width:80px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; flex-shrink:0; }
-    .region-bar-fill { height:100%; border-radius:3px; }
     .region-count { font-size:13px; font-weight:700; flex-shrink:0; }
     .region-pct { font-size:11px; color:var(--text-muted); margin-left:4px; flex-shrink:0; }
-
-    /* ── CHART ── */
-    #sedeChartWrap { height:240px; position:relative; padding:0 16px 16px; }
 
     /* ── MODAL ── */
     .modal-overlay { display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,23,42,.55); backdrop-filter:blur(4px); align-items:center; justify-content:center; }
@@ -211,6 +265,7 @@
 
     .msg-textarea { width:100%; min-height:110px; padding:12px 14px; border-radius:var(--radius-md); border:1.5px solid var(--border); font-family:inherit; font-size:13.5px; color:var(--text-primary); resize:vertical; line-height:1.6; transition:border-color .15s; background:#fafbff; }
     .msg-textarea:focus { outline:none; border-color:var(--blue-600); background:#fff; }
+    .msg-textarea.input-error { border-color:#dc2626; }
     .msg-hint { font-size:11.5px; color:var(--text-muted); margin-top:6px; }
 
     .send-summary { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--blue-50); border:1px solid var(--blue-200); border-radius:var(--radius-md); margin-top:16px; }
@@ -219,8 +274,8 @@
     .btn { height:38px; padding:0 20px; border-radius:var(--radius-md); font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit; border:none; transition:all .15s; display:inline-flex; align-items:center; gap:7px; }
     .btn-secondary { background:#f1f5f9; color:var(--text-secondary); }
     .btn-secondary:hover { background:#e2e8f0; }
-    .btn-primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.3); }
-    .btn-primary:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); }
+    .btn-primary { background:var(--c-primary); color:#fff; }
+    .btn-primary:hover { background:var(--c-primary-strong); }
 
     /* ── TOAST ── */
     .toast { position:fixed; bottom:28px; right:28px; z-index:2000; background:#0f172a; color:#fff; padding:14px 20px; border-radius:var(--radius-md); font-size:13.5px; font-weight:500; display:flex; align-items:center; gap:10px; box-shadow:0 20px 60px rgba(0,0,0,.18); transform:translateY(80px); opacity:0; transition:all .35s cubic-bezier(.34,1.56,.64,1); }
@@ -247,7 +302,7 @@
 <!-- ── KPI GLOBALES ── -->
 <div class="section-divider">
     <div class="section-divider-line"></div>
-    <div class="section-divider-text">📊 Indicadores globales</div>
+    <div class="section-divider-text">Indicadores globales</div>
     <div class="section-divider-line"></div>
 </div>
 
@@ -277,7 +332,7 @@
 <!-- ── FUNNEL + RENDIMIENTO ── -->
 <div class="section-divider">
     <div class="section-divider-line"></div>
-    <div class="section-divider-text">🎯 Pipeline y rendimiento</div>
+    <div class="section-divider-text">Pipeline y rendimiento</div>
     <div class="section-divider-line"></div>
 </div>
 
@@ -293,38 +348,38 @@
         </div>
         <div class="funnel-wrap">
             <div class="funnel-step">
-                <div class="funnel-shape" style="width:100%;background:linear-gradient(135deg,#2563eb,#3b82f6);border-radius:10px 10px 4px 4px;">Postulantes</div>
-                <div style="min-width:140px;">
+                <div class="funnel-shape s1">Postulantes</div>
+                <div class="funnel-meta">
                     <div class="funnel-meta-value">{{ postulantes_count }}</div>
                     <div class="funnel-meta-label">Alumnos postulantes</div>
-                    <span class="funnel-pct" style="background:var(--blue-100);color:var(--blue-800);">100%</span>
+                    <span class="funnel-pct blue">100%</span>
                 </div>
             </div>
             <div class="funnel-arrow">▼</div>
             <div class="funnel-step">
-                <div class="funnel-shape" style="width:85%;background:linear-gradient(135deg,#7c3aed,#8b5cf6);border-radius:4px;">Seleccionados</div>
-                <div style="min-width:140px;">
+                <div class="funnel-shape s2 {% if not seleccionados_count %}is-empty{% endif %}">Seleccionados</div>
+                <div class="funnel-meta {% if not seleccionados_count %}is-empty{% endif %}">
                     <div class="funnel-meta-value">{{ seleccionados_count }}</div>
                     <div class="funnel-meta-label">Aceptados al programa</div>
-                    <span class="funnel-pct" style="background:#ede9fe;color:#5b21b6;">{{ seleccionados_pct }}%</span>
+                    <span class="funnel-pct {% if seleccionados_count %}blue{% else %}muted{% endif %}">{{ seleccionados_pct }}%</span>
                 </div>
             </div>
             <div class="funnel-arrow">▼</div>
             <div class="funnel-step">
-                <div class="funnel-shape" style="width:60%;background:linear-gradient(135deg,#059669,#10b981);border-radius:4px;">En curso</div>
-                <div style="min-width:140px;">
+                <div class="funnel-shape s3 {% if not practicas_activas %}is-empty{% endif %}">En curso</div>
+                <div class="funnel-meta {% if not practicas_activas %}is-empty{% endif %}">
                     <div class="funnel-meta-value">{{ practicas_activas }}</div>
                     <div class="funnel-meta-label">Practicantes activos</div>
-                    <span class="funnel-pct" style="background:#dcfce7;color:#166534;">{{ en_curso_pct }}%</span>
+                    <span class="funnel-pct {% if practicas_activas %}blue{% else %}muted{% endif %}">{{ en_curso_pct }}%</span>
                 </div>
             </div>
             <div class="funnel-arrow">▼</div>
             <div class="funnel-step">
-                <div class="funnel-shape" style="width:20%;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:4px 4px 10px 10px;"><span style="font-size:11px;">Contratados</span></div>
-                <div style="min-width:140px;">
+                <div class="funnel-shape s4 {% if not contratados_count %}is-empty{% endif %}">Contratados</div>
+                <div class="funnel-meta {% if not contratados_count %}is-empty{% endif %}">
                     <div class="funnel-meta-value">{{ contratados_count }}</div>
                     <div class="funnel-meta-label">Contratados post-práctica</div>
-                    <span class="funnel-pct" style="background:#fef3c7;color:#92400e;">{{ contratados_pct }}%</span>
+                    <span class="funnel-pct {% if contratados_count %}blue{% else %}muted{% endif %}">{{ contratados_pct }}%</span>
                 </div>
             </div>
         </div>
@@ -341,33 +396,33 @@
         </div>
         <div class="card-body">
             <div class="nota-stats">
-                <div class="nota-stat prom">
+                <div class="nota-stat {% if not nota_promedio %}is-empty{% endif %}">
                     <div class="nota-stat-value">{{ nota_promedio }}</div>
                     <div class="nota-stat-label">Promedio</div>
                 </div>
-                <div class="nota-stat max">
+                <div class="nota-stat {% if not nota_max %}is-empty{% endif %}">
                     <div class="nota-stat-value">{{ nota_max }}</div>
                     <div class="nota-stat-label">Nota máx.</div>
                 </div>
-                <div class="nota-stat min">
+                <div class="nota-stat {% if not nota_min %}is-empty{% endif %}">
                     <div class="nota-stat-value">{{ nota_min }}</div>
                     <div class="nota-stat-label">Nota mín.</div>
                 </div>
             </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Ranking por competencia</div>
+            <div class="subhead">Ranking por competencia</div>
             <div class="comp-list">
                 {% for comp in top_competencias %}
                 <div class="comp-row">
                     <span class="comp-rank">{{ comp.rank }}</span>
                     <span class="comp-name">{{ comp.nombre }}</span>
                     <div class="comp-bar-wrap">
-                        <div class="comp-bar-fill bar-{% cycle 'green' 'blue' 'violet' 'amber' 'rose' %}" style="width:{{ comp.pct }}%;"></div>
+                        <div class="comp-bar-fill {% cycle 'cat-c1' 'cat-c2' 'cat-c3' 'cat-c4' 'cat-c5' %}" style="--pct:{{ comp.pct }}%"></div>
                     </div>
                     <span class="comp-score">{{ comp.score }}</span>
                     <span class="comp-badge {{ comp.nivel_class }}">{{ comp.nivel_arrow }}{{ comp.nivel }}</span>
                 </div>
                 {% empty %}
-                <div style="font-size:13px;color:var(--text-muted);">No hay puntajes de competencias para mostrar.</div>
+                <div class="empty-text">No hay puntajes de competencias para mostrar.</div>
                 {% endfor %}
             </div>
         </div>
@@ -377,7 +432,7 @@
 <!-- ── PERFIL DIGITAL + BADGES ── -->
 <div class="section-divider">
     <div class="section-divider-line"></div>
-    <div class="section-divider-text">👤 Perfil digital y logros</div>
+    <div class="section-divider-text">Perfil digital y logros</div>
     <div class="section-divider-line"></div>
 </div>
 
@@ -389,10 +444,10 @@
                     <div class="section-title">Completitud de perfil</div>
                     <div class="section-sub">Empleabilidad digital del alumno</div>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:#fef3c7;color:#92400e;">⚠ Mejorar</span>
+                <div class="section-actions">
+                    <span class="pill-muted">Mejorar</span>
                     <button class="reminder-btn" onclick="openModal()">
-                        <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
                         Enviar recordatorio
                     </button>
                 </div>
@@ -404,24 +459,22 @@
                 <div class="profile-item">
                     <div class="ring-wrap">
                         <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true">
-                            <circle cx="35" cy="35" r="30" stroke="#e2e8f0" stroke-width="8" fill="none"/>
-                            <circle cx="35" cy="35" r="30" stroke="{{ item.stroke }}" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="{{ item.offset }}"/>
+                            <circle class="ring-track" cx="35" cy="35" r="30" stroke-width="8" fill="none"/>
+                            <circle class="ring-fg" cx="35" cy="35" r="30" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="{{ item.offset }}"/>
                         </svg>
-                        <div class="ring-center" style="color:{{ item.stroke }};">{{ item.pct }}%</div>
+                        <div class="ring-center">{{ item.pct }}%</div>
                     </div>
                     <div class="profile-label">{{ item.label }}</div>
                     <div class="profile-count">{{ item.count }} / {{ item.total }} alumnos</div>
                 </div>
                 {% endfor %}
             </div>
-            <div style="margin-top:16px;padding:12px 14px;background:#f8fafc;border-radius:var(--radius-md);border:1px solid var(--border);">
-                <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Perfil 100% completo (los 3 ítems)</div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <div style="flex:1;height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden;">
-                        <div style="height:100%;width:{{ profile_completo_pct }}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:5px;"></div>
-                    </div>
-                    <span style="font-size:14px;font-weight:700;color:#6d28d9;">{{ profile_completo_pct }}%</span>
-                    <span style="font-size:12px;color:var(--text-muted);">{{ profile_completo_count }} alumnos</span>
+            <div class="profile-summary">
+                <div class="profile-summary__label">Perfil 100% completo (los 3 ítems)</div>
+                <div class="profile-summary__row">
+                    <div class="bar-lg"><div class="bar-lg__fill" style="--pct:{{ profile_completo_pct }}%"></div></div>
+                    <span class="profile-summary__pct">{{ profile_completo_pct }}%</span>
+                    <span class="profile-summary__count">{{ profile_completo_count }} alumnos</span>
                 </div>
             </div>
         </div>
@@ -437,50 +490,36 @@
             </div>
         </div>
         <div class="card-body">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px;">
+            <div class="badges-summary">
                 <div>
-                    <div style="font-size:28px;font-weight:700;color:var(--blue-700);letter-spacing:-1px;">{{ badge_total }}</div>
-                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Total badges otorgados</div>
+                    <div class="badges-summary__value">{{ badge_total }}</div>
+                    <div class="badges-summary__label">Total badges otorgados</div>
                 </div>
-                <div style="text-align:right;">
-                    <div style="font-size:20px;font-weight:700;color:#15803d;">{{ badge_tipos }}</div>
-                    <div style="font-size:11px;color:var(--text-muted);">tipos distintos</div>
+                <div class="badges-summary__side">
+                    <div class="badges-summary__side-value">{{ badge_tipos }}</div>
+                    <div class="badges-summary__side-label">tipos distintos</div>
                 </div>
             </div>
             <div class="badges-grid">
                 {% for badge in badge_data %}
                 <div class="badge-item">
-                    {% if forloop.counter0 == 0 %}
-                    <div class="badge-emoji" style="background:#fef3c7;">{{ badge.badge__icono|default:'🏆' }}</div>
-                    {% elif forloop.counter0 == 1 %}
-                    <div class="badge-emoji" style="background:var(--blue-100);">{{ badge.badge__icono|default:'💡' }}</div>
-                    {% elif forloop.counter0 == 2 %}
-                    <div class="badge-emoji" style="background:#dcfce7;">{{ badge.badge__icono|default:'🤝' }}</div>
-                    {% else %}
-                    <div class="badge-emoji" style="background:#ede9fe;">{{ badge.badge__icono|default:'⭐' }}</div>
-                    {% endif %}
+                    <div class="badge-emoji">{{ badge.badge__icono|default:'🏅' }}</div>
                     <div>
                         <div class="badge-name">{{ badge.badge__nombre|default:'Badge' }}</div>
                         <div class="badge-count">{{ badge.badge__descripcion|default:'Reconocimiento del período'|truncatechars:40 }}</div>
                     </div>
-                    {% if forloop.counter0 == 0 %}
-                    <div class="badge-pill" style="background:#fef3c7;color:#92400e;">{{ badge.total }}</div>
-                    {% elif forloop.counter0 == 1 %}
-                    <div class="badge-pill" style="background:var(--blue-100);color:var(--blue-800);">{{ badge.total }}</div>
-                    {% elif forloop.counter0 == 2 %}
-                    <div class="badge-pill" style="background:#dcfce7;color:#166534;">{{ badge.total }}</div>
-                    {% else %}
-                    <div class="badge-pill" style="background:#ede9fe;color:#5b21b6;">{{ badge.total }}</div>
-                    {% endif %}
+                    <div class="badge-pill">{{ badge.total }}</div>
                 </div>
                 {% empty %}
-                <div style="grid-column:1/-1;font-size:13px;color:var(--text-muted);">No hay badges registrados.</div>
+                <div class="empty-text">No hay badges registrados.</div>
                 {% endfor %}
             </div>
             {% if alumnos_sin_badge > 0 %}
-            <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-md);margin-top:12px;">
-                <span style="font-size:16px;">⚠️</span>
-                <div style="font-size:12.5px;color:#b45309;font-weight:500;"><strong>{{ alumnos_sin_badge }} alumnos</strong> aún no tienen ningún badge.</div>
+            <div class="info-note">
+                <span class="info-note__icon">
+                    <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                </span>
+                <div class="info-note__text"><strong>{{ alumnos_sin_badge }} alumnos</strong> aún no tienen ningún badge.</div>
             </div>
             {% endif %}
         </div>
@@ -490,7 +529,7 @@
 <!-- ── TOP EMPRESAS + RUBROS ── -->
 <div class="section-divider">
     <div class="section-divider-line"></div>
-    <div class="section-divider-text">🏢 Empresas y rubros</div>
+    <div class="section-divider-text">Empresas y rubros</div>
     <div class="section-divider-line"></div>
 </div>
 
@@ -509,23 +548,23 @@
                         <th>#</th>
                         <th>Empresa</th>
                         <th>Área</th>
-                        <th style="text-align:right;">Alumnos</th>
-                        <th style="text-align:right;">Proyectos</th>
+                        <th class="ta-right">Alumnos</th>
+                        <th class="ta-right">Proyectos</th>
                         <th>Progreso</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for e in top_empresas %}
                     <tr>
-                        <td style="color:var(--text-muted);font-weight:600;font-size:12px;">{{ e.rank|stringformat:"02d" }}</td>
-                        <td style="font-weight:700;">{{ e.nombre }}</td>
+                        <td class="cell-rank">{{ e.rank|stringformat:"02d" }}</td>
+                        <td class="cell-strong">{{ e.nombre }}</td>
                         <td><span class="area-badge {{ e.rubro_class }}">{{ e.rubro }}</span></td>
-                        <td style="text-align:right;font-weight:700;">{{ e.total_practicantes }}</td>
-                        <td style="text-align:right;color:var(--text-secondary);">{{ e.total_proyectos }}</td>
-                        <td><div class="progress-bar"><div class="progress-fill" style="width:{{ e.pct }}%"></div></div></td>
+                        <td class="ta-right cell-strong">{{ e.total_practicantes }}</td>
+                        <td class="ta-right cell-muted">{{ e.total_proyectos }}</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="--pct:{{ e.pct }}%"></div></div></td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" style="color:var(--text-muted);">No hay datos disponibles.</td></tr>
+                    <tr><td colspan="6" class="empty-text">No hay datos disponibles.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -542,11 +581,11 @@
             {% for rubro in rubros %}
             <div class="dist-row">
                 <div class="dist-label">{{ rubro.nombre }}</div>
-                <div class="dist-bar-wrap"><div class="dist-bar-fill {{ rubro.bar_class }}" style="width:{{ rubro.pct }}%;"></div></div>
+                <div class="dist-bar-wrap"><div class="dist-bar-fill" style="--pct:{{ rubro.pct }}%"></div></div>
                 <div class="dist-value">{{ rubro.total }}</div>
             </div>
             {% empty %}
-            <div style="font-size:13px;color:var(--text-muted);">No hay rubros registrados.</div>
+            <div class="empty-text">No hay rubros registrados.</div>
             {% endfor %}
         </div>
     </div>
@@ -555,11 +594,11 @@
 <!-- ── CARRERA + MODALIDAD ── -->
 <div class="section-divider">
     <div class="section-divider-line"></div>
-    <div class="section-divider-text">🎓 Carrera y modalidad</div>
+    <div class="section-divider-text">Carrera y modalidad</div>
     <div class="section-divider-line"></div>
 </div>
 
-<div class="grid-2" style="margin-bottom:20px;">
+<div class="grid-2">
     <div class="card">
         <div class="card-header">
             <div class="section-header">
@@ -569,12 +608,12 @@
         <div class="dist-list">
             {% for c in carreras_dist %}
             <div class="dist-row">
-                <div class="dist-label" style="min-width:150px;">{{ c.nombre }}</div>
-                <div class="dist-bar-wrap"><div class="dist-bar-fill {{ c.bar_class }}" style="width:{{ c.pct }}%;"></div></div>
+                <div class="dist-label">{{ c.nombre }}</div>
+                <div class="dist-bar-wrap"><div class="dist-bar-fill" style="--pct:{{ c.pct }}%"></div></div>
                 <div class="dist-value">{{ c.total }}</div>
             </div>
             {% empty %}
-            <div style="font-size:13px;color:var(--text-muted);padding:8px 0;">No hay datos de carreras.</div>
+            <div class="empty-text pad">No hay datos de carreras.</div>
             {% endfor %}
         </div>
     </div>
@@ -599,14 +638,14 @@
     </div>
 </div>
 
-<!-- ── SATISFACCIÓN + REGIÓN ── -->
+<!-- ── SATISFACCIÓN + COBERTURA POR SEDE ── -->
 <div class="section-divider">
     <div class="section-divider-line"></div>
-    <div class="section-divider-text">😊 Satisfacción y cobertura</div>
+    <div class="section-divider-text">Satisfacción y cobertura</div>
     <div class="section-divider-line"></div>
 </div>
 
-<div class="grid-2" style="margin-bottom:20px;">
+<div class="grid-2">
     <div class="card">
         <div class="card-header">
             <div class="section-header">
@@ -614,22 +653,25 @@
             </div>
         </div>
         <div class="sat-grid">
-            <div class="sat-item blue">
+            <div class="sat-item">
                 <div class="sat-score">{{ enps_empresa_avg }}</div>
                 <div class="sat-label">eNPS Empresa</div>
             </div>
-            <div class="sat-item green">
-                <div class="sat-score" style="font-size:18px;color:#15803d;">N/D</div>
+            <div class="sat-item is-empty">
+                <div class="sat-score">N/D</div>
                 <div class="sat-label">eNPS Alumno</div>
             </div>
-            <div class="sat-item amber">
-                <div class="sat-score" style="font-size:18px;color:#b45309;">N/D</div>
+            <div class="sat-item is-empty">
+                <div class="sat-score">N/D</div>
                 <div class="sat-label">Satisfacción Tutor</div>
             </div>
         </div>
-        <div style="padding:0 20px 14px;">
-            <div style="font-size:11px;color:var(--text-muted);background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 12px;">
-                💡 N/D = campos no disponibles en la BD actual. Ver sección de brechas de datos.
+        <div class="card-body">
+            <div class="info-note plain">
+                <span class="info-note__icon">
+                    <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                </span>
+                <div class="info-note__text">N/D = campos no disponibles en la base de datos actual.</div>
             </div>
         </div>
     </div>
@@ -637,37 +679,25 @@
     <div class="card">
         <div class="card-header">
             <div class="section-header">
-                <span class="section-title">Participación por sede</span>
+                <div>
+                    <span class="section-title">Participación por sede</span>
+                    <div class="section-sub">Prácticas activas por sede</div>
+                </div>
             </div>
         </div>
         <div class="region-list">
             {% for r in region_dist %}
             <div class="region-row">
-                <div class="region-dot" style="background:{{ r.dot_color }};"></div>
+                <div class="region-dot"></div>
                 <span class="region-name">{{ r.nombre }}</span>
-                <div class="region-bar-wrap"><div class="region-bar-fill {{ r.bar_class }}" style="width:{{ r.pct }}%;height:100%;border-radius:3px;"></div></div>
+                <div class="region-bar-wrap"><div class="region-bar-fill" style="--pct:{{ r.pct }}%"></div></div>
                 <span class="region-count">{{ r.total }}</span>
                 <span class="region-pct">{{ r.pct }}%</span>
             </div>
             {% empty %}
-            <div style="padding:8px 0;font-size:13px;color:var(--text-muted);">Sin datos de sede.</div>
+            <div class="empty-text pad">Sin datos de sede.</div>
             {% endfor %}
         </div>
-    </div>
-</div>
-
-<!-- ── GRÁFICO SEDE ── -->
-<div class="card" style="margin-bottom:32px;">
-    <div class="card-header">
-        <div class="section-header">
-            <div>
-                <div class="section-title">Distribución por sede</div>
-                <div class="section-sub">Prácticas activas por sede</div>
-            </div>
-        </div>
-    </div>
-    <div id="sedeChartWrap">
-        <canvas id="sedeChart"></canvas>
     </div>
 </div>
 
@@ -676,7 +706,7 @@
     <div class="modal" role="dialog" aria-modal="true">
         <div class="modal-header">
             <div>
-                <div class="modal-title">📣 Enviar recordatorio de perfil</div>
+                <div class="modal-title">Enviar recordatorio de perfil</div>
                 <div class="modal-subtitle">Se notificará por correo a los alumnos seleccionados</div>
             </div>
             <button class="modal-close" onclick="closeModal()">✕</button>
@@ -697,7 +727,7 @@
                     <label class="recipient-chip" id="chip-linkedin">
                         <input type="checkbox" onchange="toggleChip('linkedin',this)">
                         <span class="recipient-chip-label">Sin LinkedIn</span>
-                        <span class="recipient-count">{% with cnt=alumnos_count|add:"-0" %}{{ profile_data.0.total|add:"-"|add:profile_data.0.count }}{% endwith %}{{ profile_data.0.total }}</span>
+                        <span class="recipient-count">{{ profile_data.0.total }}</span>
                     </label>
                     <label class="recipient-chip" id="chip-cv">
                         <input type="checkbox" onchange="toggleChip('cv',this)">
@@ -710,18 +740,18 @@
                         <span class="recipient-count">{{ profile_data.2.total }}</span>
                     </label>
                 </div>
-                <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Mensaje personalizado</div>
+                <div class="subhead">Mensaje personalizado</div>
                 <textarea class="msg-textarea" name="mensaje" id="msgText" placeholder="Ej: Recuerden que tienen hasta el viernes para completar su perfil. Es requisito para la evaluación final del período."></textarea>
-                <div class="msg-hint">💡 El mensaje se enviará junto a un enlace directo al perfil del alumno en la plataforma.</div>
+                <div class="msg-hint">El mensaje se enviará junto a un enlace directo al perfil del alumno en la plataforma.</div>
                 <div class="send-summary">
-                    <span style="font-size:18px;">📬</span>
+                    <span class="emoji-lg">📬</span>
                     <span class="send-summary-text">Se enviará a <strong id="recipientCount">{{ sin_perfil_completo }}</strong> alumnos con perfil incompleto</span>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
                 <button type="submit" class="btn btn-primary" onclick="return validateReminder()">
-                    <svg style="width:14px;height:14px;" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+                    <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
                     Enviar recordatorio
                 </button>
             </div>
@@ -731,7 +761,7 @@
 
 <!-- TOAST -->
 <div class="toast" id="toast">
-    <span style="font-size:18px;">✅</span>
+    <span class="emoji-lg">✅</span>
     <span id="toastText">Recordatorio enviado exitosamente</span>
 </div>
 
@@ -739,38 +769,6 @@
 
 {% block extra_js %}
 <script>
-    // ── Gráfico doughnut sede ──
-    const sedesLabels = [{% for item in sedes_labels %}'{{ item|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
-    const sedesValues = [{% for item in sedes_values %}{{ item }}{% if not forloop.last %}, {% endif %}{% endfor %}];
-    const chartNode = document.getElementById('sedeChart');
-    if (chartNode) {
-        new Chart(chartNode.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: sedesLabels.length ? sedesLabels : ['Sin datos'],
-                datasets: [{
-                    data: sedesValues.length ? sedesValues : [1],
-                    backgroundColor: ['#1d4ed8','#8b5cf6','#06b6d4','#22c55e','#f59e0b','#f43f5e','#0ea5e9'],
-                    borderColor: '#ffffff',
-                    borderWidth: 3,
-                    spacing: 2,
-                    hoverOffset: 3,
-                    cutout: '72%'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { padding: 16, boxWidth: 10, boxHeight: 10, font: { family: 'Plus Jakarta Sans', size: 11 } }
-                    }
-                }
-            }
-        });
-    }
-
     // ── Modal recordatorio ──
     const countMap = {
         all: {{ sin_perfil_completo }},
@@ -822,21 +820,15 @@
         document.getElementById('segmentoInput').value = segments || 'ninguno';
     }
     function validateReminder() {
-        const msg = document.getElementById('msgText').value.trim();
-        if (!msg) {
-            document.getElementById('msgText').style.borderColor = '#dc2626';
-            document.getElementById('msgText').focus();
-            setTimeout(() => { document.getElementById('msgText').style.borderColor = ''; }, 2000);
+        const field = document.getElementById('msgText');
+        if (!field.value.trim()) {
+            field.classList.add('input-error');
+            field.focus();
+            setTimeout(() => field.classList.remove('input-error'), 2000);
             return false;
         }
         return true;
     }
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-    // Mostrar toast si viene de un POST exitoso
-    const urlParams = new URLSearchParams(window.location.search);
-    if (document.referrer.includes('dashboard') && window.location.search === '') {
-        // no-op, toast would need session messages
-    }
 </script>
 {% endblock %}

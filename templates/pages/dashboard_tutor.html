@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Bitácoras{% endblock %}
+{% block page_title %}Panel de Bitácoras{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dt-wrap { display:flex; flex-direction:column; gap:18px; }
+
+    .dt-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+    .dt-title { font-size:17px; font-weight:800; color:var(--text-primary); letter-spacing:-.3px; }
+    .dt-sub { font-size:13px; color:var(--text-secondary); margin-top:4px; }
+    .dt-kpis { display:flex; gap:10px; flex-wrap:wrap; }
+    .dt-kpi { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 16px; min-width:120px; }
+    .dt-kpi-v { font-size:20px; font-weight:800; color:var(--text-primary); }
+    .dt-kpi-l { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .dt-kpi--alert .dt-kpi-v { color:#b45309; }
+
+    .dt-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden; }
+
+    .dt-table { width:100%; border-collapse:collapse; }
+    .dt-table thead th { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); text-align:left; padding:14px 18px; border-bottom:1px solid var(--border); background:#fafbfc; }
+    .dt-table thead th.dt-col-prog { width:36%; }
+    .dt-table tbody td { padding:14px 18px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .dt-row { cursor:pointer; transition:background .12s; }
+    .dt-row:hover { background:var(--blue-50); }
+    .dt-row:last-child td { border-bottom:none; }
+
+    .dt-student { display:flex; align-items:center; gap:12px; }
+    .dt-av { width:38px; height:38px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px; background:var(--cat-3); }
+    .dt-name { font-size:13.5px; font-weight:700; color:var(--text-primary); }
+    .dt-proj { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .dt-empresa { font-size:13px; color:var(--text-secondary); }
+
+    .dt-prog { display:flex; align-items:center; gap:12px; }
+    .dt-prog-track { flex:1; height:8px; background:#eef0f4; border-radius:999px; overflow:hidden; min-width:90px; }
+    .dt-prog-fill { height:100%; background:var(--cat-5); border-radius:999px; width:var(--pct,0%); }
+    .dt-prog-pct { font-size:12.5px; font-weight:800; color:var(--green-700); min-width:38px; text-align:right; }
+    .dt-prog-meta { font-size:11.5px; color:var(--text-muted); margin-top:4px; }
+
+    .dt-pend { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; white-space:nowrap; }
+    .dt-pend--on { background:color-mix(in srgb, var(--cat-4) 12%, #fff); color:#b45309; }
+    .dt-pend--off { background:#f1f5f9; color:#64748b; }
+    .dt-pend::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+    .dt-chev { color:var(--text-muted); }
+    .dt-chev svg { width:18px; height:18px; }
+
+    .dt-empty { padding:42px; text-align:center; color:var(--text-muted); }
+    .dt-empty h3 { margin:0 0 6px; color:var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dt-wrap">
+    <div class="dt-head">
+        <div>
+            <div class="dt-title">Mis alumnos · Bitácoras</div>
+            <div class="dt-sub">{% if tutor_tipo == 'udd' %}Tutor UDD{% else %}Tutor Empresa{% endif %} · {{ periodo_label }}</div>
+        </div>
+        <div class="dt-kpis">
+            <div class="dt-kpi">
+                <div class="dt-kpi-v">{{ total_alumnos }}</div>
+                <div class="dt-kpi-l">Alumnos asignados</div>
+            </div>
+            <div class="dt-kpi dt-kpi--alert">
+                <div class="dt-kpi-v">{{ pendientes_total }}</div>
+                <div class="dt-kpi-l">Semanas por revisar</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dt-card">
+        {% if rows %}
+        <table class="dt-table">
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    <th>Empresa</th>
+                    <th class="dt-col-prog">Avance de bitácora</th>
+                    <th>Por revisar</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr class="dt-row" onclick="window.location='?alumno={{ r.alumno_id }}'" tabindex="0" role="link" aria-label="Ver bitácora de {{ r.alumno_nombre }}">
+                    <td>
+                        <div class="dt-student">
+                            <div class="dt-av">{{ r.alumno_nombre|slice:":1"|upper }}</div>
+                            <div>
+                                <div class="dt-name">{{ r.alumno_nombre }}</div>
+                                <div class="dt-proj">{{ r.proyecto }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="dt-empresa">{{ r.empresa }}</span></td>
+                    <td>
+                        <div class="dt-prog">
+                            <div class="dt-prog-track"><div class="dt-prog-fill" style="--pct:{{ r.pct }}%"></div></div>
+                            <span class="dt-prog-pct">{{ r.pct }}%</span>
+                        </div>
+                        <div class="dt-prog-meta">{{ r.aprobadas }} de {{ r.total }} semanas aprobadas</div>
+                    </td>
+                    <td>
+                        {% if r.pendientes %}
+                        <span class="dt-pend dt-pend--on">{{ r.pendientes }} pendiente{{ r.pendientes|pluralize }}</span>
+                        {% else %}
+                        <span class="dt-pend dt-pend--off">Al día</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="dt-chev">
+                            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="dt-empty">
+            <h3>Sin alumnos asignados</h3>
+            <p>No tienes alumnos con proyecto asignado para el período {{ periodo_label }}.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

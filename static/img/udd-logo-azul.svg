@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 40" role="img" aria-label="Universidad del Desarrollo">
+  <g fill="#0d63ab">
+    <!-- U -->
+    <path d="M2 6h7v17a5 5 0 0 0 10 0V6h7v17a12 12 0 0 1-24 0V6z"/>
+    <!-- D (arco) -->
+    <path d="M34 6h10a14 14 0 0 1 14 14v14H34V6zm7 7v14h7a7 7 0 0 0-7-14z"/>
+    <!-- D (arco) -->
+    <path d="M64 6h10a14 14 0 0 1 14 14v14H64V6zm7 7v14h7a7 7 0 0 0-7-14z"/>
+  </g>
+  <text x="98" y="26" fill="#0f172a" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="0.2">Universidad del Desarrollo</text>
+</svg>

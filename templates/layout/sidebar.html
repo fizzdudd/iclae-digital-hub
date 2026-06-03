@@ -1,212 +1,268 @@
+{% load static %}
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
+
+    /* =====================================================================
+       MENÚ LATERAL — réplica exacta del diseño de referencia. El pie (toggle
+       de colapso) se conserva del menú actual.
+       ===================================================================== */
     .sidebar {
         width: var(--sidebar-width);
-        background: var(--sidebar-bg);
+        height: 100vh;
         position: fixed;
         inset: 0 auto 0 0;
         z-index: 100;
+        background: linear-gradient(180deg, #0d2547 0%, #0a1e3c 100%);
+        color: #c3cfe0;
+        font-family: 'Hanken Grotesk', sans-serif;
         display: flex;
         flex-direction: column;
+        transition: width .2s ease;
     }
+    .main { transition: margin-left .2s ease, width .2s ease; }
 
+    /* ── Marca ── */
+    .sidebar-head {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 26px 14px 18px;
+    }
     .sidebar-logo {
-        border-bottom: 1px solid var(--sidebar-border);
-        padding: 20px 18px 16px;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 10px;
+        text-decoration: none;
     }
-
-    .logo-mark {
-        width: 34px;
-        height: 34px;
-        border-radius: var(--radius-sm);
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-size: 13px;
-        font-weight: 700;
-        flex-shrink: 0;
-    }
-
-    .logo-title { color: #fff; font-size: 15px; font-weight: 700; line-height: 1.1; }
-    .logo-sub {
-        margin-top: 2px;
-        color: rgba(255,255,255,0.45);
-        font-size: 10px;
+    .brand-logo { width: 118px; max-width: 100%; height: auto; display: block; }
+    .brand-name {
+        margin-top: 14px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        letter-spacing: 0.4px;
+        color: #7489a8;
     }
+    .brand-name__strong { color: #fff; font-weight: 700; }
+    .brand-divider { height: 1px; background: rgba(255,255,255,.10); margin: 4px 14px 2px; }
+    /* La marca compacta solo aparece con el menú colapsado en escritorio */
+    .brand-logo--mini { display: none; }
 
+    /* ── Navegación ── */
     .sidebar-nav {
         flex: 1;
         overflow-y: auto;
-        padding: 12px 10px;
+        padding: 6px 14px 0;
     }
-
     .nav-section-label {
-        font-size: 10px;
-        color: rgba(255,255,255,0.34);
+        font-size: 10.5px;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
-        font-weight: 700;
-        padding: 8px 8px 4px;
+        color: #647ea3;
+        font-weight: 600;
+        padding: 0 12px 9px;
+        margin-top: 18px;
     }
+    .nav-section-label:first-child { margin-top: 6px; }
 
     .nav-item {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 10px;
-        border-radius: var(--radius-md);
-        text-decoration: none;
-        color: var(--sidebar-text);
+        gap: 12px;
+        padding: 9px 12px;
+        border-radius: 10px;
         font-size: 13.5px;
         font-weight: 500;
-        padding: 9px 10px;
-        margin-bottom: 2px;
+        color: #c3cfe0;
+        text-decoration: none;
+        transition: background .15s, color .15s;
     }
-
-    .nav-item:hover {
-        background: var(--sidebar-hover);
-        color: #fff;
-    }
-
-    .nav-item.active {
-        background: var(--sidebar-active);
-        color: var(--sidebar-text-active);
-        font-weight: 700;
-    }
-
     .nav-icon {
         width: 18px;
         height: 18px;
         flex-shrink: 0;
-        opacity: 0.84;
+        opacity: 0.78;
+        transition: opacity .15s;
     }
-
-    .nav-item.active .nav-icon {
-        color: var(--sidebar-accent);
-        opacity: 1;
+    .nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+    .nav-item:hover .nav-icon { opacity: 1; }
+    .nav-item.active { background: rgba(47,107,255,.16); color: #fff; font-weight: 600; }
+    .nav-item.active .nav-icon { opacity: 1; color: #7aa2ff; }
+    /* Línea vertical azul brillante en el borde izquierdo absoluto del menú */
+    .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: -14px;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: #2f6bff;
     }
-
     .nav-badge {
         margin-left: auto;
         font-size: 10px;
-        padding: 2px 7px;
+        padding: 2px 8px;
         border-radius: 999px;
         font-weight: 700;
         color: #93c5fd;
-        background: rgba(96,165,250,0.2);
+        background: rgba(96,165,250,.2);
     }
 
-    .sidebar-user {
+    /* ── Pie con el control de colapso (se conserva exactamente) ── */
+    .sidebar-foot {
         border-top: 1px solid var(--sidebar-border);
-        padding: 12px 14px;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+        padding: 12px;
+    }
+    .sidebar-foot .sidebar-toggle { width: 100%; }
+    .sidebar-toggle {
+        width: 30px; height: 30px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--sidebar-border);
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.72);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; padding: 0;
+        transition: background .15s, color .15s;
+    }
+    .sidebar-toggle:hover { background: rgba(255,255,255,0.16); color: #fff; }
+    .sidebar-toggle svg { width: 17px; height: 17px; }
+
+    /* El riel mini colapsado solo tiene sentido en escritorio; en tablet y móvil
+       el menú es un cajón deslizable a ancho completo, así que se restringe aquí. */
+    @media (min-width: 1025px) {
+        body.sidebar-collapsed { --sidebar-width: 76px; }
+        body.sidebar-collapsed .brand-name,
+        body.sidebar-collapsed .brand-divider,
+        body.sidebar-collapsed .nav-section-label,
+        body.sidebar-collapsed .nav-item span,
+        body.sidebar-collapsed .nav-badge { display: none; }
+        body.sidebar-collapsed .sidebar-head { padding: 18px 8px 12px; }
+        body.sidebar-collapsed .nav-item { justify-content: center; padding: 9px; }
+        body.sidebar-collapsed .nav-item.active::before { display: none; }
+        body.sidebar-collapsed .brand-logo:not(.brand-logo--mini) { display: none; }
+        body.sidebar-collapsed .brand-logo--mini { display: block; width: 34px; }
     }
 
-    .user-avatar {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: 700;
-        background: linear-gradient(135deg, #3b82f6, #6366f1);
-        flex-shrink: 0;
-    }
-
-    .user-name { color: #fff; font-size: 13px; font-weight: 600; }
-    .user-role { color: rgba(255,255,255,0.45); font-size: 10.5px; }
-
-    @media (max-width: 1024px) {
-        .logo-sub,
-        .logo-title,
-        .nav-section-label,
-        .nav-item span,
-        .nav-badge,
-        .sidebar-user { display: none; }
-
-        .sidebar-logo,
-        .nav-item { justify-content: center; }
-    }
-
-    @media (max-width: 700px) {
-        .sidebar { display: none; }
-    }
+    /* En tablet y móvil el menú se muestra completo dentro del cajón deslizable. */
 </style>
 
+{% with rol=user_rol|default:'admin' %}
 <aside class="sidebar">
-    <a class="sidebar-logo" href="{% url 'dashboard' %}" style="text-decoration:none;">
-        <span class="logo-mark">IC</span>
-        <span>
-            <span class="logo-title">ICLAE</span>
-            <span class="logo-sub">Digital Hub UDD</span>
-        </span>
-    </a>
+    <div class="sidebar-head">
+        <a class="sidebar-logo" href="{% url 'dashboard' %}">
+            <img class="brand-logo" src="{% static 'img/udd-marca-blanca.png' %}" alt="Universidad del Desarrollo">
+            <img class="brand-logo brand-logo--mini" src="{% static 'img/udd-logo.svg' %}" alt="UDD">
+        </a>
+        <div class="brand-name"><span class="brand-name__strong">ICLAE</span> Digital Hub</div>
+    </div>
+    <div class="brand-divider"></div>
 
     <nav class="sidebar-nav">
+        {% if rol == 'admin' %}
         <div class="nav-section-label">Principal</div>
         <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
             <span>Dashboard</span>
         </a>
+        {% endif %}
 
-        <div class="nav-section-label" style="margin-top:8px;">Gestion</div>
-        <a href="{% url 'proyectos' %}" class="nav-item {% if request.resolver_match.url_name == 'proyectos' %}active{% endif %}">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
-            <span>Proyectos</span>
-        </a>
-        <a href="{% url 'alumnos' %}" class="nav-item {% if request.resolver_match.url_name == 'alumnos' %}active{% endif %}">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8z"/><path d="M3 17a7 7 0 1114 0H3z"/></svg>
-            <span>Alumnos</span>
-        </a>
+        <div class="nav-section-label {% if rol == 'admin' %}gap{% endif %}">Gestion</div>
+
+        {% if rol == 'admin' or rol == 'alumno' or rol == 'tutor_udd' or rol == 'tutor_empresa' %}
         <a href="{% url 'empresas' %}" class="nav-item {% if request.resolver_match.url_name == 'empresas' %}active{% endif %}">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4z" clip-rule="evenodd"/></svg>
             <span>Empresas</span>
         </a>
+        {% endif %}
 
-        <div class="nav-section-label" style="margin-top:8px;">Seguimiento</div>
-        <a href="{% url 'postulaciones' %}" class="nav-item {% if request.resolver_match.url_name == 'postulaciones' %}active{% endif %}">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>
-            <span>Postulaciones</span>
+        {% if rol == 'admin' %}
+        <a href="{% url 'alumnos' %}" class="nav-item {% if request.resolver_match.url_name == 'alumnos' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8z"/><path d="M3 17a7 7 0 1114 0H3z"/></svg>
+            <span>Alumnos</span>
         </a>
-        <a href="{% url 'bitacora' %}" class="nav-item {% if request.resolver_match.url_name == 'bitacora' %}active{% endif %}">
+        {% endif %}
+
+        {% if rol == 'admin' or rol == 'alumno' or rol == 'tutor_udd' or rol == 'tutor_empresa' %}
+        <a href="{% url 'proyectos' %}" class="nav-item {% if request.resolver_match.url_name == 'proyectos' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+            <span>Proyectos</span>
+        </a>
+        {% endif %}
+
+        <div class="nav-section-label gap">Seguimiento</div>
+
+        {% if rol == 'admin' or rol == 'alumno' or rol == 'tutor_udd' or rol == 'tutor_empresa' %}
+        <a href="{% url 'bitacora' %}" class="nav-item {% if request.resolver_match.url_name == 'bitacora' or request.resolver_match.url_name == 'bitacoras' %}active{% endif %}">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 012-2h7l3 3v13a2 2 0 01-2 2H6a2 2 0 01-2-2V3z"/></svg>
             <span>Bitacoras</span>
         </a>
+        {% endif %}
+
+        {% if rol == 'admin' %}
         <a href="{% url 'evaluaciones' %}" class="nav-item {% if request.resolver_match.url_name == 'evaluaciones' %}active{% endif %}">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
             <span>Evaluaciones</span>
         </a>
+        {% endif %}
 
-        <div class="nav-section-label" style="margin-top:8px;">Administracion</div>
-        <a href="{% url 'hitos_config' %}" class="nav-item {% if request.resolver_match.url_name == 'hitos_config' %}active{% endif %}">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17a1 1 0 00-1.98 0l-.13 1.09a5.03 5.03 0 00-1.27.73l-1-.42a1 1 0 00-1.3.54l-.77 1.8a1 1 0 00.37 1.24l.9.62a5.06 5.06 0 000 1.46l-.9.62a1 1 0 00-.37 1.24l.77 1.8a1 1 0 001.3.54l1-.42c.39.3.81.54 1.27.73l.13 1.09a1 1 0 001.98 0l.13-1.09c.46-.19.88-.43 1.27-.73l1 .42a1 1 0 001.3-.54l.77-1.8a1 1 0 00-.37-1.24l-.9-.62a5.06 5.06 0 000-1.46l.9-.62a1 1 0 00.37-1.24l-.77-1.8a1 1 0 00-1.3-.54l-1 .42a5.03 5.03 0 00-1.27-.73l-.13-1.09zM10.5 12a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-            <span>Config evaluaciones</span>
+        {% if rol == 'tutor_udd' or rol == 'tutor_empresa' %}
+        <a href="{% url 'calificar' %}" class="nav-item {% if request.resolver_match.url_name == 'calificar' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+            <span>Calificar</span>
         </a>
+        {% endif %}
+
+        {% if rol == 'alumno' %}
+        <a href="{% url 'mis_notas' %}" class="nav-item {% if request.resolver_match.url_name == 'mis_notas' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 3a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h4a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+            <span>Mis Notas</span>
+        </a>
+        {% endif %}
+
+        {% if rol == 'admin' %}
+        <a href="{% url 'postulaciones' %}" class="nav-item {% if request.resolver_match.url_name == 'postulaciones' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>
+            <span>Postulaciones</span>
+        </a>
+        {% endif %}
+
+        <div class="nav-section-label gap">Administracion</div>
+
+        {% if rol == 'admin' or rol == 'alumno' or rol == 'tutor_udd' or rol == 'tutor_empresa' %}
         <a href="{% url 'notificaciones' %}" class="nav-item {% if request.resolver_match.url_name == 'notificaciones' %}active{% endif %}">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 00-4 4v2.38c0 .55-.22 1.08-.61 1.47L4.3 10.94A1 1 0 005 12.65h10a1 1 0 00.7-1.71l-1.1-1.09A2.08 2.08 0 0114 8.38V6a4 4 0 00-4-4z"/><path d="M8 14a2 2 0 104 0H8z"/></svg>
             <span>Notificaciones</span>
         </a>
+        {% endif %}
+
+        {% if rol == 'admin' %}
         <a href="{% url 'excel_import' %}" class="nav-item {% if request.resolver_match.url_name == 'excel_import' %}active{% endif %}">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
             <span>Importar Usuarios</span>
         </a>
+        <a href="{% url 'gestionar_usuarios' %}" class="nav-item {% if request.resolver_match.url_name == 'gestionar_usuarios' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+            <span>Gestionar Usuarios</span>
+        </a>
+        <a href="{% url 'configuracion' %}" class="nav-item {% if request.resolver_match.url_name == 'configuracion' or request.resolver_match.url_name == 'hitos_config' %}active{% endif %}">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17a1 1 0 00-1.98 0l-.13 1.09a5.03 5.03 0 00-1.27.73l-1-.42a1 1 0 00-1.3.54l-.77 1.8a1 1 0 00.37 1.24l.9.62a5.06 5.06 0 000 1.46l-.9.62a1 1 0 00-.37 1.24l.77 1.8a1 1 0 001.3.54l1-.42c.39.3.81.54 1.27.73l.13 1.09a1 1 0 001.98 0l.13-1.09c.46-.19.88-.43 1.27-.73l1 .42a1 1 0 001.3-.54l.77-1.8a1 1 0 00-.37-1.24l-.9-.62a5.06 5.06 0 000-1.46l.9-.62a1 1 0 00.37-1.24l-.77-1.8a1 1 0 00-1.3-.54l-1 .42a5.03 5.03 0 00-1.27-.73l-.13-1.09zM10.5 12a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+            <span>Configuración</span>
+        </a>
+        {% endif %}
     </nav>
 
-    <div class="sidebar-user">
-        <div class="user-avatar">AI</div>
-        <div style="min-width:0;">
-            <div class="user-name">Administrador ICLAE</div>
-            <div class="user-role">Perfil admin</div>
-        </div>
+    <div class="sidebar-foot">
+        <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Colapsar o expandir menú" title="Colapsar o expandir menú">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm1 4a1 1 0 100 2h12a1 1 0 100-2H4z" clip-rule="evenodd"/></svg>
+        </button>
     </div>
 </aside>
+{% endwith %}

@@ -1,12 +1,94 @@
+import uuid
+from decimal import Decimal
 from django.db import models
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.validators import FileExtensionValidator, MinValueValidator, MaxValueValidator
+
+
+class ManejadorUsuario(BaseUserManager):
+    """Manejador de usuarios autenticados por email (sin username)."""
+    use_in_migrations = True
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('El email es obligatorio')
+        email = self.normalize_email(email)
+        extra_fields.setdefault('is_active', True)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields['is_staff'] = True
+        extra_fields['is_superuser'] = True
+        extra_fields['rol'] = 'admin'
+        extra_fields.setdefault('is_active', True)
+        return self.create_user(email, password, **extra_fields)
+
+
+
+class Usuario(AbstractUser):
+    """Usuario central (AbstractUser), autenticado por email sin username."""
+    ROL_CHOICES = [
+        ('admin', 'Administrador'),
+        ('alumno', 'Alumno'),
+        ('tutor_udd', 'Tutor UDD'),
+        ('tutor_empresa', 'Tutor Empresa'),
+    ]
+
+    username = None
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True, max_length=254)
+    nombre = models.CharField(max_length=150)
+    apellido = models.CharField(max_length=150)
+    avatar_url = models.TextField(blank=True, null=True)
+    rol = models.CharField(max_length=20, choices=ROL_CHOICES, default='alumno')
+    created_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['nombre', 'apellido']
+
+    objects = ManejadorUsuario()
+
+    class Meta:
+        db_table = 'usuario'
+        verbose_name = 'Usuario'
+        verbose_name_plural = 'Usuarios'
+
+    def __str__(self):
+        return f"{self.get_full_name()} ({self.email})"
+
+    def get_full_name(self):
+        return f"{self.nombre} {self.apellido}".strip()
+
+    def get_short_name(self):
+        return self.nombre
+
+    @property
+    def is_admin(self):
+        return self.rol == 'admin'
+
+    @property
+    def is_alumno(self):
+        return self.rol == 'alumno'
+
+    @property
+    def is_tutor_udd(self):
+        return self.rol == 'tutor_udd'
+
+    @property
+    def is_tutor_empresa(self):
+        return self.rol == 'tutor_empresa'
 
 
 class Alumno(models.Model):
-    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True)
-    carrera = models.ForeignKey('Carrera', models.DO_NOTHING)
-    sede = models.ForeignKey('Sede', models.DO_NOTHING)
+    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True, related_name='alumno')
+    carrera = models.ForeignKey('Carrera', models.DO_NOTHING, blank=True, null=True)
+    sede = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     generacion = models.IntegerField(blank=True, null=True)
-    numero_alumno = models.CharField(unique=True, max_length=30, blank=True, null=True)
+    matricula = models.CharField(unique=True, max_length=30, blank=True, null=True)
     url_linkedin = models.TextField(blank=True, null=True)
     url_cv = models.TextField(blank=True, null=True)
     url_youtube = models.TextField(blank=True, null=True)
@@ -65,6 +147,15 @@ class Bitacora(models.Model):
         db_table = 'bitacora'
         unique_together = (('proyecto_periodo', 'semana'),)
 
+    @staticmethod
+    def _es_aprobado(valor):
+        return (valor or '').strip().lower() in ('aprobado', 'aprobada')
+
+    @property
+    def esta_cerrada(self):
+        """La bitácora se considera cerrada solo si ambos tutores la aprueban."""
+        return self._es_aprobado(self.estado_emp) and self._es_aprobado(self.estado_udd)
+
 
 class BitacoraEvidencia(models.Model):
     bitacora = models.ForeignKey(Bitacora, models.DO_NOTHING)
@@ -78,6 +169,38 @@ class BitacoraEvidencia(models.Model):
     class Meta:
         managed = False
         db_table = 'bitacora_evidencia'
+
+
+def evidencia_bitacora_path(instance, filename):
+    """Ruta de almacenamiento del archivo de evidencia, agrupada por bitácora."""
+    return f"evidencias/bitacora_{instance.bitacora_id}/{filename}"
+
+
+class EvidenciaBitacora(models.Model):
+    """Evidencias gestionadas por Django (FileField). Acepta PDF, PNG y JPG."""
+    bitacora = models.ForeignKey(Bitacora, models.CASCADE, related_name='evidencias')
+    archivo = models.FileField(
+        upload_to=evidencia_bitacora_path,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg', 'jpeg'])],
+    )
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'evidencia_bitacora'
+        ordering = ['-fecha_subida']
+
+    def __str__(self):
+        return f"Evidencia bitácora #{self.bitacora_id}"
+
+    @property
+    def nombre(self):
+        import os
+        return os.path.basename(self.archivo.name) if self.archivo else ''
+
+    @property
+    def extension(self):
+        import os
+        return os.path.splitext(self.archivo.name)[1].lstrip('.').lower() if self.archivo else ''
 
 
 class Carrera(models.Model):
@@ -120,11 +243,9 @@ class ConfigEvaluacionPeriodo(models.Model):
 class Empresa(models.Model):
     nombre = models.CharField(max_length=255)
     rubro = models.CharField(max_length=150, blank=True, null=True)
-    tamano = models.TextField(blank=True, null=True)  # This field type is a guess.
     presencia = models.TextField(blank=True, null=True)  # This field type is a guess.
     empleados_aprox = models.CharField(max_length=50, blank=True, null=True)
     ubicacion = models.CharField(max_length=255, blank=True, null=True)
-    campus = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     is_active = models.BooleanField(blank=True, null=True)
     enps_score = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
     descripcion = models.TextField(blank=True, null=True)
@@ -189,6 +310,8 @@ class PeriodoAcademico(models.Model):
     nombre = models.CharField(unique=True, max_length=20)
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
+    fecha_inicio_iclae = models.DateField(blank=True, null=True)
+    fecha_fin_iclae = models.DateField(blank=True, null=True)
     total_semanas = models.IntegerField()
     is_active = models.BooleanField(blank=True, null=True)
     tipo_ciclo = models.CharField(max_length=20, blank=True, null=True, default='semestral')
@@ -197,6 +320,36 @@ class PeriodoAcademico(models.Model):
     class Meta:
         managed = False
         db_table = 'periodo_academico'
+
+
+class AsignacionPeriodo(models.Model):
+    """Vínculo directo alumno ↔ empresa ↔ período (sin proyecto).
+
+    Es la fuente de la empresa de cada alumno por período, independiente de los
+    proyectos que arman los tutores. Tabla gestionada por Django.
+    """
+    ESTADO_CHOICES = [
+        ('activo', 'Activo'),
+        ('cambiado', 'Cambiado'),
+        ('desvinculado', 'Desvinculado'),
+    ]
+    alumno = models.ForeignKey('Alumno', models.CASCADE, related_name='asignaciones_periodo')
+    empresa = models.ForeignKey('Empresa', models.SET_NULL, blank=True, null=True, related_name='asignaciones_periodo')
+    periodo = models.ForeignKey('PeriodoAcademico', models.CASCADE, related_name='asignaciones_periodo')
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='activo')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'asignacion_periodo'
+        constraints = [
+            # Un alumno no puede tener dos asignaciones activas en el mismo período.
+            models.UniqueConstraint(
+                fields=['alumno', 'periodo'],
+                condition=models.Q(estado='activo'),
+                name='uniq_asignacion_activa_por_periodo',
+            ),
+        ]
 
 
 class Postulacion(models.Model):
@@ -239,8 +392,18 @@ class ProyectoPeriodo(models.Model):
     proyecto = models.ForeignKey(Proyecto, models.DO_NOTHING)
     periodo = models.ForeignKey(PeriodoAcademico, models.DO_NOTHING)
     alumno = models.ForeignKey(Alumno, models.DO_NOTHING, blank=True, null=True)
-    tutor_udd = models.ForeignKey('TutorUdd', models.DO_NOTHING, blank=True, null=True)
-    tutor_empresa = models.ForeignKey('TutorEmpresa', models.DO_NOTHING, blank=True, null=True)
+    tutores_udd = models.ManyToManyField(
+        'TutorUdd',
+        through='ProyectoPeriodoTutorUdd',
+        related_name='proyecto_periodos',
+        blank=True,
+    )
+    tutores_empresa = models.ManyToManyField(
+        'TutorEmpresa',
+        through='ProyectoPeriodoTutorEmpresa',
+        related_name='proyecto_periodos',
+        blank=True,
+    )
     sede = models.ForeignKey('Sede', models.DO_NOTHING, blank=True, null=True)
     estado = models.TextField(blank=True, null=True)  # This field type is a guess.
     semana_actual = models.IntegerField(blank=True, null=True)
@@ -256,6 +419,26 @@ class ProyectoPeriodo(models.Model):
         unique_together = (('proyecto', 'periodo', 'alumno'),)
 
 
+class ProyectoPeriodoTutorUdd(models.Model):
+    """Puente ProyectoPeriodo–TutorUdd (managed). Permite hasta dos tutores UDD."""
+    proyecto_periodo = models.ForeignKey('ProyectoPeriodo', models.CASCADE)
+    tutor_udd = models.ForeignKey('TutorUdd', models.CASCADE)
+
+    class Meta:
+        db_table = 'proyecto_periodo_tutor_udd'
+        unique_together = (('proyecto_periodo', 'tutor_udd'),)
+
+
+class ProyectoPeriodoTutorEmpresa(models.Model):
+    """Puente ProyectoPeriodo–TutorEmpresa (managed). Permite hasta dos tutores."""
+    proyecto_periodo = models.ForeignKey('ProyectoPeriodo', models.CASCADE)
+    tutor_empresa = models.ForeignKey('TutorEmpresa', models.CASCADE)
+
+    class Meta:
+        db_table = 'proyecto_periodo_tutor_empresa'
+        unique_together = (('proyecto_periodo', 'tutor_empresa'),)
+
+
 class PuntajeCompetencia(models.Model):
     evaluacion = models.ForeignKey(EvaluacionHito, models.DO_NOTHING)
     competencia = models.ForeignKey(CompetenciaHito, models.DO_NOTHING)
@@ -265,6 +448,45 @@ class PuntajeCompetencia(models.Model):
         managed = False
         db_table = 'puntaje_competencia'
         unique_together = (('evaluacion', 'competencia'),)
+
+
+class CalificacionCompetencia(models.Model):
+    """Nota (1.0–7.0) de un alumno en una competencia de un hito. Managed."""
+    alumno = models.ForeignKey(Alumno, models.CASCADE, related_name='calificaciones_competencia')
+    competencia = models.ForeignKey(CompetenciaHito, models.CASCADE, related_name='calificaciones')
+    nota = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        validators=[MinValueValidator(Decimal('1.0')), MaxValueValidator(Decimal('7.0'))],
+    )
+    evaluado_por = models.ForeignKey('Usuario', models.SET_NULL, blank=True, null=True, related_name='+')
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'calificacion_competencia'
+        unique_together = (('alumno', 'competencia'),)
+
+    def __str__(self):
+        return f"{self.alumno_id} · {self.competencia_id}: {self.nota}"
+
+
+class EvaluacionEmpresa(models.Model):
+    """Evaluación alumno→empresa por período (1–10). Alimenta el eNPS. Managed."""
+    alumno = models.ForeignKey(Alumno, models.CASCADE, related_name='evaluaciones_empresa')
+    empresa = models.ForeignKey(Empresa, models.CASCADE, related_name='evaluaciones')
+    periodo = models.ForeignKey('PeriodoAcademico', models.CASCADE, related_name='evaluaciones_empresa')
+    puntuacion = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+    )
+    comentario = models.TextField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'evaluacion_empresa'
+        unique_together = (('alumno', 'empresa', 'periodo'),)
+
+    def __str__(self):
+        return f"{self.alumno_id} → {self.empresa_id}: {self.puntuacion}"
 
 
 class RecordatorioMasivo(models.Model):
@@ -279,6 +501,20 @@ class RecordatorioMasivo(models.Model):
         db_table = 'recordatorio_masivo'
 
 
+class RecordatorioArchivado(models.Model):
+    """Archivado (borrado lógico) de un comunicado en la bandeja del admin.
+
+    recordatorio_masivo es externa (managed=False); el archivado se registra aquí
+    sin borrar el comunicado ni las notificaciones ya entregadas.
+    """
+    recordatorio_id = models.IntegerField(unique=True)
+    archivado_por = models.ForeignKey('Usuario', models.SET_NULL, blank=True, null=True, related_name='+')
+    archivado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'recordatorio_archivado'
+
+
 class Sede(models.Model):
     universidad = models.ForeignKey('Universidad', models.DO_NOTHING)
     nombre = models.CharField(max_length=150)
@@ -291,7 +527,7 @@ class Sede(models.Model):
 
 
 class TutorEmpresa(models.Model):
-    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True)
+    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True, related_name='tutor_empresa')
     empresa = models.ForeignKey(Empresa, models.DO_NOTHING)
     cargo = models.CharField(max_length=150, blank=True, null=True)
     area = models.CharField(max_length=150, blank=True, null=True)
@@ -303,7 +539,7 @@ class TutorEmpresa(models.Model):
 
 
 class TutorUdd(models.Model):
-    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True)
+    id = models.OneToOneField('Usuario', models.DO_NOTHING, db_column='id', primary_key=True, related_name='tutor_udd')
     sede = models.ForeignKey(Sede, models.DO_NOTHING, blank=True, null=True)
     departamento = models.CharField(max_length=150, blank=True, null=True)
     max_alumnos = models.IntegerField(blank=True, null=True)
@@ -323,19 +559,17 @@ class Universidad(models.Model):
         db_table = 'universidad'
 
 
-class Usuario(models.Model):
-    id = models.UUIDField(primary_key=True)
-    email = models.CharField(unique=True, max_length=254)
-    password_hash = models.TextField()
-    rol = models.TextField()  # This field type is a guess.
-    nombre = models.CharField(max_length=150)
-    apellido = models.CharField(max_length=150)
-    avatar_url = models.TextField(blank=True, null=True)
-    is_active = models.BooleanField(blank=True, null=True)
-    last_login = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(blank=True, null=True)
-    updated_at = models.DateTimeField(blank=True, null=True)
+class RegistroAuditoria(models.Model):
+    """Historial de períodos eliminados. Guarda nombre e id (no FK) tras el borrado."""
+    administrador = models.ForeignKey('Usuario', models.SET_NULL, blank=True, null=True, related_name='+')
+    periodo_id = models.IntegerField(blank=True, null=True)
+    periodo_nombre = models.CharField(max_length=20)
+    eliminado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        managed = False
-        db_table = 'usuario'
+        db_table = 'registro_auditoria'
+        ordering = ['-eliminado_en']
+
+    def __str__(self):
+        return f"{self.periodo_nombre} eliminado ({self.eliminado_en:%Y-%m-%d %H:%M})"
+

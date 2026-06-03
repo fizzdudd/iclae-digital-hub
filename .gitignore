@@ -17,3 +17,6 @@ env/
 # Archivos de sistema y entorno
 .env
 .DS_Store
+
+# Respaldos de base de datos (datos reales de usuarios: no subir a git)
+backups/*.dump

@@ -2,27 +2,46 @@
 
 {% block title %}Postulaciones{% endblock %}
 {% block page_title %}Postulaciones{% endblock %}
+{% block period_badge %}{% endblock %}
+{% block topbar_actions %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .wrap { display:grid; gap:16px; }
+    /* ── FILTER TOP ROW (same as empresas) ── */
+    .filters-top-row { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+    .search-wrap { position:relative; flex-shrink:0; }
+    .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; font-size:14px; }
+    .search-input { width:260px; height:38px; padding:0 12px 0 36px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:13px; font-family:inherit; color:var(--text-primary); }
+    .search-input:focus { outline:none; border-color:var(--blue-600); }
+    .results-meta { font-size:12.5px; color:var(--text-muted); margin-left:auto; white-space:nowrap; }
+    .sort-select { height:38px; padding:0 30px 0 12px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:#fff; font-size:12.5px; font-family:inherit; color:var(--text-secondary); cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; }
+    .clear-btn { height:38px; padding:0 14px; border-radius:var(--radius-md); border:1.5px solid #fca5a5; background:#fff1f2; font-size:12.5px; font-weight:600; color:#dc2626; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px; text-decoration:none; }
+    .clear-btn:hover { background:#fee2e2; }
 
-    .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    /* ── FILTER PANEL (same as empresas) ── */
+    .filters-panel { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 18px; margin-bottom:16px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:12px; }
+    .filter-group { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .filter-group-label { display:flex; align-items:center; gap:6px; min-width:86px; flex-shrink:0; }
+    .filter-group-icon { font-size:14px; line-height:1; }
+    .filter-group-text { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); }
+    .filter-divider-v { width:1px; height:20px; background:var(--border); flex-shrink:0; }
+    .filter-chips { display:flex; gap:6px; flex-wrap:wrap; }
+    .filter-chip { padding:7px 14px; border-radius:var(--radius-md); border:1px solid var(--border); background:#fff; font-size:12.5px; font-weight:600; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+    .filter-chip:hover { background:var(--blue-50); border-color:#93c5fd; color:var(--blue-700); }
+    .filter-chip.active { background:var(--blue-600); border-color:var(--blue-600); color:#fff; }
+
+    /* ── KPIs ── */
+    .kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
     .kpi { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; position:relative; overflow:hidden; }
     .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; }
     .kpis .kpi:nth-child(1)::before { background:linear-gradient(90deg,#2563eb,#60a5fa); }
     .kpis .kpi:nth-child(2)::before { background:linear-gradient(90deg,#16a34a,#4ade80); }
     .kpis .kpi:nth-child(3)::before { background:linear-gradient(90deg,#7c3aed,#a78bfa); }
-    .kpis .kpi:nth-child(4)::before { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
     .kpi-l { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
     .kpi-v { font-size:26px; font-weight:800; margin-top:6px; }
 
-    .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .filter-bar input, .filter-bar select { height:34px; border:1px solid var(--border); border-radius:var(--radius-md); padding:0 10px; font-family:inherit; font-size:13px; color:var(--text-primary); background:#fff; }
-    .filter-bar a.clear { font-size:12px; font-weight:700; padding:0 12px; height:34px; display:flex; align-items:center; border-radius:var(--radius-md); background:#f1f5f9; color:var(--text-secondary); text-decoration:none; }
-    .filter-bar a.clear:hover { background:#e2e8f0; }
-
-    .tabs { display:flex; gap:0; background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:4px; width:max-content; box-shadow:var(--shadow-sm); }
+    /* ── TABS ── */
+    .tabs { display:flex; gap:0; background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:4px; width:max-content; box-shadow:var(--shadow-sm); margin-bottom:16px; }
     .tab { padding:8px 18px; border-radius:var(--radius-md); font-size:13px; font-weight:700; cursor:pointer; color:var(--text-secondary); transition:all .15s; border:none; background:none; font-family:inherit; }
     .tab.active { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.25); }
     .tab:not(.active):hover { background:#f1f5f9; color:var(--text-primary); }
@@ -30,6 +49,7 @@
     .section { display:none; }
     .section.visible { display:block; }
 
+    /* ── VACANTES GRID ── */
     .cards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
     @media (max-width:1200px) { .cards-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (max-width:700px) { .cards-grid { grid-template-columns:1fr; } }
@@ -43,19 +63,23 @@
     .job-title { font-size:14px; font-weight:800; color:var(--text-primary); margin-bottom:8px; line-height:1.35; }
     .job-chips { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
     .chip { font-size:10.5px; border-radius:999px; padding:2px 8px; font-weight:700; }
-    .chip-blue { background:var(--blue-100); color:var(--blue-800); }
-    .chip-green { background:#dcfce7; color:#166534; }
-    .chip-gray { background:#f1f5f9; color:#475569; }
-    .chip-violet { background:var(--violet-100); color:var(--violet-700); }
-    .job-desc { font-size:12px; color:var(--text-secondary); line-height:1.55; margin-bottom:8px; }
+    .chip-blue { background:var(--blue-50); color:var(--blue-700); }
+    .chip-green { background:var(--green-100); color:var(--green-700); }
+    .chip-gray { background:#f1f5f9; color:var(--text-secondary); }
     .job-card-bottom { padding:10px 16px 14px; border-top:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .job-meta { font-size:11px; color:var(--text-muted); }
-    .btn { height:32px; padding:0 14px; border:none; border-radius:var(--radius-md); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; }
-    .btn-postular { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; }
-    .btn-postular:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); }
-    .btn-postulado { background:#dcfce7; color:#166534; }
+    .btn { height:32px; padding:0 14px; border:none; border-radius:var(--radius-md); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; }
+    .btn-postular { background:var(--blue-600); color:#fff; }
+    .btn-postular:hover { background:var(--blue-700); }
     .btn-cerrado { background:#f1f5f9; color:#94a3b8; cursor:default; }
 
+    /* Color de KPIs (sin estilos en línea) */
+    .kpi-v--green { color:var(--green-700); }
+    .kpi-v--violet { color:var(--violet-700); }
+    /* Separador horizontal del panel de filtros */
+    .filter-divider-h { height:1px; background:var(--border); margin:0 -18px; }
+
+    /* ── MIS POSTULACIONES ── */
     .pipeline-list { display:grid; gap:10px; }
     .pipe-card { border:1px solid var(--border); background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:14px 16px; display:flex; align-items:center; gap:14px; }
     .pipe-logo { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; }
@@ -72,123 +96,136 @@
     .empty-state h3 { margin:0 0 6px; color:var(--text-primary); }
 
     .pagination { display:flex; align-items:center; gap:6px; justify-content:center; margin-top:16px; }
-    .page-btn { height:34px; min-width:34px; padding:0 10px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--text-secondary); }
+    .page-btn { height:34px; min-width:34px; padding:0 10px; border:1px solid var(--border); background:#fff; border-radius:var(--radius-md); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--text-secondary); text-decoration:none; display:inline-flex; align-items:center; }
     .page-btn.active { background:var(--blue-600); color:#fff; border-color:var(--blue-600); }
     .page-btn:hover:not(.active) { background:#f1f5f9; }
+
+    @media (max-width:900px) { .kpis { grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap">
 
-    <div class="kpis">
-        <div class="kpi"><div class="kpi-l">Vacantes totales</div><div class="kpi-v">{{ vacantes_count }}</div></div>
-        <div class="kpi"><div class="kpi-l">Vacantes abiertas</div><div class="kpi-v" style="color:var(--green-700);">{{ vacantes_abiertas }}</div></div>
-        <div class="kpi"><div class="kpi-l">Mis postulaciones</div><div class="kpi-v" style="color:var(--violet-700);">{{ mis_postulaciones_count }}</div></div>
-        <div class="kpi"><div class="kpi-l">Período</div><div class="kpi-v" style="font-size:18px;">{{ periodo_label }}</div></div>
+<div class="kpis">
+    <div class="kpi"><div class="kpi-l">Vacantes totales</div><div class="kpi-v">{{ vacantes_count }}</div></div>
+    <div class="kpi"><div class="kpi-l">Vacantes abiertas</div><div class="kpi-v kpi-v--green">{{ vacantes_abiertas }}</div></div>
+    <div class="kpi"><div class="kpi-l">Mis postulaciones</div><div class="kpi-v kpi-v--violet">{{ mis_postulaciones_count }}</div></div>
+</div>
+
+<form id="filterForm" method="get">
+    <input type="hidden" id="hModalidad" name="modalidad" value="{{ filters.modalidad }}">
+    <input type="hidden" id="hEstado" name="estado" value="{{ filters.estado }}">
+
+    <div class="filters-top-row">
+        <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" type="text" name="q" value="{{ filters.q }}" placeholder="Buscar vacante o empresa..." oninput="scheduleSearch()">
+        </div>
+        <span class="results-meta">{{ vacantes_count }} vacante{{ vacantes_count|pluralize }}</span>
+        {% if filters.q or filters.modalidad or filters.estado %}
+        <a href="?" class="clear-btn">✕ Limpiar filtros</a>
+        {% endif %}
     </div>
 
-    <form id="filterForm" method="get" class="filter-bar" data-auto-submit="true" data-auto-submit-text="true">
-        <input name="q" value="{{ filters.q }}" placeholder="Buscar vacante o empresa..." style="width:220px;" />
-        <select name="modalidad" onchange="this.form.submit()">
-            <option value="">Modalidad: todas</option>
-            {% for opt in filter_options.modalidad %}
-            <option value="{{ opt.value }}" {% if filters.modalidad == opt.value %}selected{% endif %}>{{ opt.label }}</option>
-            {% endfor %}
-        </select>
-        <select name="estado" onchange="this.form.submit()">
-            <option value="">Estado: todas</option>
-            <option value="abierto" {% if filters.estado == 'abierto' %}selected{% endif %}>Abierta</option>
-            <option value="cerrado" {% if filters.estado == 'cerrado' %}selected{% endif %}>Cerrada</option>
-        </select>
-        <a href="?" class="clear">Limpiar</a>
-    </form>
-
-    <div class="tabs">
-        <button class="tab active" onclick="switchTab('vacantes', this)">🔍 Vacantes disponibles ({{ vacantes_count }})</button>
-        <button class="tab" onclick="switchTab('mis', this)">📋 Mis postulaciones ({{ mis_postulaciones_count }})</button>
+    <div class="filters-panel">
+        <div class="filter-group">
+            <div class="filter-group-label">
+                <span class="filter-group-icon">💼</span>
+                <span class="filter-group-text">Modalidad</span>
+            </div>
+            <div class="filter-divider-v"></div>
+            <div class="filter-chips">
+                <button type="button" class="filter-chip {% if not filters.modalidad %}active{% endif %}" onclick="setF('modalidad','todos',this)">Todas</button>
+                <button type="button" class="filter-chip {% if filters.modalidad == 'presencial' %}active{% endif %}" data-modalidad="presencial" onclick="setF('modalidad','presencial',this)">Presencial</button>
+                <button type="button" class="filter-chip {% if filters.modalidad == 'hibrido' or filters.modalidad == 'híbrido' %}active{% endif %}" data-modalidad="hibrido" onclick="setF('modalidad','hibrido',this)">Híbrido</button>
+                <button type="button" class="filter-chip {% if filters.modalidad == 'remoto' %}active{% endif %}" data-modalidad="remoto" onclick="setF('modalidad','remoto',this)">Remoto</button>
+            </div>
+        </div>
+        <div class="filter-divider-h"></div>
+        <div class="filter-group">
+            <div class="filter-group-label">
+                <span class="filter-group-icon">📌</span>
+                <span class="filter-group-text">Estado</span>
+            </div>
+            <div class="filter-divider-v"></div>
+            <div class="filter-chips">
+                <button type="button" class="filter-chip {% if not filters.estado %}active{% endif %}" onclick="setF('estado','todos',this)">Todas</button>
+                <button type="button" class="filter-chip {% if filters.estado == 'abierto' %}active{% endif %}" data-estado="abierto" onclick="setF('estado','abierto',this)">Abiertas</button>
+                <button type="button" class="filter-chip {% if filters.estado == 'cerrado' %}active{% endif %}" data-estado="cerrado" onclick="setF('estado','cerrado',this)">Cerradas</button>
+            </div>
+        </div>
     </div>
+</form>
 
-    <div id="sec-vacantes" class="section visible">
-        {% if vacantes %}
-        <div class="cards-grid">
-            {% for v in vacantes %}
-            <div class="job-card">
-                <div class="job-card-top">
-                    <div class="job-logo-row">
-                        <div class="job-logo" style="{{ v.logo_style }}">{{ v.empresa_initials }}</div>
-                        <span class="job-company">{{ v.empresa }}</span>
-                    </div>
-                    <div class="job-title">{{ v.titulo }}</div>
-                    <div class="job-chips">
-                        <span class="chip chip-green">{{ v.rubro }}</span>
-                        <span class="chip chip-blue">{{ v.modalidad }}</span>
-                        <span class="chip chip-gray">{{ v.carrera }}</span>
-                    </div>
+<div class="tabs">
+    <button class="tab active" onclick="switchTab('vacantes', this)">🔍 Vacantes disponibles ({{ vacantes_count }})</button>
+    <button class="tab" onclick="switchTab('mis', this)">📋 Mis postulaciones ({{ mis_postulaciones_count }})</button>
+</div>
+
+<div id="sec-vacantes" class="section visible">
+    {% if vacantes %}
+    <div class="cards-grid">
+        {% for v in vacantes %}
+        <div class="job-card">
+            <div class="job-card-top">
+                <div class="job-logo-row">
+                    <div class="job-logo" style="{{ v.logo_style }}">{{ v.empresa_initials }}</div>
+                    <span class="job-company">{{ v.empresa }}</span>
                 </div>
-                <div class="job-card-bottom">
-                    <div class="job-meta">{{ v.vacantes }} vacante{{ v.vacantes|pluralize }} · {{ v.postulaciones }} postulación{{ v.postulaciones|pluralize:"es" }}</div>
+                <div class="job-title">{{ v.titulo }}</div>
+                <div class="job-chips">
+                    <span class="chip chip-green">{{ v.rubro }}</span>
+                    <span class="chip chip-blue">{{ v.modalidad }}</span>
+                    <span class="chip chip-gray">{{ v.carrera }}</span>
+                </div>
+            </div>
+            <div class="job-card-bottom">
+                <div class="job-meta">{{ v.vacantes }} vacante{{ v.vacantes|pluralize }} · {{ v.postulaciones }} postulación{{ v.postulaciones|pluralize:"es" }}</div>
+                {% if user_rol == 'alumno' %}
                     {% if v.is_active %}
-                    <form method="post" action="{% url 'postular' %}" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="proyecto_id" value="{{ v.id }}">
-                        <button type="submit" class="btn btn-postular">Postular</button>
-                    </form>
+                    <a class="btn btn-postular" href="https://mercadolaboral.udd.cl" target="_blank" rel="noopener noreferrer">Postular</a>
                     {% else %}
                     <button class="btn btn-cerrado" disabled>Cerrado</button>
                     {% endif %}
-                </div>
+                {% endif %}
             </div>
-            {% endfor %}
         </div>
-        {% if page_obj_vacantes %}
-        <div class="pagination">
-            {% if page_obj_vacantes.has_previous %}
-            <a href="?{{ query_str }}&pv={{ page_obj_vacantes.previous_page_number }}" class="page-btn">‹</a>
-            {% endif %}
-            {% for num in page_obj_vacantes.paginator.page_range %}
-            {% if num == page_obj_vacantes.number %}
-            <span class="page-btn active">{{ num }}</span>
-            {% elif num >= page_obj_vacantes.number|add:"-3" and num <= page_obj_vacantes.number|add:"3" %}
-            <a href="?{{ query_str }}&pv={{ num }}" class="page-btn">{{ num }}</a>
-            {% endif %}
-            {% endfor %}
-            {% if page_obj_vacantes.has_next %}
-            <a href="?{{ query_str }}&pv={{ page_obj_vacantes.next_page_number }}" class="page-btn">›</a>
-            {% endif %}
-        </div>
-        {% endif %}
-        {% else %}
-        <div class="empty-state"><h3>Sin vacantes</h3><p>No hay vacantes que coincidan con los filtros actuales.</p></div>
-        {% endif %}
+        {% endfor %}
     </div>
-
-    <div id="sec-mis" class="section">
-        {% if mis_postulaciones %}
-        <div class="pipeline-list">
-            {% for p in mis_postulaciones %}
-            <div class="pipe-card">
-                <div class="pipe-logo" style="{{ p.logo_style }}">{{ p.empresa_initials }}</div>
-                <div class="pipe-info">
-                    <div class="pipe-title">{{ p.proyecto }}</div>
-                    <div class="pipe-sub">{{ p.empresa }} · {{ p.fecha|date:'d/m/Y' }}</div>
-                </div>
-                <span class="pipe-status
-                    {% if 'revision' in p.estado|lower %}ps-revision
-                    {% elif 'acept' in p.estado|lower or 'selec' in p.estado|lower %}ps-aceptado
-                    {% elif 'rechaz' in p.estado|lower %}ps-rechazado
-                    {% else %}ps-default{% endif %}">
-                    {{ p.estado|title }}
-                </span>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state"><h3>Sin postulaciones</h3><p>Aún no hay postulaciones registradas.</p></div>
-        {% endif %}
+    {% if page_obj_vacantes %}
+    <div class="pagination">
+        {% if page_obj_vacantes.has_previous %}<a href="?pv={{ page_obj_vacantes.previous_page_number }}&q={{ filters.q }}&modalidad={{ filters.modalidad }}&estado={{ filters.estado }}" class="page-btn">‹</a>{% endif %}
+        {% for num in page_obj_vacantes.paginator.page_range %}
+        {% if num == page_obj_vacantes.number %}<span class="page-btn active">{{ num }}</span>
+        {% elif num >= page_obj_vacantes.number|add:"-3" and num <= page_obj_vacantes.number|add:"3" %}<a href="?pv={{ num }}&q={{ filters.q }}&modalidad={{ filters.modalidad }}&estado={{ filters.estado }}" class="page-btn">{{ num }}</a>{% endif %}
+        {% endfor %}
+        {% if page_obj_vacantes.has_next %}<a href="?pv={{ page_obj_vacantes.next_page_number }}&q={{ filters.q }}&modalidad={{ filters.modalidad }}&estado={{ filters.estado }}" class="page-btn">›</a>{% endif %}
     </div>
-
+    {% endif %}
+    {% else %}
+    <div class="empty-state"><h3>Sin vacantes</h3><p>No hay vacantes que coincidan con los filtros actuales.</p></div>
+    {% endif %}
 </div>
+
+<div id="sec-mis" class="section">
+    {% if mis_postulaciones %}
+    <div class="pipeline-list">
+        {% for p in mis_postulaciones %}
+        <div class="pipe-card">
+            <div class="pipe-logo" style="{{ p.logo_style }}">{{ p.empresa_initials }}</div>
+            <div class="pipe-info">
+                <div class="pipe-title">{{ p.proyecto }}</div>
+                <div class="pipe-sub">{{ p.empresa }} · {{ p.fecha|date:'d/m/Y' }}</div>
+            </div>
+            <span class="pipe-status {% if 'revision' in p.estado|lower %}ps-revision{% elif 'acept' in p.estado|lower or 'selec' in p.estado|lower %}ps-aceptado{% elif 'rechaz' in p.estado|lower %}ps-rechazado{% else %}ps-default{% endif %}">{{ p.estado|title }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><h3>Sin postulaciones</h3><p>Aún no hay postulaciones registradas.</p></div>
+    {% endif %}
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -200,7 +237,18 @@ function switchTab(id, btn) {
     btn.classList.add('active');
 }
 
-// Auto-switch tab from URL param
+function setF(type, val, el) {
+    const map = { modalidad: 'hModalidad', estado: 'hEstado' };
+    document.getElementById(map[type]).value = (val === 'todos' || val === 'todas') ? '' : val;
+    document.getElementById('filterForm').submit();
+}
+
+let _searchTimer;
+function scheduleSearch() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => document.getElementById('filterForm').submit(), 700);
+}
+
 (function() {
     const tab = '{{ initial_tab }}';
     if (tab === 'mis') {

@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Notas{% endblock %}
+{% block page_title %}Notas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mn-wrap { display:flex; flex-direction:column; gap:18px; }
+    .mn-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+    .mn-back { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; font-size:12.5px; font-weight:700; color:var(--text-secondary); text-decoration:none; }
+    .mn-back:hover { color:var(--blue-700); }
+
+    .mn-head { padding:12px 22px; border-bottom:1px solid var(--border); }
+    .mn-head__sub { font-size:12.5px; color:var(--text-muted); }
+    .mn-head__sub strong { color:var(--text-secondary); font-weight:700; }
+
+    .mn-table { width:100%; border-collapse:collapse; }
+    .mn-table thead th { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); text-align:left; padding:13px 22px; border-bottom:1px solid var(--border); background:#fafbfc; }
+    .mn-table thead th.right { text-align:right; }
+    .mn-table tbody td { padding:14px 22px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .mn-row__name { font-size:13.5px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:9px; }
+    .mn-row__detalle { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .mn-auto { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--blue-700); background:var(--blue-50); border:1px solid #bfdbfe; padding:2px 8px; border-radius:999px; }
+    .mn-peso { font-size:13px; color:var(--text-secondary); text-align:right; }
+    .mn-table tbody td.mn-cell-nota { text-align:right; }
+    .mn-nota { font-size:16px; font-weight:800; }
+    .mn-nota--green { color:var(--green-700); }
+    .mn-nota--slate { color:var(--text-primary); }
+    .mn-nota--red { color:#b91c1c; }
+    .mn-pend { display:inline-block; font-size:11.5px; font-weight:700; color:#64748b; background:#f1f5f9; padding:4px 11px; border-radius:999px; }
+
+    .mn-foot { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:20px 22px; background:#fafbfc; border-top:1px solid var(--border); }
+    .mn-foot__label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+    .mn-final { font-size:30px; font-weight:800; }
+    .mn-final--green { color:var(--green-700); }
+    .mn-final--slate { color:var(--blue-700); }
+    .mn-final--red { color:#b91c1c; }
+    .mn-encalculo { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--blue-700); background:var(--blue-50); border:1px solid #bfdbfe; padding:8px 14px; border-radius:999px; }
+    .mn-encalculo::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--blue-600); }
+
+    .mn-empty { border:1px dashed var(--border); background:var(--card-bg); border-radius:var(--radius-lg); padding:32px; text-align:center; color:var(--text-muted); }
+    .mn-empty h3 { margin:0 0 6px; color:var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if sin_datos %}
+<div class="mn-empty">
+    <h3>Boletín no disponible</h3>
+    <p>{{ mensaje }}</p>
+</div>
+{% else %}
+<div class="mn-wrap">
+    {% if volver_url %}
+    <a class="mn-back" href="{{ volver_url }}">← Volver al buscador de alumnos</a>
+    {% endif %}
+    <section class="mn-card">
+        <div class="mn-head">
+            <div class="mn-head__sub"><strong>{{ student_name }}</strong> · {{ project_name }} · {{ student_company }} · {{ periodo_label }}</div>
+        </div>
+
+        <table class="mn-table">
+            <thead>
+                <tr>
+                    <th>Evaluación</th>
+                    <th class="right">Ponderación</th>
+                    <th class="right">Nota</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td>
+                        <div class="mn-row__name">{{ r.nombre }}{% if r.auto %}<span class="mn-auto">Automática</span>{% endif %}</div>
+                        <div class="mn-row__detalle">{{ r.detalle }}</div>
+                    </td>
+                    <td class="mn-peso">{{ r.peso }}%</td>
+                    <td class="mn-cell-nota">
+                        {% if r.evaluado %}
+                        <span class="mn-nota {% if r.nota >= 6 %}mn-nota--green{% elif r.nota >= 4 %}mn-nota--slate{% else %}mn-nota--red{% endif %}">{{ r.nota }}</span>
+                        {% else %}
+                        <span class="mn-pend">Pendiente</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="mn-foot">
+            <span class="mn-foot__label">Promedio final del período</span>
+            {% if en_calculo %}
+            <span class="mn-encalculo">Promedio en cálculo · {{ pendientes }} evaluación{{ pendientes|pluralize:"es" }} pendiente{{ pendientes|pluralize }}</span>
+            {% else %}
+            <span class="mn-final {% if promedio_final >= 6 %}mn-final--green{% elif promedio_final >= 4 %}mn-final--slate{% else %}mn-final--red{% endif %}">{{ promedio_final }}</span>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endif %}
+{% endblock %}
