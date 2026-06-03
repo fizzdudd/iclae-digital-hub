@@ -97,7 +97,7 @@ class Alumno(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'alumno'
 
 
@@ -110,7 +110,7 @@ class AlumnoBadge(models.Model):
     fecha_logro = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'alumno_badge'
         unique_together = (('alumno', 'badge', 'periodo'),)
 
@@ -124,7 +124,7 @@ class Badge(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'badge'
 
 
@@ -143,7 +143,7 @@ class Bitacora(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'bitacora'
         unique_together = (('proyecto_periodo', 'semana'),)
 
@@ -167,7 +167,7 @@ class BitacoraEvidencia(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'bitacora_evidencia'
 
 
@@ -210,7 +210,7 @@ class Carrera(models.Model):
     facultad = models.CharField(max_length=150, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'carrera'
 
 
@@ -223,7 +223,7 @@ class CompetenciaHito(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'competencia_hito'
 
 
@@ -236,7 +236,7 @@ class ConfigEvaluacionPeriodo(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'config_evaluacion_periodo'
 
 
@@ -255,7 +255,7 @@ class Empresa(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'empresa'
 
 
@@ -269,7 +269,7 @@ class EvaluacionHito(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'evaluacion_hito'
         unique_together = (('hito', 'proyecto_periodo'),)
 
@@ -287,7 +287,7 @@ class HitoEvaluacion(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'hito_evaluacion'
 
 
@@ -302,7 +302,7 @@ class Notificacion(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'notificacion'
 
 
@@ -318,7 +318,7 @@ class PeriodoAcademico(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'periodo_academico'
 
 
@@ -366,7 +366,7 @@ class Postulacion(models.Model):
     fecha_actualizacion = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'postulacion'
         unique_together = (('proyecto', 'alumno', 'periodo'),)
 
@@ -384,7 +384,7 @@ class Proyecto(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'proyecto'
 
 
@@ -414,7 +414,7 @@ class ProyectoPeriodo(models.Model):
     updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'proyecto_periodo'
         unique_together = (('proyecto', 'periodo', 'alumno'),)
 
@@ -445,7 +445,7 @@ class PuntajeCompetencia(models.Model):
     nota = models.DecimalField(max_digits=3, decimal_places=1)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'puntaje_competencia'
         unique_together = (('evaluacion', 'competencia'),)
 
@@ -497,7 +497,7 @@ class RecordatorioMasivo(models.Model):
     fecha_envio = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'recordatorio_masivo'
 
 
@@ -522,7 +522,7 @@ class Sede(models.Model):
     region = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'sede'
 
 
@@ -534,7 +534,7 @@ class TutorEmpresa(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tutor_empresa'
 
 
@@ -546,7 +546,7 @@ class TutorUdd(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tutor_udd'
 
 
@@ -555,7 +555,7 @@ class Universidad(models.Model):
     codigo = models.CharField(unique=True, max_length=20)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'universidad'
 
 
