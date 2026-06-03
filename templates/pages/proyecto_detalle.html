@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}{{ proyecto.titulo }}{% endblock %}
-{% block page_title %}Hub del Proyecto{% endblock %}
+{% block page_title %}Configuración del proyecto{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -52,9 +52,10 @@
     .ph-mini--primary:hover { background:var(--blue-700); border-color:var(--blue-700); color:#fff; }
     .ph-mini--disabled { background:#e5e7eb; border-color:#e5e7eb; color:#94a3b8; cursor:not-allowed; }
 
-    /* Combobox con buscador (Añadir Alumno) */
+    /* Combobox con buscador (Añadir Alumno). El desplegable va en flujo dentro del
+       cuerpo del modal (no en absoluto) para que su overflow no lo recorte. */
     .ph-combo { position:relative; }
-    .ph-combo__list { display:none; position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:5; max-height:240px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:4px; }
+    .ph-combo__list { display:none; margin-top:6px; max-height:240px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); padding:4px; }
     .ph-combo__list.open { display:block; }
     .ph-combo__item { display:block; width:100%; text-align:left; border:none; background:none; padding:9px 11px; border-radius:var(--radius-sm); cursor:pointer; font-family:inherit; }
     .ph-combo__item:hover, .ph-combo__item.is-active { background:var(--blue-50); }

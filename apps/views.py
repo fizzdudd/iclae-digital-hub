@@ -15,6 +15,7 @@ from .forms import AlumnoEnlacesForm, AsignacionBadgeForm, PeriodoAcademicoForm,
 from .models import (
     Alumno,
     AlumnoBadge,
+    AsignacionPeriodo,
     Badge,
     Bitacora,
     BitacoraEvidencia,
@@ -1328,7 +1329,7 @@ def _alumno_dict(alumno, pp_id=None):
     }
 
 
-@require_roles()
+@require_roles('tutor_empresa', 'tutor_udd')
 def proyecto_detalle_view(request, proyecto_id):
     """Hub del proyecto: datos base, tutores y alumnos, con asignación dinámica sobre ProyectoPeriodo."""
     user_rol = _get_user_rol(request)
@@ -1339,6 +1340,13 @@ def proyecto_detalle_view(request, proyecto_id):
     if proyecto is None:
         messages.error(request, 'El proyecto solicitado no existe.')
         return redirect('proyectos')
+
+    # Un tutor empresa solo puede gestionar proyectos de su propia empresa.
+    if getattr(request.user, 'rol', None) == 'tutor_empresa':
+        perfil_te = TutorEmpresa.objects.filter(pk=request.user.pk).first()
+        if perfil_te is None or proyecto.empresa_id != perfil_te.empresa_id:
+            messages.error(request, 'Solo puedes gestionar proyectos de tu empresa.')
+            return redirect('proyectos')
 
     if periodo is None:
         return render(request, 'pages/proyecto_detalle.html', {
@@ -1357,6 +1365,13 @@ def proyecto_detalle_view(request, proyecto_id):
             alumno = Alumno.objects.select_related('id').filter(pk=(request.POST.get('alumno_id') or '').strip()).first()
             if alumno is None or not alumno.id.is_active:
                 messages.error(request, 'Selecciona un alumno activo válido.')
+                return destino
+            # El alumno debe pertenecer a la empresa del proyecto (AsignacionPeriodo).
+            pertenece = AsignacionPeriodo.objects.filter(
+                alumno=alumno, periodo=periodo, empresa=proyecto.empresa, estado='activo'
+            ).exists()
+            if not pertenece:
+                messages.error(request, 'Ese alumno no pertenece a la empresa del proyecto.')
                 return destino
             if ProyectoPeriodo.objects.filter(periodo=periodo, alumno_id=alumno.pk).exists():
                 messages.error(request, 'Ese alumno ya tiene un proyecto asignado en el período.')
@@ -1549,9 +1564,22 @@ def proyecto_detalle_view(request, proyecto_id):
     asignados_ids = set(
         ProyectoPeriodo.objects.filter(periodo=periodo, alumno__isnull=False).values_list('alumno_id', flat=True)
     )
+    # Solo alumnos cuya empresa (en AsignacionPeriodo del período) es la del proyecto.
+    disponibles_qs = (
+        Alumno.objects.select_related('id', 'carrera')
+        .filter(
+            id__is_active=True,
+            asignaciones_periodo__periodo=periodo,
+            asignaciones_periodo__empresa=proyecto.empresa,
+            asignaciones_periodo__estado='activo',
+        )
+        .exclude(pk__in=asignados_ids)
+        .distinct()
+        .order_by('id__nombre', 'id__apellido')
+    )
     disponibles = [
         {'id': str(a.pk), 'nombre': f"{a.id.nombre} {a.id.apellido}".strip(), 'email': a.id.email or '', 'carrera': a.carrera.nombre if a.carrera else 'Sin carrera'}
-        for a in Alumno.objects.select_related('id', 'carrera').filter(id__is_active=True).exclude(pk__in=asignados_ids).order_by('id__nombre', 'id__apellido')
+        for a in disponibles_qs
     ]
 
     # Proyectos de destino para "Cambiar Proyecto": activos, con cupos libres.
@@ -2220,9 +2248,11 @@ def alumnos_view(request):
                 filter=Q(proyectoperiodo__periodo=periodo),
                 distinct=True,
             ),
+            # La empresa proviene de AsignacionPeriodo del período contextual, de modo
+            # que cambia correctamente al alternar el período en el Modo Auditoría.
             empresa_nombre=_Max(
-                'proyectoperiodo__proyecto__empresa__nombre',
-                filter=Q(proyectoperiodo__periodo=periodo),
+                'asignaciones_periodo__empresa__nombre',
+                filter=Q(asignaciones_periodo__periodo=periodo, asignaciones_periodo__estado='activo'),
             ),
         )
         .order_by('id__nombre', 'id__apellido')
@@ -3593,8 +3623,23 @@ def excel_import_view(request):
                         )
                     else:
                         all_cols = schema['required'] + schema['optional']
-                        created = skipped = errors_list = 0
+                        created = skipped = errors_list = actualizados = 0
                         detail = []
+                        # Mapa nombre normalizado → empresa, para guardar la empresa de
+                        # referencia de cada alumno (no se crea proyecto, solo se anota).
+                        empresas_norm = {}
+                        if tipo == 'alumno':
+                            for emp in Empresa.objects.all():
+                                empresas_norm.setdefault(_normalizar_texto(emp.nombre), emp)
+
+                        def _empresa_ref(datos):
+                            return empresas_norm.get(_normalizar_texto(datos.get('empresa')))
+
+                        # Período activo: los alumnos se enlazan a él vía AsignacionPeriodo.
+                        periodo_asignacion = (
+                            PeriodoAcademico.objects.filter(is_active=True).first()
+                            if tipo == 'alumno' else None
+                        )
 
                         for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
                             # Fila completamente vacía: se ignora silenciosamente.
@@ -3630,6 +3675,19 @@ def excel_import_view(request):
                                 continue
 
                             if Usuario.objects.filter(email=email).exists():
+                                # Si el alumno ya existe, se actualiza su asignación de
+                                # empresa en el período activo (backfill al reimportar).
+                                emp_ref = _empresa_ref(datos) if tipo == 'alumno' else None
+                                if emp_ref is not None and periodo_asignacion is not None:
+                                    existente = Alumno.objects.filter(id__email=email).first()
+                                    if existente is not None:
+                                        AsignacionPeriodo.objects.update_or_create(
+                                            alumno=existente, periodo=periodo_asignacion,
+                                            defaults={'empresa': emp_ref, 'estado': 'activo'},
+                                        )
+                                        actualizados += 1
+                                        detail.append({'row': row_num, 'status': 'skip', 'msg': f'Fila {row_num}: alumno existente, empresa actualizada'})
+                                        continue
                                 skipped += 1
                                 detail.append({'row': row_num, 'status': 'skip', 'msg': f'Fila {row_num}: el correo ya existe ({email})'})
                                 continue
@@ -3651,9 +3709,14 @@ def excel_import_view(request):
                                     motivo = _crear_perfil_importado(tipo, usuario, datos)
                                     if motivo:
                                         raise ValueError(motivo)
-                                    # No se crean proyectos ni asignaciones: los alumnos
-                                    # quedan sin asignar y los tutores los integran a sus
-                                    # proyectos. La columna empresa del Excel se ignora.
+                                    # No se crean proyectos: el alumno se vincula a su
+                                    # empresa en el período activo vía AsignacionPeriodo.
+                                    if tipo == 'alumno' and periodo_asignacion is not None:
+                                        alumno_obj = Alumno.objects.get(pk=usuario.pk)
+                                        AsignacionPeriodo.objects.update_or_create(
+                                            alumno=alumno_obj, periodo=periodo_asignacion,
+                                            defaults={'empresa': _empresa_ref(datos), 'estado': 'activo'},
+                                        )
                             except Exception as exc:
                                 errors_list += 1
                                 detail.append({'row': row_num, 'status': 'error', 'msg': f'Fila {row_num}: {exc}'})
@@ -3671,6 +3734,8 @@ def excel_import_view(request):
                                 )
                             else:
                                 messages.success(request, f'{created} {rol_labels[tipo]}(s) creado(s) correctamente.')
+                        if actualizados:
+                            messages.info(request, f'{actualizados} alumno(s) ya existentes: se actualizó su empresa de referencia.')
 
                         results = {
                             'created': created,
@@ -3953,6 +4018,16 @@ def perfil_view(request):
     enlaces_form = None
     if rol == 'alumno':
         alumno = Alumno.objects.select_related('carrera', 'sede').filter(pk=user.pk).first()
+        if alumno is None:
+            # Perfil mínimo para que el alumno pueda completar sus enlaces. carrera y
+            # sede son obligatorias en la base, así que se asignan valores por defecto.
+            carrera_def = Carrera.objects.order_by('pk').first()
+            sede_def = Sede.objects.order_by('pk').first()
+            if carrera_def and sede_def:
+                alumno = Alumno.objects.create(
+                    id=user, carrera=carrera_def, sede=sede_def,
+                    created_at=timezone.now(), updated_at=timezone.now(),
+                )
         if alumno:
             # El alumno edita sus tres enlaces de empleabilidad desde el perfil.
             if request.method == 'POST' and request.POST.get('action') == 'guardar_enlaces':

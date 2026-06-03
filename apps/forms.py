@@ -118,19 +118,21 @@ class PeriodoAcademicoForm(forms.ModelForm):
 class AlumnoEnlacesForm(forms.ModelForm):
     """Enlaces de empleabilidad que el alumno edita en su perfil (LinkedIn, CV y video)."""
 
+    # Campos de texto (no type="url") para aceptar direcciones sin prefijo; el servidor
+    # antepone https:// automáticamente vía assume_scheme y valida el resultado.
     url_linkedin = forms.URLField(
         required=False, assume_scheme='https',
-        widget=forms.URLInput(attrs={'class': 'nt-input', 'placeholder': 'https://www.linkedin.com/in/...'}),
+        widget=forms.TextInput(attrs={'class': 'nt-input', 'placeholder': 'www.linkedin.com/in/...'}),
         error_messages={'invalid': 'Ingresa una URL de LinkedIn válida.'},
     )
     url_cv = forms.URLField(
         required=False, assume_scheme='https',
-        widget=forms.URLInput(attrs={'class': 'nt-input', 'placeholder': 'https://...'}),
+        widget=forms.TextInput(attrs={'class': 'nt-input', 'placeholder': 'www...'}),
         error_messages={'invalid': 'Ingresa una URL de CV válida.'},
     )
     url_youtube = forms.URLField(
         required=False, assume_scheme='https',
-        widget=forms.URLInput(attrs={'class': 'nt-input', 'placeholder': 'https://www.youtube.com/watch?v=...'}),
+        widget=forms.TextInput(attrs={'class': 'nt-input', 'placeholder': 'www.youtube.com/watch?v=...'}),
         error_messages={'invalid': 'Ingresa una URL de video válida.'},
     )
 

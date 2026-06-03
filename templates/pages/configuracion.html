@@ -153,8 +153,10 @@
     .cfg-comp-total.bad{background:var(--c-danger-soft);color:var(--c-danger);}
     .cfg-comp-list{display:flex;flex-direction:column;gap:10px;}
     .cfg-comp-row{display:flex;gap:10px;align-items:center;}
-    .cfg-comp-nombre{flex:1;}
-    .cfg-comp-peso{width:96px;flex-shrink:0;}
+    /* Misma especificidad que .cfg-wrap .nt-input (línea de arriba) para que el campo
+       de nombre ocupe el ancho y el de ponderación quede angosto. */
+    .cfg-wrap .cfg-comp-nombre{flex:1 1 auto;min-width:0;width:auto;}
+    .cfg-wrap .cfg-comp-peso{flex:0 0 96px;width:96px;}
     .cfg-del{width:36px;height:36px;border:1px solid var(--c-line-strong);background:#fff;border-radius:var(--c-radius-sm);color:var(--c-danger);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s;}
     .cfg-del:hover{background:var(--c-danger-soft);border-color:rgba(220,38,38,.3);}
     .cfg-add{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--c-primary);background:none;border:none;cursor:pointer;padding:8px 0;align-self:flex-start;font-family:inherit;}

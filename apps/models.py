@@ -322,6 +322,36 @@ class PeriodoAcademico(models.Model):
         db_table = 'periodo_academico'
 
 
+class AsignacionPeriodo(models.Model):
+    """Vínculo directo alumno ↔ empresa ↔ período (sin proyecto).
+
+    Es la fuente de la empresa de cada alumno por período, independiente de los
+    proyectos que arman los tutores. Tabla gestionada por Django.
+    """
+    ESTADO_CHOICES = [
+        ('activo', 'Activo'),
+        ('cambiado', 'Cambiado'),
+        ('desvinculado', 'Desvinculado'),
+    ]
+    alumno = models.ForeignKey('Alumno', models.CASCADE, related_name='asignaciones_periodo')
+    empresa = models.ForeignKey('Empresa', models.SET_NULL, blank=True, null=True, related_name='asignaciones_periodo')
+    periodo = models.ForeignKey('PeriodoAcademico', models.CASCADE, related_name='asignaciones_periodo')
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='activo')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'asignacion_periodo'
+        constraints = [
+            # Un alumno no puede tener dos asignaciones activas en el mismo período.
+            models.UniqueConstraint(
+                fields=['alumno', 'periodo'],
+                condition=models.Q(estado='activo'),
+                name='uniq_asignacion_activa_por_periodo',
+            ),
+        ]
+
+
 class Postulacion(models.Model):
     proyecto = models.ForeignKey('Proyecto', models.DO_NOTHING)
     alumno = models.ForeignKey(Alumno, models.DO_NOTHING)
