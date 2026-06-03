@@ -3,6 +3,7 @@ import unicodedata
 from functools import wraps
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
@@ -798,6 +799,14 @@ def bitacora_view(request):
             'message': 'No hay alumnos asignados a un proyecto en el periodo activo.',
         },
     )
+
+
+@login_not_required
+def root_view(request):
+    """Raíz del sitio: a la app si hay sesión, al login si no (sin ?next colgando)."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return redirect('login')
 
 
 def dashboard_view(request):

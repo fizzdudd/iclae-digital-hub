@@ -45,8 +45,10 @@ urlpatterns = [
     path('dashboard/tutor-empresa/', dashboard_tutor_empresa, name='dashboard_tutor_empresa'),
     path('panel/admin/', panel_admin, name='panel_admin'),
     
+    # Raíz: redirige a login o al dashboard según la sesión.
+    path('', views.root_view, name='root'),
     # Dashboard general (redirige según rol)
-    path('', views.dashboard_view, name='dashboard'),
+    path('dashboard/', views.dashboard_view, name='dashboard'),
     path('home/', views.dashboard_view, name='home'),
 
     # Vistas principales
